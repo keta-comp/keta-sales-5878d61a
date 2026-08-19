@@ -23,6 +23,17 @@ export function hasWaitUntil(): boolean {
   return findWaitUntil() !== null;
 }
 
+const pending = new Set<Promise<void>>();
+
+/** Awaits any still-running background work (used when waitUntil is unavailable). */
+export async function drainBackground(): Promise<void> {
+  while (pending.size) {
+    const current = [...pending];
+    await Promise.allSettled(current);
+    current.forEach((p) => pending.delete(p));
+  }
+}
+
 /**
  * Runs work after the HTTP response is returned.
  * Uses the platform waitUntil when available. Returns the promise so callers that
@@ -39,6 +50,10 @@ export function runBackground(work: () => Promise<unknown>, label: string): Prom
   })();
   const waitUntil = findWaitUntil();
   if (waitUntil) waitUntil(promise);
+  else {
+    pending.add(promise);
+    void promise.finally(() => pending.delete(promise));
+  }
   return promise;
 }
 
