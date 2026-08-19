@@ -173,18 +173,25 @@ function AnalyticsPage() {
 
           <h3 className="mt-6 font-display text-sm font-semibold">Lead funnel</h3>
           <div className="mt-2 space-y-2">
-            {funnel.map((stage) => (
-              <div key={stage.stage}>
+            {(
+              [
+                ["Total leads", funnel.total],
+                ["Hot", funnel.hot],
+                ["Warm", funnel.warm],
+                ["Cold", funnel.cold],
+                ["Won", funnel.won],
+                ["Lost", funnel.lost],
+              ] as const
+            ).map(([label, count]) => (
+              <div key={label}>
                 <div className="flex justify-between text-xs text-muted-foreground">
-                  <span className="capitalize">{stage.stage.replace(/_/g, " ")}</span>
-                  <span>{stage.count}</span>
+                  <span>{label}</span>
+                  <span>{count}</span>
                 </div>
                 <div className="mt-1 h-2 rounded-full bg-muted">
                   <div
                     className="h-2 rounded-full bg-primary"
-                    style={{
-                      width: `${Math.min(100, (stage.count / Math.max(1, funnel[0]?.count ?? 1)) * 100)}%`,
-                    }}
+                    style={{ width: `${Math.min(100, (count / Math.max(1, funnel.total)) * 100)}%` }}
                   />
                 </div>
               </div>
