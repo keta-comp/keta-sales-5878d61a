@@ -13,38 +13,30 @@ type TelegramUpdate = {
   edited_message?: TelegramMessage;
 };
 
-export const Route = createFileRoute("/api/public/telegram/webhook/$botId/$secret")({
+export const Route = createFileRoute("/api/public/telegram/webhook")({
   server: {
     handlers: {
-      POST: async ({ request, params }) => {
-        const [telegram, agentMod, { getBotById }, { supabaseAdmin }, perf] = await Promise.all([
+      POST: async ({ request }) => {
+        const [telegram, agentMod, single, { supabaseAdmin }, perf] = await Promise.all([
           import("@/lib/telegram.server"),
           import("@/lib/agent.server"),
-          import("@/lib/bots.server"),
+          import("@/lib/single-bot.server"),
           import("@/integrations/supabase/client.server"),
           import("@/lib/perf.server"),
         ]);
         const timer = perf.createTimer();
 
-        const bot = await getBotById(params.botId);
-        if (!bot) return new Response("Not found", { status: 404 });
-        if (!bot.is_active) return new Response("Bot is disconnected", { status: 403 });
-
-        // Path secret + Telegram header secret must both match this bot.
-        if (!telegram.safeEqual(params.secret, bot.webhook_secret)) {
-          return new Response("Unauthorized", { status: 401 });
-        }
-        const header = request.headers.get("x-telegram-bot-api-secret-token") ?? "";
-        if (!telegram.safeEqual(header, telegram.webhookHeaderSecret(bot.webhook_secret))) {
-          return new Response("Unauthorized", { status: 401 });
-        }
-
         let token: string;
         try {
-          token = telegram.decryptBotToken(bot.bot_token_encrypted);
+          token = single.singleBotToken();
         } catch (error) {
-          console.error("[telegram-webhook] token decrypt failed", error);
-          return Response.json({ ok: false, error: "token_unreadable" }, { status: 500 });
+          console.error("[telegram-webhook] missing token", error);
+          return Response.json({ ok: false, error: "bot_not_configured" }, { status: 500 });
+        }
+
+        const header = request.headers.get("x-telegram-bot-api-secret-token") ?? "";
+        if (!telegram.safeEqual(header, single.singleBotHeaderSecret(token))) {
+          return new Response("Unauthorized", { status: 401 });
         }
 
         let update: TelegramUpdate;
@@ -56,11 +48,9 @@ export const Route = createFileRoute("/api/public/telegram/webhook/$botId/$secre
 
         const message = update.message ?? update.edited_message;
         const text = message?.text?.trim();
-        if (!message || !message.from || !text) {
-          return Response.json({ ok: true, ignored: true });
-        }
+        if (!message || !message.from || !text) return Response.json({ ok: true, ignored: true });
 
-        const businessId = bot.business_id;
+        const businessId = await single.singleBusinessId();
 
         // Idempotency: Telegram retries deliveries. Unique update_id rejects duplicates.
         if (typeof update.update_id === "number") {
@@ -72,8 +62,6 @@ export const Route = createFileRoute("/api/public/telegram/webhook/$botId/$secre
         timer.mark("webhook_ack_ms");
         const ackMs = timer.total();
 
-        // Everything below happens AFTER Telegram gets its 200 when the runtime
-        // supports waitUntil; otherwise we await it so the reply is never lost.
         const task = perf.runBackground(async () => {
           const work = perf.createTimer();
           try {
@@ -93,7 +81,6 @@ export const Route = createFileRoute("/api/public/telegram/webhook/$botId/$secre
             );
             work.mark("conversation_lookup_ms");
 
-            // Persist the inbound message (needed for correctness) while reading agent gates.
             const [, settingsRes, currentRes] = await Promise.all([
               agentMod.saveMessage({
                 businessId,
@@ -119,9 +106,8 @@ export const Route = createFileRoute("/api/public/telegram/webhook/$botId/$secre
 
             if (settingsRes.ai?.enabled === false) return;
 
-            // Human takeover: the AI stays silent while an operator is actually active.
-            // It resumes when the customer restarts the chat or the operator has been
-            // idle for 30+ minutes, so a handoff can never mute the bot forever.
+            // Human takeover: the AI stays silent while an operator is actually active,
+            // and resumes on /start or after 30 idle minutes so it can never stay mute.
             if (currentRes.data?.mode === "human") {
               const { data: lastOperator } = await supabaseAdmin
                 .from("messages")
@@ -132,9 +118,8 @@ export const Route = createFileRoute("/api/public/telegram/webhook/$botId/$secre
                 .limit(1)
                 .maybeSingle();
               const lastAt = lastOperator?.created_at ? Date.parse(lastOperator.created_at) : 0;
-              const idleMs = Date.now() - lastAt;
               const restarted = /^\/start\b/.test(text);
-              if (!restarted && idleMs < 30 * 60 * 1000) return;
+              if (!restarted && Date.now() - lastAt < 30 * 60 * 1000) return;
               await supabaseAdmin.from("conversations").update({ mode: "ai" }).eq("id", conversation.id);
             }
 
@@ -151,34 +136,15 @@ export const Route = createFileRoute("/api/public/telegram/webhook/$botId/$secre
                 message.chat.id,
                 "Bir ozdan keyin yana urinib ko'ring yoki operator bilan bog'lanishingiz mumkin.",
               );
-              perf.runBackground(
-                () =>
-                  agentMod.saveMessage({
-                    businessId,
-                    conversationId: conversation.id,
-                    role: "system",
-                    content: `AI error: ${result.error}`,
-                  }),
-                "ai-error-log",
-              );
-              console.error("[telegram-latency]", {
-                ...work.result(),
-                webhook_ack_ms: ackMs,
-                ai_error: result.error,
-              });
+              console.error("[telegram-latency]", { ...work.result(), webhook_ack_ms: ackMs, ai_error: result.error });
               return;
             }
 
-            // Send to the customer first; persistence happens right after.
             const sendStart = Date.now();
             const sent = await telegram.sendTelegramMessage(token, message.chat.id, result.reply);
             work.set("telegram_send_ms", Date.now() - sendStart);
 
-            const timings = {
-              webhook_ack_ms: ackMs,
-              ...work.result(),
-              ...(result.timings ?? {}),
-            };
+            const timings = { webhook_ack_ms: ackMs, ...work.result(), ...(result.timings ?? {}) };
             console.error("[telegram-latency]", timings);
 
             perf.runBackground(
@@ -195,10 +161,6 @@ export const Route = createFileRoute("/api/public/telegram/webhook/$botId/$secre
             );
           } catch (error) {
             console.error("[telegram-webhook]", error);
-            await supabaseAdmin
-              .from("telegram_bots")
-              .update({ last_error: error instanceof Error ? error.message : "webhook failure" })
-              .eq("id", bot.id);
             try {
               await telegram.sendTelegramMessage(
                 token,
