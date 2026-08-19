@@ -47,6 +47,11 @@ function isH3SwallowedErrorBody(body: string): boolean {
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
+      // Expose the platform execution context so background work (Telegram AI
+      // processing) survives after the response is returned.
+      if (ctx && typeof (ctx as { waitUntil?: unknown }).waitUntil === "function") {
+        (globalThis as unknown as Record<string, unknown>)["__lovableExecutionCtx"] = ctx;
+      }
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
       return await normalizeCatastrophicSsrResponse(response);
