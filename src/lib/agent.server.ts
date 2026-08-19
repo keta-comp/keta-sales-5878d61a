@@ -743,6 +743,7 @@ export async function runSalesAgent(params: {
 
   try {
     const llmStart = Date.now();
+    const smallTalk = isSmallTalk(params.latestText);
     const result = await withTimeout(
       generateText({
         model: gateway(model),
@@ -760,9 +761,8 @@ export async function runSalesAgent(params: {
           role: m.role === "customer" ? ("user" as const) : ("assistant" as const),
           content: m.content,
         })),
-        tools,
-        // Tight loop budget: the context is pre-fetched, so extra hops are rarely needed.
-        stopWhen: stepCountIs(4),
+        // Small talk skips the tool catalog entirely: one round trip, no tool hops.
+        ...(smallTalk ? {} : { tools, stopWhen: stepCountIs(4) }),
         abortSignal: AbortSignal.timeout(12_000),
       }),
       13_000,
