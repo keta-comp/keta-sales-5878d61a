@@ -60,9 +60,7 @@ function SettingsPage() {
 
   return (
     <>
-      <PageHeader title="Sozlamalar" description="Biznes bilimlari, AI xatti-harakati va Telegram ulanishi." />
-
-      <TelegramCard />
+      <PageHeader title="Sozlamalar" description="Biznes bilimlari va AI savdo agentining xatti-harakati." />
 
       {business ? (
         <BusinessForm
