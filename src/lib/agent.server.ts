@@ -161,9 +161,9 @@ export async function saveMessage(input: {
   operatorId?: string | null;
   metadata?: Json;
 }) {
-  const { data, error } = await supabaseAdmin
-    .from("messages")
-    .insert({
+  // Both writes are independent — run them concurrently and skip the read-back.
+  const [{ error }] = await Promise.all([
+    supabaseAdmin.from("messages").insert({
       business_id: input.businessId,
       conversation_id: input.conversationId,
       role: input.role,
@@ -171,20 +171,27 @@ export async function saveMessage(input: {
       telegram_message_id: input.telegramMessageId ?? null,
       operator_id: input.operatorId ?? null,
       metadata: (input.metadata ?? {}) as never,
-    })
-    .select("*")
-    .single();
+    }),
+    supabaseAdmin
+      .from("conversations")
+      .update({
+        last_message_at: new Date().toISOString(),
+        last_message_preview: input.content.slice(0, 160),
+      })
+      .eq("id", input.conversationId),
+  ]);
   if (error) throw error;
+  return { ok: true };
+}
 
-  await supabaseAdmin
-    .from("conversations")
-    .update({
-      last_message_at: new Date().toISOString(),
-      last_message_preview: input.content.slice(0, 160),
-    })
-    .eq("id", input.conversationId);
+const SIMPLE_PATTERNS =
+  /^(salom|assalom\w*|assalomu alaykum|hayrli\s\w+|hi|hello|hey|good (morning|evening|afternoon)|rahmat|thanks|thank you|ok|xayr|bye)[\s!.,?]*$/i;
 
-  return data;
+/** Small talk needs no catalog tools — one fast LLM call is enough. */
+function isSmallTalk(text: string | undefined): boolean {
+  if (!text) return false;
+  const trimmed = text.trim();
+  return trimmed.length <= 30 && SIMPLE_PATTERNS.test(trimmed);
 }
 
 export async function notifyOperatorGroup(businessId: string, leadId: string, reason: string) {
