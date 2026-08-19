@@ -130,6 +130,49 @@ function AnalyticsPage() {
 
           <h3 className="mt-6 font-display text-sm font-semibold">Lead funnel</h3>
           <div className="mt-2 space-y-2">
+            {(
+              [
+                ["Total leads", funnel.total],
+                ["Hot", funnel.hot],
+                ["Warm", funnel.warm],
+                ["Cold", funnel.cold],
+                ["Won", funnel.won],
+                ["Lost", funnel.lost],
+              ] as const
+            ).map(([label, count]) => (
+              <div key={label}>
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>{label}</span>
+                  <span>{count}</span>
+                </div>
+                <div className="mt-1 h-2 rounded-full bg-muted">
+                  <div
+                    className="h-2 rounded-full bg-primary"
+                    style={{ width: `${Math.min(100, (count / Math.max(1, funnel.total)) * 100)}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="surface-panel p-4">
+          <h2 className="font-display text-base font-semibold">Best sellers</h2>
+          <div className="mt-3 divide-y divide-border text-sm">
+            {topProducts.map((product) => (
+              <div key={product.name} className="flex items-center justify-between gap-3 py-2">
+                <span className="truncate text-foreground">{product.name}</span>
+                <span className="text-xs text-muted-foreground">{product.quantity} sold</span>
+                <span className="tabular-nums">{formatMoney(product.revenue, currency)}</span>
+              </div>
+            ))}
+            {topProducts.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">No sales data yet.</p>
+            ) : null}
+          </div>
+
+          <h3 className="mt-6 font-display text-sm font-semibold">Lead funnel</h3>
+          <div className="mt-2 space-y-2">
             {funnel.map((stage) => (
               <div key={stage.stage}>
                 <div className="flex justify-between text-xs text-muted-foreground">
