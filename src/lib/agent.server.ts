@@ -390,7 +390,7 @@ export async function runSalesAgent(params: {
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle(),
-    params.latestText
+    params.latestText && !isSmallTalk(params.latestText)
       ? prefetchProducts(params.businessId, params.latestText, currency).catch(() => [])
       : Promise.resolve([]),
   ]);
