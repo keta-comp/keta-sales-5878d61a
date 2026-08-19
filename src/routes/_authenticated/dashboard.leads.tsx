@@ -25,13 +25,29 @@ type LeadPatch = {
   notes?: string;
 };
 
+const LEAD_STATUS_LABELS: Record<LeadStatus, string> = {
+  new: "Yangi",
+  needs_operator: "Operator kerak",
+  assigned: "Biriktirilgan",
+  contacted: "Bog'lanildi",
+  negotiating: "Muzokara",
+  won: "Yutildi",
+  lost: "Yo'qotildi",
+};
+
+const LEAD_SCORE_LABELS: Record<LeadScore, string> = {
+  hot: "Issiq",
+  warm: "Iliq",
+  cold: "Sovuq",
+};
+
 export const Route = createFileRoute("/_authenticated/dashboard/leads")({
   head: () => ({
     meta: [
-      { title: "Leads — SalesPilot AI" },
-      { name: "description", content: "Qualify, assign and close AI-generated Telegram sales leads." },
-      { property: "og:title", content: "Leads — SalesPilot AI" },
-      { property: "og:description", content: "AI-scored Telegram sales leads with operator assignment." },
+      { title: "Lidlar — SalesPilot AI" },
+      { name: "description", content: "AI tomonidan yaratilgan Telegram savdo lidlarini baholang, biriktiring va yakunlang." },
+      { property: "og:title", content: "Lidlar — SalesPilot AI" },
+      { property: "og:description", content: "Operatorga biriktirish imkoniyati bilan AI baholagan Telegram savdo lidlari." },
     ],
   }),
   component: LeadsPage,
@@ -78,65 +94,65 @@ function LeadsPage() {
   const mutation = useMutation({
     mutationFn: (input: LeadPatch) => saveLead({ data: input }),
     onSuccess: () => {
-      toast.success("Lead updated");
+      toast.success("Lid yangilandi");
       void queryClient.invalidateQueries({ queryKey: ["leads"] });
       void queryClient.invalidateQueries({ queryKey: ["lead"] });
     },
     onError: (error: unknown) =>
-      toast.error(error instanceof Error ? error.message : "Could not update lead"),
+      toast.error(error instanceof Error ? error.message : "Lidni yangilab bo'lmadi"),
   });
 
   const notifyMutation = useMutation({
     mutationFn: (leadId: string) =>
       notify({ data: { leadId, reason: "Manual escalation from CRM" } }),
-    onSuccess: () => toast.success("Sent to the operator group"),
+    onSuccess: () => toast.success("Operatorlar guruhiga yuborildi"),
     onError: (error: unknown) =>
-      toast.error(error instanceof Error ? error.message : "Telegram notification failed"),
+      toast.error(error instanceof Error ? error.message : "Telegram xabarnomasi yuborilmadi"),
   });
 
   const lead = detail.data?.lead;
 
   return (
     <>
-      <PageHeader title="Leads" description="Every enquiry the AI agent captured, scored and escalated." />
+      <PageHeader title="Lidlar" description="AI agenti aniqlagan, baholagan va yo'naltirgan har bir so'rov." />
 
       <div className="flex flex-wrap items-end gap-3">
         <div className="min-w-48 flex-1">
-          <Label htmlFor="lead-search">Search product</Label>
+          <Label htmlFor="lead-search">Mahsulot bo'yicha qidirish</Label>
           <Input
             id="lead-search"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="iPhone 15, sneakers…"
+            placeholder="iPhone 15, krossovka…"
           />
         </div>
         <div className="w-44">
-          <Label>Status</Label>
+          <Label>Holat</Label>
           <Select value={status} onValueChange={setStatus}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All statuses</SelectItem>
+              <SelectItem value="all">Barcha holatlar</SelectItem>
               {LEAD_STATUSES.map((value) => (
-                <SelectItem key={value} value={value} className="capitalize">
-                  {value.replace(/_/g, " ")}
+                <SelectItem key={value} value={value}>
+                  {LEAD_STATUS_LABELS[value]}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
         <div className="w-36">
-          <Label>Score</Label>
+          <Label>Baho</Label>
           <Select value={score} onValueChange={setScore}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="all">Barchasi</SelectItem>
               {LEAD_SCORES.map((value) => (
-                <SelectItem key={value} value={value} className="capitalize">
-                  {value}
+                <SelectItem key={value} value={value}>
+                  {LEAD_SCORE_LABELS[value]}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -150,20 +166,20 @@ function LeadsPage() {
         <ErrorState error={leads.error} onRetry={() => void leads.refetch()} />
       ) : leads.data.length === 0 ? (
         <EmptyState
-          title="No leads match this filter"
-          description="Leads appear here automatically when customers message your Telegram bot."
+          title="Bu filtrga mos lid topilmadi"
+          description="Mijozlar Telegram botingizga yozganda lidlar shu yerda avtomatik paydo bo'ladi."
         />
       ) : (
-        <div className="surface-panel overflow-x-auto">
+        <div className="clay-inset overflow-x-auto rounded-2xl">
           <table className="w-full text-sm">
             <thead className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
-                <th className="px-4 py-3">Customer</th>
-                <th className="px-4 py-3">Interest</th>
-                <th className="px-4 py-3">Score</th>
-                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3">Mijoz</th>
+                <th className="px-4 py-3">Qiziqish</th>
+                <th className="px-4 py-3">Baho</th>
+                <th className="px-4 py-3">Holat</th>
                 <th className="px-4 py-3">Operator</th>
-                <th className="px-4 py-3">Created</th>
+                <th className="px-4 py-3">Yaratildi</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
@@ -176,10 +192,10 @@ function LeadsPage() {
                 } | null;
                 const operator = row.operators as { full_name: string } | null;
                 return (
-                  <tr key={row.id} className="hover:bg-muted/40">
+                  <tr key={row.id} className="clay-hover">
                     <td className="px-4 py-3">
                       <p className="font-medium text-foreground">
-                        {customer?.full_name ?? "Telegram customer"}
+                        {customer?.full_name ?? "Telegram mijozi"}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {customer?.telegram_username ? `@${customer.telegram_username}` : (customer?.phone ?? "—")}
@@ -195,13 +211,13 @@ function LeadsPage() {
                     <td className="px-4 py-3">
                       <StatusBadge value={row.status} />
                     </td>
-                    <td className="px-4 py-3 text-muted-foreground">{operator?.full_name ?? "Unassigned"}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{operator?.full_name ?? "Biriktirilmagan"}</td>
                     <td className="px-4 py-3 text-xs text-muted-foreground">
                       {new Date(row.created_at).toLocaleString()}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <Button variant="outline" size="sm" onClick={() => setOpenId(row.id)}>
-                        Open
+                      <Button variant="outline" size="sm" className="clay-raised" onClick={() => setOpenId(row.id)}>
+                        Ochish
                       </Button>
                     </td>
                   </tr>
@@ -215,7 +231,7 @@ function LeadsPage() {
       <Sheet open={Boolean(openId)} onOpenChange={(next) => setOpenId(next ? openId : null)}>
         <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
           <SheetHeader>
-            <SheetTitle>Lead detail</SheetTitle>
+            <SheetTitle>Lid tafsilotlari</SheetTitle>
           </SheetHeader>
           {detail.isPending ? (
             <LoadingState />
@@ -223,19 +239,19 @@ function LeadsPage() {
             <ErrorState error={detail.error} />
           ) : lead ? (
             <div className="space-y-5 px-4 pb-8">
-              <div className="surface-panel p-3 text-sm">
+              <div className="clay-panel p-4 text-sm">
                 <p className="font-medium text-foreground">
-                  {(lead.customers as { full_name: string | null } | null)?.full_name ?? "Telegram customer"}
+                  {(lead.customers as { full_name: string | null } | null)?.full_name ?? "Telegram mijozi"}
                 </p>
-                <p className="text-xs text-muted-foreground">{lead.ai_summary ?? "No AI summary yet"}</p>
+                <p className="text-xs text-muted-foreground">{lead.ai_summary ?? "AI xulosasi hali yo'q"}</p>
                 {lead.handoff_reason ? (
-                  <p className="mt-2 text-xs text-warning">Handoff: {lead.handoff_reason}</p>
+                  <p className="mt-2 text-xs text-warning">Uzatish sababi: {lead.handoff_reason}</p>
                 ) : null}
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
-                  <Label>Status</Label>
+                  <Label>Holat</Label>
                   <Select
                     value={lead.status}
                     onValueChange={(value) =>
@@ -247,15 +263,15 @@ function LeadsPage() {
                     </SelectTrigger>
                     <SelectContent>
                       {LEAD_STATUSES.map((value) => (
-                        <SelectItem key={value} value={value} className="capitalize">
-                          {value.replace(/_/g, " ")}
+                        <SelectItem key={value} value={value}>
+                          {LEAD_STATUS_LABELS[value]}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
-                  <Label>Score</Label>
+                  <Label>Baho</Label>
                   <Select
                     value={lead.score}
                     onValueChange={(value) =>
@@ -267,15 +283,15 @@ function LeadsPage() {
                     </SelectTrigger>
                     <SelectContent>
                       {LEAD_SCORES.map((value) => (
-                        <SelectItem key={value} value={value} className="capitalize">
-                          {value}
+                        <SelectItem key={value} value={value}>
+                          {LEAD_SCORE_LABELS[value]}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="sm:col-span-2">
-                  <Label>Assigned operator</Label>
+                  <Label>Biriktirilgan operator</Label>
                   <Select
                     value={lead.assigned_operator_id ?? "none"}
                     onValueChange={(value) =>
@@ -290,7 +306,7 @@ function LeadsPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="none">Unassigned</SelectItem>
+                      <SelectItem value="none">Biriktirilmagan</SelectItem>
                       {(operators.data ?? []).map((operator) => (
                         <SelectItem key={operator.id} value={operator.id}>
                           {operator.full_name}
@@ -309,18 +325,18 @@ function LeadsPage() {
 
               <Button
                 variant="secondary"
-                className="w-full"
+                className="w-full clay-raised"
                 disabled={notifyMutation.isPending}
                 onClick={() => notifyMutation.mutate(lead.id)}
               >
-                Push to operator group
+                Operatorlar guruhiga yuborish
               </Button>
 
               <div>
-                <p className="text-sm font-medium text-foreground">Timeline</p>
+                <p className="text-sm font-medium text-foreground">Voqealar tarixi</p>
                 <div className="mt-2 space-y-2">
                   {(detail.data?.events ?? []).map((event) => (
-                    <div key={event.id} className="rounded-lg border border-border p-2.5 text-xs">
+                    <div key={event.id} className="clay-inset rounded-xl p-2.5 text-xs">
                       <div className="flex justify-between gap-2">
                         <span className="font-medium capitalize text-foreground">
                           {event.event_type.replace(/_/g, " ")}
@@ -346,16 +362,16 @@ function LeadNotes({ initial, onSave }: { initial: string; onSave: (value: strin
   const [value, setValue] = useState(initial);
   return (
     <div>
-      <Label htmlFor="lead-notes">Operator notes</Label>
+      <Label htmlFor="lead-notes">Operator eslatmalari</Label>
       <Textarea
         id="lead-notes"
         value={value}
         rows={4}
         onChange={(event) => setValue(event.target.value)}
-        placeholder="Agreed on delivery Friday, waiting for payment…"
+        placeholder="Juma kuniga yetkazib berish kelishildi, to'lov kutilmoqda…"
       />
-      <Button size="sm" variant="outline" className="mt-2" onClick={() => onSave(value)}>
-        Save notes
+      <Button size="sm" variant="outline" className="mt-2 clay-raised" onClick={() => onSave(value)}>
+        Eslatmalarni saqlash
       </Button>
     </div>
   );
