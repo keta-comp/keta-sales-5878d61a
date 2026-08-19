@@ -5,7 +5,6 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 
 import { ErrorState, LoadingState, PageHeader } from "@/components/app/primitives";
-import { TelegramCard } from "@/components/app/TelegramCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
