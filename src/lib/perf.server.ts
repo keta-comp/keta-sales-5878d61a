@@ -8,18 +8,28 @@ function findWaitUntil(): WaitUntil | null {
     g["__lovableExecutionCtx"],
     g["executionCtx"],
     g["ctx"],
+    g[Symbol.for("__cloudflare-request-context__") as unknown as string],
+    g["__cloudflare_request_context__"],
   ];
   for (const c of candidates) {
     if (c && typeof c.waitUntil === "function") return c.waitUntil.bind(c);
+    if (c && c.ctx && typeof c.ctx.waitUntil === "function") return c.ctx.waitUntil.bind(c.ctx);
   }
   return null;
 }
 
+/** True when the runtime can keep work alive after the response is sent. */
+export function hasWaitUntil(): boolean {
+  return findWaitUntil() !== null;
+}
+
 /**
  * Runs work after the HTTP response is returned.
- * Uses the platform waitUntil when available; otherwise lets the promise run detached.
+ * Uses the platform waitUntil when available. Returns the promise so callers that
+ * MUST NOT lose the work (e.g. the Telegram webhook) can await it as a last resort —
+ * a detached promise is killed by the Worker runtime once the response is returned.
  */
-export function runBackground(work: () => Promise<unknown>, label: string): void {
+export function runBackground(work: () => Promise<unknown>, label: string): Promise<void> {
   const promise = (async () => {
     try {
       await work();
@@ -29,7 +39,7 @@ export function runBackground(work: () => Promise<unknown>, label: string): void
   })();
   const waitUntil = findWaitUntil();
   if (waitUntil) waitUntil(promise);
-  else void promise;
+  return promise;
 }
 
 export type Timings = Record<string, number>;
