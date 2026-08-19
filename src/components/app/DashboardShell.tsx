@@ -84,8 +84,8 @@ export function DashboardShell({
 
   const brand = (
     <div className="flex items-center gap-2 px-3 py-4">
-      <span className="clay-raised grid size-10 place-items-center rounded-2xl bg-primary/15 text-primary">
-        <Sparkles className="size-5" />
+      <span className="clay-raised grid size-10 place-items-center overflow-hidden rounded-2xl bg-card">
+        <img src={logoAsset.url} alt="Keta AI logotipi" className="size-8 object-contain" />
       </span>
       <div className="leading-tight">
         <p className="font-display text-sm font-semibold">SalesPilot AI</p>
