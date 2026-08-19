@@ -550,19 +550,6 @@ export async function runSalesAgent(params: {
         return { products: (data ?? []).map(shapeProduct) };
       },
     }),
-    get_business_settings: tool({
-      description: "Get delivery, payment, working hours and return policy information.",
-      inputSchema: z.object({}),
-      execute: async () => ({
-        business_name: business?.business_name,
-        working_hours: business?.working_hours,
-        delivery_info: business?.delivery_info,
-        payment_methods: business?.payment_methods,
-        return_policy: business?.return_policy,
-        currency,
-        max_discount_percent: ai?.max_discount_percent ?? 0,
-      }),
-    }),
     create_lead: tool({
       description: "Create or update the CRM lead for this customer with what you learned.",
       inputSchema: z.object({
