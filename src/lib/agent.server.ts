@@ -29,9 +29,31 @@ function availability(stock: number, reserved: number, threshold: number) {
   return "in_stock";
 }
 
+type BusinessSettingsRow = {
+  business_name: string | null;
+  business_description: string | null;
+  working_hours: string | null;
+  delivery_info: string | null;
+  payment_methods: string | null;
+  return_policy: string | null;
+  currency: string | null;
+  operator_group_chat_id: string | null;
+};
+
+type AiSettingsRow = {
+  model: string | null;
+  tone_of_voice: string | null;
+  sales_strategy: string | null;
+  language_instruction: string | null;
+  escalation_rules: string | null;
+  max_discount_percent: number | null;
+  custom_instructions: string | null;
+  enabled: boolean | null;
+};
+
 type SettingsBundle = {
-  business: Record<string, any> | null;
-  ai: Record<string, any> | null;
+  business: BusinessSettingsRow | null;
+  ai: AiSettingsRow | null;
 };
 
 const SETTINGS_TTL_MS = 60_000;
