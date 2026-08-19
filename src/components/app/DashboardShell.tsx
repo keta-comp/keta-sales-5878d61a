@@ -10,7 +10,6 @@ import {
   Package,
   Settings,
   ShoppingCart,
-  Sparkles,
   Target,
   UserRound,
   Users,
