@@ -197,6 +197,7 @@ export const Route = createFileRoute("/api/public/telegram/webhook/$botId/$secre
 
         if (!perf.hasWaitUntil()) {
           await task;
+          await perf.drainBackground();
         }
 
         return Response.json({ ok: true, ack_ms: ackMs });
