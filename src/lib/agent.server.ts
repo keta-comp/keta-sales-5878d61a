@@ -246,26 +246,76 @@ export async function notifyOperatorGroup(businessId: string, leadId: string, re
   }
 }
 
+const PRODUCT_SELECT =
+  "id, sku, name, description, price, compare_at_price, stock_quantity, reserved_quantity, low_stock_threshold, tags, specifications, category_id, categories(name)";
+
+function shapeProductRow(p: Record<string, any>, currency: string) {
+  return {
+    id: p["id"],
+    sku: p["sku"],
+    name: p["name"],
+    category: p["categories"]?.name ?? null,
+    description: p["description"],
+    price: money(p["price"], currency),
+    price_raw: Number(p["price"]),
+    compare_at_price: p["compare_at_price"] ? money(p["compare_at_price"], currency) : null,
+    availability: availability(p["stock_quantity"], p["reserved_quantity"], p["low_stock_threshold"]),
+    available_units: Math.max(0, p["stock_quantity"] - p["reserved_quantity"]),
+    specifications: p["specifications"],
+    tags: p["tags"],
+  };
+}
+
+const STOPWORDS = new Set([
+  "salom","assalomu","alaykum","rahmat","narxi","qancha","bormi","bor","yoq","yo'q","men","siz","bu",
+  "the","a","is","hi","hello","how","much","price","do","you","have","want","need","and","for","what",
+]);
+
+/**
+ * Targeted catalog pre-search from the customer's own words, so the model usually
+ * needs zero tool round trips to answer a product question.
+ */
+export async function prefetchProducts(businessId: string, text: string, currency: string) {
+  const terms = text
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .split(/\s+/)
+    .filter((t) => t.length > 2 && !STOPWORDS.has(t))
+    .slice(0, 4);
+  if (!terms.length) return [];
+  const or = terms.map((t) => `name.ilike.%${t}%,description.ilike.%${t}%,sku.ilike.%${t}%`).join(",");
+  const { data } = await supabaseAdmin
+    .from("products")
+    .select(PRODUCT_SELECT)
+    .eq("business_id", businessId)
+    .eq("is_active", true)
+    .eq("is_archived", false)
+    .or(or)
+    .limit(6);
+  return (data ?? []).map((row) => shapeProductRow(row as Record<string, any>, currency));
+}
+
 function buildSystemPrompt(
-  business: Record<string, unknown> | null,
-  ai: Record<string, unknown> | null,
+  business: BusinessSettingsRow | null,
+  ai: AiSettingsRow | null,
   customer: { full_name: string | null; phone: string | null; location: string | null },
+  prefetched: ReturnType<typeof shapeProductRow>[],
 ) {
   return [
-    `You are the AI sales agent for "${business?.["business_name"] ?? "the business"}".`,
-    `Business description: ${business?.["business_description"] ?? "-"}`,
-    `Working hours: ${business?.["working_hours"] ?? "-"}`,
-    `Delivery: ${business?.["delivery_info"] ?? "-"}`,
-    `Payment methods: ${business?.["payment_methods"] ?? "-"}`,
-    `Return policy: ${business?.["return_policy"] ?? "-"}`,
-    `Currency: ${business?.["currency"] ?? "UZS"}`,
-    `Maximum discount you may mention: ${ai?.["max_discount_percent"] ?? 0}%`,
+    `You are the AI sales agent for "${business?.business_name ?? "the business"}".`,
+    `Business description: ${business?.business_description ?? "-"}`,
+    `Working hours: ${business?.working_hours ?? "-"}`,
+    `Delivery: ${business?.delivery_info ?? "-"}`,
+    `Payment methods: ${business?.payment_methods ?? "-"}`,
+    `Return policy: ${business?.return_policy ?? "-"}`,
+    `Currency: ${business?.currency ?? "UZS"}`,
+    `Maximum discount you may mention: ${ai?.max_discount_percent ?? 0}%`,
     "",
-    `Tone of voice: ${ai?.["tone_of_voice"] ?? "professional"}`,
-    `Sales strategy: ${ai?.["sales_strategy"] ?? ""}`,
-    `Language: ${ai?.["language_instruction"] ?? "Reply in the customer's language."}`,
-    `Escalation rules: ${ai?.["escalation_rules"] ?? ""}`,
-    ai?.["custom_instructions"] ? `Extra instructions: ${ai["custom_instructions"]}` : "",
+    `Tone of voice: ${ai?.tone_of_voice ?? "professional"}`,
+    `Sales strategy: ${ai?.sales_strategy ?? ""}`,
+    `Language: ${ai?.language_instruction ?? "Reply in the customer's language."}`,
+    `Escalation rules: ${ai?.escalation_rules ?? ""}`,
+    ai?.custom_instructions ? `Extra instructions: ${ai.custom_instructions}` : "",
     "",
     "GOAL: maximize sales honestly. Understand intent, find matching products with tools,",
     "explain value, handle objections, offer in-stock alternatives, upsell relevant accessories,",
@@ -275,12 +325,18 @@ function buildSystemPrompt(
     "- NEVER invent products, stock, prices, discounts, specs or delivery promises. Every fact must come from a tool result.",
     "- If a product is out of stock, say so plainly and offer real alternatives from search_alternatives.",
     "- Keep replies short (max ~4 sentences), no markdown tables, no emoji spam.",
-    "- Always call create_lead (or update_lead) once you know what the customer wants.",
+    "- Business facts above (hours, delivery, payment, returns) are already final: answer those directly, never call a tool for them.",
+    "- Prefer the PRE-FETCHED CATALOG RESULTS below; only call search_products when they do not answer the question.",
+    "- Answer in ONE turn whenever possible. Do not chain tool calls you do not need.",
+    "- Call create_lead (or update_lead) once you know what the customer wants; skip it for pure small talk.",
     "- Set lead score: hot when the customer signals buying (olaman, buyurtma, payment/delivery questions, gives phone), warm when interested, cold when just browsing.",
     "- Call request_human_operator when the customer asks for a human, negotiates a discount above the allowed maximum, complains, has a payment/delivery problem, or is a high-value ready buyer.",
     "- Only call create_order after the customer confirmed the product, quantity, phone and delivery address.",
     "",
     `Known customer info: name=${customer.full_name ?? "unknown"}, phone=${customer.phone ?? "unknown"}, location=${customer.location ?? "unknown"}.`,
+    prefetched.length
+      ? `\nPRE-FETCHED CATALOG RESULTS (live data, matched to the customer's last message):\n${JSON.stringify(prefetched)}`
+      : "",
   ]
     .filter(Boolean)
     .join("\n");
@@ -290,38 +346,52 @@ export async function runSalesAgent(params: {
   businessId: string;
   customerId: string;
   conversationId: string;
+  latestText?: string;
 }): Promise<AgentResult> {
+  const timer = createTimer();
   const apiKey = process.env["LOVABLE_API_KEY"];
   if (!apiKey) {
     return { reply: "", escalated: false, leadId: null, error: "LOVABLE_API_KEY is not configured" };
   }
 
-  const { business, ai } = await getSettings(params.businessId);
-  const currency = (business?.currency ?? "UZS") as string;
+  // Settings come from the short-lived cache; the rest loads concurrently.
+  const settings = await getSettings(params.businessId);
+  const business = settings.business;
+  const ai = settings.ai;
+  const currency = business?.currency ?? "UZS";
+  timer.mark("settings_ms");
 
-  const { data: customer } = await supabaseAdmin
-    .from("customers")
-    .select("*")
-    .eq("business_id", params.businessId)
-    .eq("id", params.customerId)
-    .single();
+  const [customerRes, historyRes, leadRes, prefetched] = await Promise.all([
+    supabaseAdmin
+      .from("customers")
+      .select("id, full_name, phone, location")
+      .eq("business_id", params.businessId)
+      .eq("id", params.customerId)
+      .maybeSingle(),
+    supabaseAdmin
+      .from("messages")
+      .select("role, content")
+      .eq("conversation_id", params.conversationId)
+      .order("created_at", { ascending: false })
+      .limit(14),
+    supabaseAdmin
+      .from("leads")
+      .select("id")
+      .eq("business_id", params.businessId)
+      .eq("customer_id", params.customerId)
+      .not("status", "in", "(won,lost)")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    params.latestText
+      ? prefetchProducts(params.businessId, params.latestText, currency).catch(() => [])
+      : Promise.resolve([]),
+  ]);
+  timer.mark("context_load_ms");
 
-  const { data: history } = await supabaseAdmin
-    .from("messages")
-    .select("role, content")
-    .eq("business_id", params.businessId)
-    .eq("conversation_id", params.conversationId)
-    .order("created_at", { ascending: true })
-    .limit(40);
-
-  const { data: openLead } = await supabaseAdmin
-    .from("leads")
-    .select("*")
-    .eq("business_id", params.businessId)
-    .eq("customer_id", params.customerId)
-    .not("status", "in", "(won,lost)")
-    .order("created_at", { ascending: false })
-    .maybeSingle();
+  const customer = customerRes.data;
+  const history = (historyRes.data ?? []).slice().reverse();
+  const openLead = leadRes.data;
 
   let leadId: string | null = openLead?.id ?? null;
   let escalated = false;
