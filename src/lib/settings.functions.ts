@@ -44,6 +44,11 @@ export const saveBusinessSettings = createServerFn({ method: "POST" })
       .update(compact(patch) as never)
       .eq("id", id);
     if (error) throw new Error(error.message);
+    const [{ requireBusinessId }, { invalidateSettingsCache }] = await Promise.all([
+      import("./tenant.server"),
+      import("./agent.server"),
+    ]);
+    invalidateSettingsCache(await requireBusinessId(context.supabase));
     return { ok: true };
   });
 
@@ -71,6 +76,11 @@ export const saveAiSettings = createServerFn({ method: "POST" })
       .update(compact(patch) as never)
       .eq("id", id);
     if (error) throw new Error(error.message);
+    const [{ requireBusinessId }, { invalidateSettingsCache }] = await Promise.all([
+      import("./tenant.server"),
+      import("./agent.server"),
+    ]);
+    invalidateSettingsCache(await requireBusinessId(context.supabase));
     return { ok: true };
   });
 
