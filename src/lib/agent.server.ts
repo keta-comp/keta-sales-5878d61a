@@ -4,6 +4,7 @@ import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { createLovableAiGatewayProvider, gatewayErrorMessage } from "./ai-gateway.server";
 import { getActiveBot } from "./bots.server";
+import { createTimer, runBackground, withTimeout, type Timings } from "./perf.server";
 import { sendTelegramMessage } from "./telegram.server";
 
 type Json = Record<string, unknown>;
@@ -13,6 +14,7 @@ export type AgentResult = {
   escalated: boolean;
   leadId: string | null;
   error?: string;
+  timings?: Timings;
 };
 
 function money(value: number | null, currency: string) {
@@ -27,12 +29,43 @@ function availability(stock: number, reserved: number, threshold: number) {
   return "in_stock";
 }
 
-export async function getSettings(businessId: string) {
+type SettingsBundle = {
+  business: Record<string, any> | null;
+  ai: Record<string, any> | null;
+};
+
+const SETTINGS_TTL_MS = 60_000;
+const settingsCache = new Map<string, { at: number; value: SettingsBundle }>();
+
+/** Business + AI settings change rarely, so they are cached per business for a short window. */
+export async function getSettings(businessId: string, useCache = true): Promise<SettingsBundle> {
+  const cached = settingsCache.get(businessId);
+  if (useCache && cached && Date.now() - cached.at < SETTINGS_TTL_MS) return cached.value;
+
   const [{ data: business }, { data: ai }] = await Promise.all([
-    supabaseAdmin.from("business_settings").select("*").eq("business_id", businessId).maybeSingle(),
-    supabaseAdmin.from("ai_settings").select("*").eq("business_id", businessId).maybeSingle(),
+    supabaseAdmin
+      .from("business_settings")
+      .select(
+        "business_name, business_description, working_hours, delivery_info, payment_methods, return_policy, currency, operator_group_chat_id",
+      )
+      .eq("business_id", businessId)
+      .maybeSingle(),
+    supabaseAdmin
+      .from("ai_settings")
+      .select(
+        "model, tone_of_voice, sales_strategy, language_instruction, escalation_rules, max_discount_percent, custom_instructions, enabled",
+      )
+      .eq("business_id", businessId)
+      .maybeSingle(),
   ]);
-  return { business, ai };
+  const value: SettingsBundle = { business, ai };
+  settingsCache.set(businessId, { at: Date.now(), value });
+  return value;
+}
+
+/** Called after the dashboard changes settings so the next message uses fresh values. */
+export function invalidateSettingsCache(businessId: string) {
+  settingsCache.delete(businessId);
 }
 
 export async function getOrCreateCustomer(input: {
