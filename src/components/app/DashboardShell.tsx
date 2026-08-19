@@ -23,16 +23,16 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 
 const NAV = [
-  { to: "/dashboard", label: "Overview", icon: LayoutDashboard },
-  { to: "/dashboard/leads", label: "Leads", icon: Target },
-  { to: "/dashboard/customers", label: "Customers", icon: Users },
-  { to: "/dashboard/conversations", label: "Conversations", icon: MessagesSquare },
-  { to: "/dashboard/orders", label: "Orders", icon: ShoppingCart },
-  { to: "/dashboard/inventory", label: "Inventory", icon: Boxes },
-  { to: "/dashboard/products", label: "Products", icon: Package },
-  { to: "/dashboard/operators", label: "Operators", icon: UserRound },
-  { to: "/dashboard/analytics", label: "Sales Analytics", icon: BarChart3 },
-  { to: "/dashboard/settings", label: "Settings", icon: Settings },
+  { to: "/dashboard", label: "Umumiy ko'rinish", icon: LayoutDashboard },
+  { to: "/dashboard/leads", label: "Murojaatlar", icon: Target },
+  { to: "/dashboard/customers", label: "Mijozlar", icon: Users },
+  { to: "/dashboard/conversations", label: "Suhbatlar", icon: MessagesSquare },
+  { to: "/dashboard/orders", label: "Buyurtmalar", icon: ShoppingCart },
+  { to: "/dashboard/inventory", label: "Ombor", icon: Boxes },
+  { to: "/dashboard/products", label: "Mahsulotlar", icon: Package },
+  { to: "/dashboard/operators", label: "Operatorlar", icon: UserRound },
+  { to: "/dashboard/analytics", label: "Savdo tahlili", icon: BarChart3 },
+  { to: "/dashboard/settings", label: "Sozlamalar", icon: Settings },
 ] as const;
 
 function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
@@ -48,10 +48,10 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
             to={item.to}
             onClick={onNavigate}
             className={cn(
-              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+              "flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium transition-all",
               active
-                ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
+                ? "clay-raised bg-sidebar-accent text-sidebar-accent-foreground"
+                : "text-muted-foreground hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground hover:shadow-clay-sm",
             )}
           >
             <Icon className="size-4" />
@@ -84,39 +84,39 @@ export function DashboardShell({
 
   const brand = (
     <div className="flex items-center gap-2 px-3 py-4">
-      <span className="grid size-9 place-items-center rounded-xl bg-primary/15 text-primary">
+      <span className="clay-raised grid size-10 place-items-center rounded-2xl bg-primary/15 text-primary">
         <Sparkles className="size-5" />
       </span>
       <div className="leading-tight">
         <p className="font-display text-sm font-semibold">SalesPilot AI</p>
-        <p className="text-xs text-muted-foreground">AI sales department</p>
+        <p className="text-xs text-muted-foreground">AI savdo bo‘limi</p>
       </div>
     </div>
   );
 
   return (
     <div className="min-h-screen bg-background">
-      <aside className="fixed inset-y-0 left-0 hidden w-64 flex-col border-r border-sidebar-border bg-sidebar px-3 lg:flex">
+      <aside className="fixed inset-y-0 left-0 hidden w-64 flex-col border-r border-sidebar-border/60 bg-sidebar px-3 shadow-clay lg:flex">
         {brand}
         <NavLinks />
         <div className="mt-auto border-t border-sidebar-border py-4">
           <p className="truncate px-3 pb-2 text-xs text-muted-foreground">{email ?? ""}</p>
           <Button variant="ghost" size="sm" className="w-full justify-start gap-2" onClick={signOut}>
-            <LogOut className="size-4" /> Sign out
+            <LogOut className="size-4" /> Chiqish
           </Button>
         </div>
       </aside>
 
       <div className="lg:pl-64">
-        <header className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-border bg-background/85 px-4 py-3 backdrop-blur lg:px-8">
+        <header className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-border/50 bg-background/80 px-4 py-3 backdrop-blur-xl lg:px-8">
           <div className="flex items-center gap-2">
             <Sheet open={open} onOpenChange={setOpen}>
               <SheetTrigger asChild>
-                <Button variant="outline" size="icon" className="lg:hidden" aria-label="Open menu">
+                <Button variant="outline" size="icon" className="lg:hidden" aria-label="Menyuni ochish">
                   <Menu className="size-4" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="w-72 bg-sidebar px-3">
+              <SheetContent side="left" className="w-72 bg-sidebar px-3 shadow-clay-lg">
                 {brand}
                 <NavLinks onNavigate={() => setOpen(false)} />
               </SheetContent>
@@ -127,7 +127,7 @@ export function DashboardShell({
             <span className="hidden text-xs text-muted-foreground sm:inline">{email}</span>
             <Button variant="outline" size="sm" className="gap-2" onClick={signOut}>
               <LogOut className="size-4" />
-              <span className="hidden sm:inline">Sign out</span>
+              <span className="hidden sm:inline">Chiqish</span>
             </Button>
           </div>
         </header>

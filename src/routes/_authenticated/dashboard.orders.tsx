@@ -19,13 +19,29 @@ import {
   type PaymentStatus,
 } from "@/lib/types";
 
+const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
+  new: "Yangi",
+  confirming: "Tasdiqlanmoqda",
+  confirmed: "Tasdiqlangan",
+  preparing: "Tayyorlanmoqda",
+  delivered: "Yetkazildi",
+  cancelled: "Bekor qilindi",
+};
+
+const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
+  unpaid: "To'lanmagan",
+  partial: "Qisman to'langan",
+  paid: "To'langan",
+  refunded: "Qaytarilgan",
+};
+
 export const Route = createFileRoute("/_authenticated/dashboard/orders")({
   head: () => ({
     meta: [
-      { title: "Orders — SalesPilot AI" },
-      { name: "description", content: "Track and fulfil orders the AI agent closed on Telegram." },
-      { property: "og:title", content: "Orders — SalesPilot AI" },
-      { property: "og:description", content: "Order fulfilment with automatic stock reservation." },
+      { title: "Buyurtmalar — SalesPilot AI" },
+      { name: "description", content: "AI agenti Telegramda yakunlagan buyurtmalarni kuzating va bajaring." },
+      { property: "og:title", content: "Buyurtmalar — SalesPilot AI" },
+      { property: "og:description", content: "Avtomatik ombor zaxirasi bilan buyurtmalarni bajarish." },
     ],
   }),
   component: OrdersPage,
@@ -68,23 +84,23 @@ function OrdersPage() {
   const mutation = useMutation({
     mutationFn: (input: OrderPatch) => save({ data: input }),
     onSuccess: () => {
-      toast.success("Order updated");
+      toast.success("Buyurtma yangilandi");
       void queryClient.invalidateQueries({ queryKey: ["orders"] });
       void queryClient.invalidateQueries({ queryKey: ["products"] });
     },
-    onError: (error: unknown) => toast.error(error instanceof Error ? error.message : "Update failed"),
+    onError: (error: unknown) => toast.error(error instanceof Error ? error.message : "Yangilash amalga oshmadi"),
   });
 
   return (
     <>
       <PageHeader
-        title="Orders"
-        description="Confirming an order reserves stock; cancelling releases it — handled in the database."
+        title="Buyurtmalar"
+        description="Buyurtmani tasdiqlash ombordan zaxiralaydi; bekor qilish uni bo'shatadi — bu ma'lumotlar bazasida avtomatik amalga oshadi."
       />
 
       <div className="flex flex-wrap items-end gap-3">
         <div className="min-w-48 flex-1">
-          <Label htmlFor="order-search">Search order number</Label>
+          <Label htmlFor="order-search">Buyurtma raqamini qidirish</Label>
           <Input
             id="order-search"
             value={search}
@@ -93,16 +109,16 @@ function OrdersPage() {
           />
         </div>
         <div className="w-44">
-          <Label>Status</Label>
+          <Label>Holat</Label>
           <Select value={status} onValueChange={setStatus}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All statuses</SelectItem>
+              <SelectItem value="all">Barcha holatlar</SelectItem>
               {ORDER_STATUSES.map((value) => (
-                <SelectItem key={value} value={value} className="capitalize">
-                  {value}
+                <SelectItem key={value} value={value}>
+                  {ORDER_STATUS_LABELS[value]}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -115,9 +131,9 @@ function OrdersPage() {
       ) : orders.error ? (
         <ErrorState error={orders.error} onRetry={() => void orders.refetch()} />
       ) : orders.data.length === 0 ? (
-        <EmptyState title="No orders yet" description="Orders appear when the AI agent or an operator closes a deal." />
+        <EmptyState title="Hali buyurtmalar yo'q" description="AI agenti yoki operator savdoni yakunlaganda buyurtmalar shu yerda paydo bo'ladi." />
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {orders.data.map((order) => {
             const customer = order.customers as { full_name: string | null; telegram_username: string | null } | null;
             const items = (order.order_items ?? []) as {
@@ -127,7 +143,7 @@ function OrdersPage() {
               line_total: number;
             }[];
             return (
-              <div key={order.id} className="surface-panel p-4">
+              <div key={order.id} className="clay-panel clay-hover p-5">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <div className="flex items-center gap-2">
@@ -136,11 +152,11 @@ function OrdersPage() {
                       <StatusBadge value={order.payment_status} />
                     </div>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      {customer?.full_name ?? customer?.telegram_username ?? "Telegram customer"} ·{" "}
-                      {order.phone ?? "no phone"} · {new Date(order.created_at).toLocaleString()}
+                      {customer?.full_name ?? customer?.telegram_username ?? "Telegram mijozi"} ·{" "}
+                      {order.phone ?? "telefon yo'q"} · {new Date(order.created_at).toLocaleString()}
                     </p>
                     {order.delivery_address ? (
-                      <p className="text-sm text-muted-foreground">Deliver to: {order.delivery_address}</p>
+                      <p className="text-sm text-muted-foreground">Yetkazib berish manzili: {order.delivery_address}</p>
                     ) : null}
                   </div>
                   <p className="font-display text-lg font-semibold tabular-nums text-success">
@@ -148,7 +164,7 @@ function OrdersPage() {
                   </p>
                 </div>
 
-                <ul className="mt-3 space-y-1 text-sm">
+                <ul className="clay-inset mt-3 space-y-1 rounded-xl p-3 text-sm">
                   {items.map((item) => (
                     <li key={item.id} className="flex justify-between gap-2 text-muted-foreground">
                       <span>
@@ -161,7 +177,7 @@ function OrdersPage() {
 
                 <div className="mt-4 grid gap-3 sm:grid-cols-3">
                   <div>
-                    <Label>Order status</Label>
+                    <Label>Buyurtma holati</Label>
                     <Select
                       value={order.status}
                       onValueChange={(value) => mutation.mutate({ id: order.id, status: value as OrderStatus })}
@@ -171,15 +187,15 @@ function OrdersPage() {
                       </SelectTrigger>
                       <SelectContent>
                         {ORDER_STATUSES.map((value) => (
-                          <SelectItem key={value} value={value} className="capitalize">
-                            {value}
+                          <SelectItem key={value} value={value}>
+                            {ORDER_STATUS_LABELS[value]}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
                   <div>
-                    <Label>Payment</Label>
+                    <Label>To'lov</Label>
                     <Select
                       value={order.payment_status}
                       onValueChange={(value) =>
@@ -191,8 +207,8 @@ function OrdersPage() {
                       </SelectTrigger>
                       <SelectContent>
                         {PAYMENT_STATUSES.map((value) => (
-                          <SelectItem key={value} value={value} className="capitalize">
-                            {value}
+                          <SelectItem key={value} value={value}>
+                            {PAYMENT_STATUS_LABELS[value]}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -213,7 +229,7 @@ function OrdersPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="none">Unassigned</SelectItem>
+                        <SelectItem value="none">Biriktirilmagan</SelectItem>
                         {(operators.data ?? []).map((operator) => (
                           <SelectItem key={operator.id} value={operator.id}>
                             {operator.full_name}

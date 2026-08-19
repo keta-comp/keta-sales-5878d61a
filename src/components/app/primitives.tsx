@@ -14,7 +14,7 @@ export function PageHeader({
   actions?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-3 border-b border-border pb-5 sm:flex-row sm:items-end sm:justify-between">
+    <div className="flex flex-col gap-3 pb-1 sm:flex-row sm:items-end sm:justify-between">
       <div>
         <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">{title}</h1>
         {description ? (
@@ -47,20 +47,22 @@ export function StatCard({
     danger: "text-destructive",
   }[tone];
   return (
-    <div className="surface-panel p-4">
+    <div className="clay-panel clay-hover p-5">
       <div className="flex items-center justify-between gap-2">
         <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
           {label}
         </span>
-        {icon ? <span className="text-muted-foreground">{icon}</span> : null}
+        {icon ? (
+          <span className="clay-inset grid size-9 place-items-center text-primary">{icon}</span>
+        ) : null}
       </div>
-      <p className={cn("mt-2 font-display text-2xl font-semibold tabular-nums", toneClass)}>{value}</p>
+      <p className={cn("mt-2 font-display text-2xl font-semibold tabular-nums sm:text-3xl", toneClass)}>{value}</p>
       {hint ? <p className="mt-1 text-xs text-muted-foreground">{hint}</p> : null}
     </div>
   );
 }
 
-export function LoadingState({ label = "Loading…" }: { label?: string }) {
+export function LoadingState({ label = "Yuklanmoqda…" }: { label?: string }) {
   return (
     <div className="flex items-center justify-center gap-2 py-16 text-sm text-muted-foreground">
       <Loader2 className="size-4 animate-spin" />
@@ -70,17 +72,17 @@ export function LoadingState({ label = "Loading…" }: { label?: string }) {
 }
 
 export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () => void }) {
-  const message = error instanceof Error ? error.message : "Something went wrong";
+  const message = error instanceof Error ? error.message : "Nimadir xato ketdi";
   return (
-    <div className="surface-panel flex flex-col items-center gap-3 p-10 text-center">
-      <AlertTriangle className="size-6 text-destructive" />
+    <div className="clay-panel flex flex-col items-center gap-3 p-10 text-center">
+      <span className="clay-inset grid size-14 place-items-center"><AlertTriangle className="size-6 text-destructive" /></span>
       <div>
-        <p className="font-medium text-foreground">Could not load this data</p>
+        <p className="font-medium text-foreground">Ma’lumotlarni yuklab bo‘lmadi</p>
         <p className="mt-1 text-sm text-muted-foreground">{message}</p>
       </div>
       {onRetry ? (
         <Button variant="outline" size="sm" onClick={onRetry}>
-          Try again
+          Qayta urinish
         </Button>
       ) : null}
     </div>
@@ -97,8 +99,8 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="surface-panel flex flex-col items-center gap-3 p-12 text-center">
-      <Inbox className="size-6 text-muted-foreground" />
+    <div className="clay-panel flex flex-col items-center gap-3 p-12 text-center">
+      <span className="clay-inset grid size-14 place-items-center"><Inbox className="size-6 text-muted-foreground" /></span>
       <div>
         <p className="font-medium text-foreground">{title}</p>
         {description ? <p className="mt-1 text-sm text-muted-foreground">{description}</p> : null}
@@ -138,14 +140,45 @@ export function StatusBadge({ value }: { value: string | null | undefined }) {
       human: "bg-warning/15 text-warning border-warning/30",
     }[key] ?? "bg-muted text-muted-foreground border-border";
 
+  const label =
+    (
+      {
+        hot: "Qaynoq",
+        warm: "Iliq",
+        cold: "Sovuq",
+        new: "Yangi",
+        needs_operator: "Operator kerak",
+        assigned: "Tayinlangan",
+        contacted: "Bog'lanildi",
+        negotiating: "Muzokara",
+        won: "Yopildi",
+        lost: "Yo'qotildi",
+        confirming: "Tasdiqlanmoqda",
+        confirmed: "Tasdiqlangan",
+        preparing: "Tayyorlanmoqda",
+        delivered: "Yetkazildi",
+        cancelled: "Bekor qilindi",
+        paid: "To'langan",
+        unpaid: "To'lanmagan",
+        partial: "Qismiy to'lov",
+        refunded: "Qaytarilgan",
+        in_stock: "Omborda",
+        low_stock: "Kam qoldi",
+        out_of_stock: "Tugagan",
+        ai: "AI",
+        human: "Operator",
+        unknown: "Noma'lum",
+      } as Record<string, string>
+    )[key] ?? key.replace(/_/g, " ");
+
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium capitalize",
+        "inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium shadow-clay-sm",
         tone,
       )}
     >
-      {key.replace(/_/g, " ")}
+      {label}
     </span>
   );
 }

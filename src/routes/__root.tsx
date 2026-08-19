@@ -19,16 +19,16 @@ function NotFoundComponent() {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="text-7xl font-bold text-foreground">404</h1>
-        <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
+        <h2 className="mt-4 text-xl font-semibold text-foreground">Sahifa topilmadi</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          The page you're looking for doesn't exist or has been moved.
+          Siz izlagan sahifa mavjud emas yoki ko‘chirilgan.
         </p>
         <div className="mt-6">
           <Link
             to="/"
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="inline-flex items-center justify-center rounded-2xl bg-primary px-5 py-2.5 shadow-clay-sm text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
-            Go home
+            Bosh sahifaga
           </Link>
         </div>
       </div>
@@ -47,10 +47,10 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          This page didn't load
+          Sahifa yuklanmadi
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Something went wrong on our end. You can try refreshing or head back home.
+          Bizning tomonda xatolik yuz berdi. Sahifani yangilab ko‘ring yoki bosh sahifaga qayting.
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
@@ -58,15 +58,15 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
               router.invalidate();
               reset();
             }}
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="inline-flex items-center justify-center rounded-2xl bg-primary px-5 py-2.5 shadow-clay-sm text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
-            Try again
+            Qayta urinish
           </button>
           <a
             href="/"
-            className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+            className="inline-flex items-center justify-center rounded-2xl border border-input bg-card px-5 py-2.5 shadow-clay-sm text-sm font-medium text-foreground transition-colors hover:bg-accent"
           >
-            Go home
+            Bosh sahifaga
           </a>
         </div>
       </div>
@@ -79,16 +79,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "SalesPilot AI — AI Sales Agent for Telegram" },
+      { title: "SalesPilot AI — Telegram uchun AI savdo agenti" },
       {
         name: "description",
         content:
-          "AI sales agent that sells over Telegram from your real inventory, with CRM, leads, orders and operator handoff.",
+          "Telegram orqali real ombor asosida savdo qiladigan AI agent: CRM, murojaatlar, buyurtmalar va operatorga uzatish.",
       },
-      { property: "og:title", content: "SalesPilot AI — AI Sales Agent for Telegram" },
+      { property: "og:title", content: "SalesPilot AI — Telegram uchun AI savdo agenti" },
       {
         property: "og:description",
-        content: "AI-powered sales department: Telegram agent, live inventory, CRM and analytics.",
+        content: "AI asosidagi savdo bo‘limi: Telegram agent, jonli ombor, CRM va tahlil.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -116,7 +116,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="uz">
       <head>
         <HeadContent />
       </head>

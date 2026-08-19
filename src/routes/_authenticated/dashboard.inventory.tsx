@@ -13,10 +13,10 @@ import { stockState } from "@/lib/types";
 export const Route = createFileRoute("/_authenticated/dashboard/inventory")({
   head: () => ({
     meta: [
-      { title: "Inventory — SalesPilot AI" },
-      { name: "description", content: "Real stock levels, reservations and a full movement audit trail." },
-      { property: "og:title", content: "Inventory — SalesPilot AI" },
-      { property: "og:description", content: "Live stock control for AI-driven Telegram sales." },
+      { title: "Ombor — SalesPilot AI" },
+      { name: "description", content: "Haqiqiy zaxira darajalari, bandlar va to'liq harakatlar tarixi." },
+      { property: "og:title", content: "Ombor — SalesPilot AI" },
+      { property: "og:description", content: "AI orqali Telegram savdosi uchun jonli zaxira nazorati." },
     ],
   }),
   component: InventoryPage,
@@ -36,11 +36,11 @@ function InventoryPage() {
     mutationFn: (input: { id: string; change: number }) =>
       adjust({ data: { id: input.id, change: input.change, reason: "manual_adjustment" } }),
     onSuccess: () => {
-      toast.success("Stock updated");
+      toast.success("Zaxira yangilandi");
       void queryClient.invalidateQueries({ queryKey: ["products"] });
       void queryClient.invalidateQueries({ queryKey: ["movements"] });
     },
-    onError: (error: unknown) => toast.error(error instanceof Error ? error.message : "Adjustment failed"),
+    onError: (error: unknown) => toast.error(error instanceof Error ? error.message : "O'zgartirish amalga oshmadi"),
   });
 
   if (products.isPending) return <LoadingState />;
@@ -58,25 +58,25 @@ function InventoryPage() {
 
   return (
     <>
-      <PageHeader title="Inventory" description="Stock the AI checks before it promises anything to a customer." />
+      <PageHeader title="Ombor" description="AI mijozga va'da berishdan oldin tekshiradigan zaxira." />
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="SKUs" value={rows.length} />
-        <StatCard label="Units on hand" value={units} />
-        <StatCard label="Reserved" value={reserved} tone="info" />
-        <StatCard label="Low / out of stock" value={`${lowStock} / ${outOfStock}`} tone="warning" />
+        <StatCard label="SKU'lar" value={rows.length} />
+        <StatCard label="Qo'ldagi birliklar" value={units} />
+        <StatCard label="Band qilingan" value={reserved} tone="info" />
+        <StatCard label="Kam / tugagan" value={`${lowStock} / ${outOfStock}`} tone="warning" />
       </div>
 
-      <div className="surface-panel overflow-x-auto">
+      <div className="clay-panel clay-inset overflow-x-auto rounded-3xl p-2">
         <table className="w-full text-sm">
           <thead className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
-              <th className="px-4 py-3">Product</th>
-              <th className="px-4 py-3">On hand</th>
-              <th className="px-4 py-3">Reserved</th>
-              <th className="px-4 py-3">Available</th>
-              <th className="px-4 py-3">State</th>
-              <th className="px-4 py-3">Adjust</th>
+              <th className="px-4 py-3">Mahsulot</th>
+              <th className="px-4 py-3">Qo'lda</th>
+              <th className="px-4 py-3">Band</th>
+              <th className="px-4 py-3">Mavjud</th>
+              <th className="px-4 py-3">Holat</th>
+              <th className="px-4 py-3">O'zgartirish</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -109,12 +109,12 @@ function InventoryPage() {
                       className="w-24"
                       type="number"
                       placeholder="+/-"
-                      aria-label={`Adjust stock for ${product.name}`}
+                      aria-label={`${product.name} uchun zaxirani o'zgartirish`}
                       value={deltas[product.id] ?? ""}
                       onChange={(event) => setDeltas({ ...deltas, [product.id]: event.target.value })}
                     />
                     <Button size="sm" variant="outline" type="submit">
-                      Apply
+                      Qo'llash
                     </Button>
                   </form>
                 </td>
@@ -124,14 +124,14 @@ function InventoryPage() {
         </table>
       </div>
 
-      <section className="surface-panel p-4">
-        <h2 className="font-display text-base font-semibold">Movement history</h2>
-        <div className="mt-3 divide-y divide-border text-sm">
+      <section className="clay-panel rounded-3xl p-4">
+        <h2 className="font-display text-base font-semibold">Harakatlar tarixi</h2>
+        <div className="clay-inset mt-3 divide-y divide-border rounded-2xl p-2 text-sm">
           {(movements.data ?? []).map((movement) => {
             const product = movement.products as { name: string; sku: string } | null;
             return (
-              <div key={movement.id} className="flex items-center justify-between gap-3 py-2">
-                <span className="truncate text-foreground">{product?.name ?? "Product"}</span>
+              <div key={movement.id} className="flex items-center justify-between gap-3 py-2 px-2">
+                <span className="truncate text-foreground">{product?.name ?? "Mahsulot"}</span>
                 <span className="text-xs capitalize text-muted-foreground">
                   {movement.reason.replace(/_/g, " ")}
                 </span>
@@ -147,7 +147,7 @@ function InventoryPage() {
             );
           })}
           {movements.data?.length ? null : (
-            <p className="py-6 text-center text-sm text-muted-foreground">No movements recorded yet.</p>
+            <p className="py-6 text-center text-sm text-muted-foreground">Hozircha harakatlar qayd etilmagan.</p>
           )}
         </div>
       </section>

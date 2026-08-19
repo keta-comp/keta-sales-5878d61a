@@ -16,10 +16,10 @@ import { getSettings, saveAiSettings, saveBusinessSettings } from "@/lib/setting
 export const Route = createFileRoute("/_authenticated/dashboard/settings")({
   head: () => ({
     meta: [
-      { title: "Settings — SalesPilot AI" },
-      { name: "description", content: "Configure the Telegram bot, business knowledge and AI sales behaviour." },
-      { property: "og:title", content: "Settings — SalesPilot AI" },
-      { property: "og:description", content: "Telegram, business and AI agent configuration." },
+      { title: "Sozlamalar — SalesPilot AI" },
+      { name: "description", content: "Telegram botni, biznes bilimlarini va AI savdo xatti-harakatini sozlang." },
+      { property: "og:title", content: "Sozlamalar — SalesPilot AI" },
+      { property: "og:description", content: "Telegram, biznes va AI agent sozlamalari." },
     ],
   }),
   component: SettingsPage,
@@ -37,20 +37,20 @@ function SettingsPage() {
     mutationFn: (input: Parameters<typeof saveBusiness>[0] extends { data: infer D } ? D : never) =>
       saveBusiness({ data: input }),
     onSuccess: () => {
-      toast.success("Business settings saved");
+      toast.success("Biznes sozlamalari saqlandi");
       void queryClient.invalidateQueries({ queryKey: ["settings"] });
     },
-    onError: (error: unknown) => toast.error(error instanceof Error ? error.message : "Save failed"),
+    onError: (error: unknown) => toast.error(error instanceof Error ? error.message : "Saqlash amalga oshmadi"),
   });
 
   const aiMutation = useMutation({
     mutationFn: (input: Parameters<typeof saveAi>[0] extends { data: infer D } ? D : never) =>
       saveAi({ data: input }),
     onSuccess: () => {
-      toast.success("AI settings saved");
+      toast.success("AI sozlamalari saqlandi");
       void queryClient.invalidateQueries({ queryKey: ["settings"] });
     },
-    onError: (error: unknown) => toast.error(error instanceof Error ? error.message : "Save failed"),
+    onError: (error: unknown) => toast.error(error instanceof Error ? error.message : "Saqlash amalga oshmadi"),
   });
 
   if (settings.isPending) return <LoadingState />;
@@ -61,7 +61,7 @@ function SettingsPage() {
 
   return (
     <>
-      <PageHeader title="Settings" description="Business knowledge, AI behaviour and the Telegram connection." />
+      <PageHeader title="Sozlamalar" description="Biznes bilimlari, AI xatti-harakati va Telegram ulanishi." />
 
       <TelegramCard />
 
@@ -117,50 +117,50 @@ function BusinessForm({
 
   return (
     <form
-      className="surface-panel space-y-3 p-4"
+      className="clay-panel space-y-3 p-4"
       onSubmit={(event) => {
         event.preventDefault();
         onSave({ ...form, operator_group_chat_id: form.operator_group_chat_id || null });
       }}
     >
-      <h2 className="font-display text-base font-semibold">Business knowledge</h2>
-      <p className="text-sm text-muted-foreground">The AI agent quotes these facts to customers.</p>
+      <h2 className="font-display text-base font-semibold">Biznes bilimlari</h2>
+      <p className="text-sm text-muted-foreground">AI agent mijozlarga shu ma'lumotlarni aytadi.</p>
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
-          <Label htmlFor="b-name">Business name</Label>
+          <Label htmlFor="b-name">Biznes nomi</Label>
           <Input id="b-name" {...field("business_name")} required />
         </div>
         <div>
-          <Label htmlFor="b-currency">Currency</Label>
+          <Label htmlFor="b-currency">Valyuta</Label>
           <Input id="b-currency" {...field("currency")} required />
         </div>
         <div>
-          <Label htmlFor="b-hours">Working hours</Label>
+          <Label htmlFor="b-hours">Ish vaqti</Label>
           <Input id="b-hours" {...field("working_hours")} />
         </div>
         <div>
-          <Label htmlFor="b-group">Operator group chat ID</Label>
+          <Label htmlFor="b-group">Operatorlar guruh chat ID</Label>
           <Input id="b-group" {...field("operator_group_chat_id")} placeholder="-1001234567890" />
         </div>
         <div className="sm:col-span-2">
-          <Label htmlFor="b-desc">What the business sells</Label>
+          <Label htmlFor="b-desc">Biznes nima sotadi</Label>
           <Textarea id="b-desc" rows={3} {...field("business_description")} />
         </div>
         <div>
-          <Label htmlFor="b-delivery">Delivery info</Label>
+          <Label htmlFor="b-delivery">Yetkazib berish haqida</Label>
           <Textarea id="b-delivery" rows={3} {...field("delivery_info")} />
         </div>
         <div>
-          <Label htmlFor="b-payment">Payment methods</Label>
+          <Label htmlFor="b-payment">To'lov usullari</Label>
           <Textarea id="b-payment" rows={3} {...field("payment_methods")} />
         </div>
         <div className="sm:col-span-2">
-          <Label htmlFor="b-return">Return policy</Label>
+          <Label htmlFor="b-return">Qaytarish siyosati</Label>
           <Textarea id="b-return" rows={2} {...field("return_policy")} />
         </div>
       </div>
       <Button type="submit" disabled={saving}>
-        Save business settings
+        Biznes sozlamalarini saqlash
       </Button>
     </form>
   );
@@ -193,7 +193,7 @@ function AiForm({
 
   return (
     <form
-      className="surface-panel space-y-3 p-4"
+      className="clay-panel space-y-3 p-4"
       onSubmit={(event) => {
         event.preventDefault();
         onSave(form);
@@ -201,13 +201,13 @@ function AiForm({
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="font-display text-base font-semibold">AI sales agent</h2>
+          <h2 className="font-display text-base font-semibold">AI savdo agenti</h2>
           <p className="text-sm text-muted-foreground">
-            {aiKeyConfigured ? "Lovable AI is connected." : "AI key missing — replies will fail."}
+            {aiKeyConfigured ? "Lovable AI ulangan." : "AI kaliti yo'q — javoblar ishlamaydi."}
           </p>
         </div>
         <label className="flex items-center gap-2 text-sm">
-          Agent enabled
+          Agent yoqilgan
           <Switch checked={form.enabled} onCheckedChange={(checked) => setForm({ ...form, enabled: checked })} />
         </label>
       </div>
@@ -218,7 +218,7 @@ function AiForm({
           <Input id="a-model" value={form.model} onChange={(event) => setForm({ ...form, model: event.target.value })} />
         </div>
         <div>
-          <Label htmlFor="a-discount">Max discount %</Label>
+          <Label htmlFor="a-discount">Maksimal chegirma %</Label>
           <Input
             id="a-discount"
             type="number"
@@ -229,7 +229,7 @@ function AiForm({
           />
         </div>
         <div>
-          <Label htmlFor="a-tone">Tone of voice</Label>
+          <Label htmlFor="a-tone">Muloqot ohangi</Label>
           <Textarea
             id="a-tone"
             rows={2}
@@ -238,7 +238,7 @@ function AiForm({
           />
         </div>
         <div>
-          <Label htmlFor="a-language">Language rules</Label>
+          <Label htmlFor="a-language">Til qoidalari</Label>
           <Textarea
             id="a-language"
             rows={2}
@@ -247,7 +247,7 @@ function AiForm({
           />
         </div>
         <div>
-          <Label htmlFor="a-strategy">Sales strategy</Label>
+          <Label htmlFor="a-strategy">Savdo strategiyasi</Label>
           <Textarea
             id="a-strategy"
             rows={3}
@@ -256,7 +256,7 @@ function AiForm({
           />
         </div>
         <div>
-          <Label htmlFor="a-escalation">Escalation rules</Label>
+          <Label htmlFor="a-escalation">Eskalatsiya qoidalari</Label>
           <Textarea
             id="a-escalation"
             rows={3}
@@ -265,7 +265,7 @@ function AiForm({
           />
         </div>
         <div className="sm:col-span-2">
-          <Label htmlFor="a-custom">Custom instructions</Label>
+          <Label htmlFor="a-custom">Qo'shimcha ko'rsatmalar</Label>
           <Textarea
             id="a-custom"
             rows={4}
@@ -275,7 +275,7 @@ function AiForm({
         </div>
       </div>
       <Button type="submit" disabled={saving}>
-        Save AI settings
+        AI sozlamalarini saqlash
       </Button>
     </form>
   );
