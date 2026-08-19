@@ -140,14 +140,45 @@ export function StatusBadge({ value }: { value: string | null | undefined }) {
       human: "bg-warning/15 text-warning border-warning/30",
     }[key] ?? "bg-muted text-muted-foreground border-border";
 
+  const label =
+    (
+      {
+        hot: "Qaynoq",
+        warm: "Iliq",
+        cold: "Sovuq",
+        new: "Yangi",
+        needs_operator: "Operator kerak",
+        assigned: "Tayinlangan",
+        contacted: "Bog'lanildi",
+        negotiating: "Muzokara",
+        won: "Yopildi",
+        lost: "Yo'qotildi",
+        confirming: "Tasdiqlanmoqda",
+        confirmed: "Tasdiqlangan",
+        preparing: "Tayyorlanmoqda",
+        delivered: "Yetkazildi",
+        cancelled: "Bekor qilindi",
+        paid: "To'langan",
+        unpaid: "To'lanmagan",
+        partial: "Qismiy to'lov",
+        refunded: "Qaytarilgan",
+        in_stock: "Omborda",
+        low_stock: "Kam qoldi",
+        out_of_stock: "Tugagan",
+        ai: "AI",
+        human: "Operator",
+        unknown: "Noma'lum",
+      } as Record<string, string>
+    )[key] ?? key.replace(/_/g, " ");
+
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium capitalize",
+        "inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium shadow-clay-sm",
         tone,
       )}
     >
-      {key.replace(/_/g, " ")}
+      {label}
     </span>
   );
 }
