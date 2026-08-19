@@ -21,14 +21,20 @@ import {
 export const Route = createFileRoute("/_authenticated/dashboard/conversations")({
   head: () => ({
     meta: [
-      { title: "Conversations — SalesPilot AI" },
-      { name: "description", content: "Live Telegram inbox: read AI sales chats and take over as a human operator." },
-      { property: "og:title", content: "Conversations — SalesPilot AI" },
-      { property: "og:description", content: "Live AI + human Telegram sales inbox." },
+      { title: "Suhbatlar — SalesPilot AI" },
+      { name: "description", content: "Jonli Telegram inbox: AI savdo suhbatlarini o'qing va operator sifatida ularni o'z qo'lingizga oling." },
+      { property: "og:title", content: "Suhbatlar — SalesPilot AI" },
+      { property: "og:description", content: "Jonli AI va inson operator Telegram savdo inboxi." },
     ],
   }),
   component: ConversationsPage,
 });
+
+const MODE_LABELS: Record<string, string> = {
+  all: "Barchasi",
+  ai: "AI",
+  human: "Operator",
+};
 
 function ConversationsPage() {
   const queryClient = useQueryClient();
@@ -80,17 +86,17 @@ function ConversationsPage() {
       setDraft("");
       void queryClient.invalidateQueries({ queryKey: ["conversation"] });
     },
-    onError: (error: unknown) => toast.error(error instanceof Error ? error.message : "Message not sent"),
+    onError: (error: unknown) => toast.error(error instanceof Error ? error.message : "Xabar yuborilmadi"),
   });
 
   const modeMutation = useMutation({
     mutationFn: (next: "ai" | "human") => switchMode({ data: { id: activeId!, mode: next } }),
     onSuccess: () => {
-      toast.success("Conversation mode updated");
+      toast.success("Suhbat rejimi yangilandi");
       void queryClient.invalidateQueries({ queryKey: ["conversation"] });
       void queryClient.invalidateQueries({ queryKey: ["conversations"] });
     },
-    onError: (error: unknown) => toast.error(error instanceof Error ? error.message : "Update failed"),
+    onError: (error: unknown) => toast.error(error instanceof Error ? error.message : "Yangilash amalga oshmadi"),
   });
 
   const conversation = thread.data?.conversation;
@@ -98,8 +104,8 @@ function ConversationsPage() {
   return (
     <>
       <PageHeader
-        title="Conversations"
-        description="Every Telegram thread, live. Take over from the AI whenever you want."
+        title="Suhbatlar"
+        description="Har bir Telegram suhbati jonli rejimda. Xohlagan vaqtingizda AI’dan boshqaruvni o‘zingizga oling."
         actions={
           <div className="flex gap-2">
             {["all", "ai", "human"].map((value) => (
@@ -108,9 +114,8 @@ function ConversationsPage() {
                 size="sm"
                 variant={mode === value ? "default" : "outline"}
                 onClick={() => setMode(value)}
-                className="capitalize"
               >
-                {value}
+                {MODE_LABELS[value] ?? value}
               </Button>
             ))}
           </div>
@@ -118,21 +123,21 @@ function ConversationsPage() {
       />
 
       <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
-        <div className="surface-panel flex max-h-[70vh] flex-col overflow-hidden">
+        <div className="clay-panel flex max-h-[70vh] flex-col overflow-hidden">
           <div className="border-b border-border p-3">
             <Input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search customer or message"
+              placeholder="Mijoz yoki xabarni qidiring"
             />
           </div>
-          <div className="flex-1 overflow-y-auto">
+          <div className="clay-inset m-2 flex-1 overflow-y-auto rounded-2xl">
             {conversations.isPending ? (
               <LoadingState />
             ) : conversations.error ? (
               <ErrorState error={conversations.error} onRetry={() => void conversations.refetch()} />
             ) : conversations.data.length === 0 ? (
-              <p className="p-6 text-center text-sm text-muted-foreground">No conversations yet.</p>
+              <p className="p-6 text-center text-sm text-muted-foreground">Hozircha suhbatlar yo'q.</p>
             ) : (
               conversations.data.map((row) => {
                 const customer = row.customers as { full_name: string | null; telegram_username: string | null } | null;
@@ -142,18 +147,18 @@ function ConversationsPage() {
                     type="button"
                     onClick={() => setActiveId(row.id)}
                     className={cn(
-                      "flex w-full flex-col gap-1 border-b border-border px-3 py-3 text-left transition-colors hover:bg-muted/50",
-                      activeId === row.id && "bg-muted/70",
+                      "clay-hover flex w-full flex-col gap-1 rounded-xl border-b border-border px-3 py-3 text-left transition-colors",
+                      activeId === row.id && "bg-primary/10",
                     )}
                   >
                     <div className="flex items-center justify-between gap-2">
                       <span className="truncate text-sm font-medium text-foreground">
-                        {customer?.full_name ?? customer?.telegram_username ?? "Telegram customer"}
+                        {customer?.full_name ?? customer?.telegram_username ?? "Telegram mijozi"}
                       </span>
                       <StatusBadge value={row.mode} />
                     </div>
                     <span className="truncate text-xs text-muted-foreground">
-                      {row.last_message_preview ?? "No messages"}
+                      {row.last_message_preview ?? "Xabarlar yo'q"}
                     </span>
                     <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
                       <span>{new Date(row.last_message_at).toLocaleString()}</span>
@@ -168,9 +173,9 @@ function ConversationsPage() {
           </div>
         </div>
 
-        <div className="surface-panel flex max-h-[70vh] flex-col overflow-hidden">
+        <div className="clay-panel flex max-h-[70vh] flex-col overflow-hidden">
           {!activeId ? (
-            <EmptyState title="Select a conversation" description="Pick a thread on the left to read and reply." />
+            <EmptyState title="Suhbatni tanlang" description="O'qish va javob berish uchun chapdan biror suhbatni tanlang." />
           ) : thread.isPending ? (
             <LoadingState />
           ) : thread.error ? (
@@ -180,7 +185,7 @@ function ConversationsPage() {
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border p-3">
                 <div>
                   <p className="text-sm font-medium text-foreground">
-                    {(conversation.customers as { full_name: string | null } | null)?.full_name ?? "Telegram customer"}
+                    {(conversation.customers as { full_name: string | null } | null)?.full_name ?? "Telegram mijozi"}
                   </p>
                   <p className="text-xs text-muted-foreground">Chat ID {conversation.telegram_chat_id}</p>
                 </div>
@@ -194,25 +199,25 @@ function ConversationsPage() {
                   >
                     {conversation.mode === "ai" ? (
                       <>
-                        <UserRound className="mr-1 size-4" /> Take over
+                        <UserRound className="mr-1 size-4" /> O'zim boshqaraman
                       </>
                     ) : (
                       <>
-                        <Bot className="mr-1 size-4" /> Return to AI
+                        <Bot className="mr-1 size-4" /> AI'ga qaytarish
                       </>
                     )}
                   </Button>
                 </div>
               </div>
 
-              <div className="flex-1 space-y-3 overflow-y-auto p-4">
+              <div className="clay-inset m-3 flex-1 space-y-3 overflow-y-auto rounded-2xl p-4">
                 {(thread.data?.messages ?? []).map((message) => {
                   const mine = message.role !== "customer";
                   return (
                     <div key={message.id} className={cn("flex", mine ? "justify-end" : "justify-start")}>
                       <div
                         className={cn(
-                          "max-w-[80%] rounded-2xl px-3.5 py-2 text-sm",
+                          "clay-raised max-w-[80%] rounded-2xl px-3.5 py-2 text-sm",
                           message.role === "customer" && "bg-muted text-foreground",
                           message.role === "ai" && "bg-primary/15 text-foreground",
                           message.role === "operator" && "bg-warning/15 text-foreground",
@@ -244,7 +249,7 @@ function ConversationsPage() {
                   value={draft}
                   rows={2}
                   onChange={(event) => setDraft(event.target.value)}
-                  placeholder="Reply to the customer on Telegram…"
+                  placeholder="Mijozga Telegram orqali javob yozing…"
                 />
                 <Button type="submit" disabled={sendMutation.isPending || !draft.trim()}>
                   <Send className="size-4" />

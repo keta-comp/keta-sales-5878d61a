@@ -16,10 +16,10 @@ import { formatMoney } from "@/lib/types";
 export const Route = createFileRoute("/_authenticated/dashboard/operators")({
   head: () => ({
     meta: [
-      { title: "Operators — SalesPilot AI" },
-      { name: "description", content: "Manage human sales operators and track their conversion performance." },
-      { property: "og:title", content: "Operators — SalesPilot AI" },
-      { property: "og:description", content: "Operator roster and performance for your AI sales team." },
+      { title: "Operatorlar — SalesPilot AI" },
+      { name: "description", content: "Inson savdo operatorlarini boshqaring va ularning konversiya natijalarini kuzating." },
+      { property: "og:title", content: "Operatorlar — SalesPilot AI" },
+      { property: "og:description", content: "AI savdo jamoangiz uchun operatorlar ro'yxati va natijalari." },
     ],
   }),
   component: OperatorsPage,
@@ -50,31 +50,31 @@ function OperatorsPage() {
       is_active: boolean;
     }) => save({ data: input }),
     onSuccess: () => {
-      toast.success("Operator saved");
+      toast.success("Operator saqlandi");
       setFullName("");
       setUsername("");
       setTelegramId("");
       setPhone("");
       invalidate();
     },
-    onError: (error: unknown) => toast.error(error instanceof Error ? error.message : "Save failed"),
+    onError: (error: unknown) => toast.error(error instanceof Error ? error.message : "Saqlash amalga oshmadi"),
   });
 
   const removeMutation = useMutation({
     mutationFn: (id: string) => remove({ data: { id } }),
     onSuccess: () => {
-      toast.success("Operator removed");
+      toast.success("Operator o'chirildi");
       invalidate();
     },
-    onError: (error: unknown) => toast.error(error instanceof Error ? error.message : "Delete failed"),
+    onError: (error: unknown) => toast.error(error instanceof Error ? error.message : "O'chirish amalga oshmadi"),
   });
 
   return (
     <>
-      <PageHeader title="Operators" description="Humans who close what the AI escalates." />
+      <PageHeader title="Operatorlar" description="AI eskalatsiya qilgan lidlarni yopadigan insonlar." />
 
       <form
-        className="surface-panel grid gap-3 p-4 sm:grid-cols-5"
+        className="clay-panel grid gap-3 p-4 sm:grid-cols-5"
         onSubmit={(event) => {
           event.preventDefault();
           saveMutation.mutate({
@@ -87,7 +87,7 @@ function OperatorsPage() {
         }}
       >
         <div className="sm:col-span-2">
-          <Label htmlFor="op-name">Full name</Label>
+          <Label htmlFor="op-name">To'liq ism</Label>
           <Input id="op-name" value={fullName} onChange={(event) => setFullName(event.target.value)} required />
         </div>
         <div>
@@ -95,16 +95,16 @@ function OperatorsPage() {
           <Input id="op-username" value={username} onChange={(event) => setUsername(event.target.value)} />
         </div>
         <div>
-          <Label htmlFor="op-phone">Phone</Label>
+          <Label htmlFor="op-phone">Telefon</Label>
           <Input id="op-phone" value={phone} onChange={(event) => setPhone(event.target.value)} />
         </div>
         <div className="flex items-end">
           <Button type="submit" className="w-full" disabled={saveMutation.isPending}>
-            Add operator
+            Operator qo'shish
           </Button>
         </div>
         <div className="sm:col-span-2">
-          <Label htmlFor="op-tgid">Telegram user ID (optional)</Label>
+          <Label htmlFor="op-tgid">Telegram foydalanuvchi ID (ixtiyoriy)</Label>
           <Input id="op-tgid" value={telegramId} onChange={(event) => setTelegramId(event.target.value)} />
         </div>
       </form>
@@ -114,19 +114,19 @@ function OperatorsPage() {
       ) : operators.error ? (
         <ErrorState error={operators.error} onRetry={() => void operators.refetch()} />
       ) : operators.data.length === 0 ? (
-        <EmptyState title="No operators yet" description="Add your sales staff so the AI can hand off hot leads." />
+        <EmptyState title="Hozircha operatorlar yo'q" description="AI qizigan lidlarni topshira olishi uchun savdo xodimlaringizni qo'shing." />
       ) : (
-        <div className="surface-panel overflow-x-auto">
+        <div className="clay-panel overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
                 <th className="px-4 py-3">Operator</th>
-                <th className="px-4 py-3">Assigned</th>
-                <th className="px-4 py-3">Contacted</th>
-                <th className="px-4 py-3">Won</th>
-                <th className="px-4 py-3">Conversion</th>
-                <th className="px-4 py-3">Revenue</th>
-                <th className="px-4 py-3">Active</th>
+                <th className="px-4 py-3">Tayinlangan</th>
+                <th className="px-4 py-3">Bog'lanilgan</th>
+                <th className="px-4 py-3">Yopilgan</th>
+                <th className="px-4 py-3">Konversiya</th>
+                <th className="px-4 py-3">Daromad</th>
+                <th className="px-4 py-3">Faol</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
@@ -163,7 +163,7 @@ function OperatorsPage() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      aria-label="Remove operator"
+                      aria-label="Operatorni o'chirish"
                       onClick={() => removeMutation.mutate(operator.id)}
                     >
                       <Trash2 className="size-4 text-destructive" />

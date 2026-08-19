@@ -37,11 +37,11 @@ export function TelegramCard() {
     mutationFn: () => connect({ data: { token: token.trim() } }),
     onSuccess: (bot) => {
       setToken("");
-      toast.success(`Connected @${bot.bot_username ?? "bot"} — webhook active`);
+      toast.success(`@${bot.bot_username ?? "bot"} ulandi — webhook faol`);
       invalidate();
     },
     onError: (error: unknown) => {
-      toast.error(error instanceof Error ? error.message : "Could not connect the bot");
+      toast.error(error instanceof Error ? error.message : "Botni ulab bo'lmadi");
       invalidate();
     },
   });
@@ -50,50 +50,50 @@ export function TelegramCard() {
     mutationFn: () => test(),
     onSuccess: (result) => {
       setDiagnostics(result);
-      if (result.connected && result.webhook.active) toast.success("Telegram confirmed the connection");
-      else toast.error(result.connected ? "Webhook is not active" : result.error);
+      if (result.connected && result.webhook.active) toast.success("Telegram ulanishni tasdiqladi");
+      else toast.error(result.connected ? "Webhook faol emas" : result.error);
       invalidate();
     },
-    onError: (error: unknown) => toast.error(error instanceof Error ? error.message : "Test failed"),
+    onError: (error: unknown) => toast.error(error instanceof Error ? error.message : "Tekshiruv amalga oshmadi"),
   });
 
   const operatorTestMutation = useMutation({
     mutationFn: () => notifyTest(),
-    onSuccess: (result) => toast.success(`Test message sent to ${result.chatId}`),
+    onSuccess: (result) => toast.success(`Test xabari ${result.chatId} manziliga yuborildi`),
     onError: (error: unknown) =>
-      toast.error(error instanceof Error ? error.message : "Could not send the operator message"),
+      toast.error(error instanceof Error ? error.message : "Operator xabarini yuborib bo'lmadi"),
   });
 
   const disconnectMutation = useMutation({
     mutationFn: () => disconnect(),
     onSuccess: () => {
       setDiagnostics(null);
-      toast.success("Telegram bot disconnected. Your CRM history is kept.");
+      toast.success("Telegram bot uzildi. CRM tarixi saqlanib qoldi.");
       invalidate();
     },
-    onError: (error: unknown) => toast.error(error instanceof Error ? error.message : "Disconnect failed"),
+    onError: (error: unknown) => toast.error(error instanceof Error ? error.message : "Uzish amalga oshmadi"),
   });
 
   const bot = state.data?.bot ?? null;
   const webhookActive = bot?.webhook_status === "active";
 
   return (
-    <section className="surface-panel space-y-4 p-4">
+    <section className="clay-panel space-y-4 p-4">
       <div>
         <h2 className="font-display text-base font-semibold">Telegram bot</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Connect your own bot created with @BotFather. Customers who message that bot land in this
-          workspace only.
+          @BotFather orqali yaratilgan o'z botingizni ulang. Shu botga yozgan mijozlar faqat shu
+          workspace’ga tushadi.
         </p>
       </div>
 
       {bot && bot.is_active ? (
         <div className="space-y-3">
-          <div className="grid gap-2 text-sm sm:grid-cols-2">
+          <div className="clay-inset grid gap-2 rounded-2xl p-3 text-sm sm:grid-cols-2">
             <p>
-              <span className="text-muted-foreground">Status: </span>
+              <span className="text-muted-foreground">Holat: </span>
               <span className={webhookActive ? "text-success" : "text-destructive"}>
-                {webhookActive ? "🟢 Connected — webhook active" : `🔴 ${bot.webhook_status}`}
+                {webhookActive ? "🟢 Ulangan — webhook faol" : `🔴 ${bot.webhook_status}`}
               </span>
             </p>
             <p>
@@ -105,7 +105,7 @@ export function TelegramCard() {
               {bot.telegram_bot_id ?? "-"}
             </p>
             <p>
-              <span className="text-muted-foreground">Connected: </span>
+              <span className="text-muted-foreground">Ulangan: </span>
               {formatDate(bot.connected_at)}
             </p>
             <p className="sm:col-span-2 break-all">
@@ -113,27 +113,27 @@ export function TelegramCard() {
               {bot.webhook_url ?? "-"}
             </p>
             <p>
-              <span className="text-muted-foreground">Last checked: </span>
+              <span className="text-muted-foreground">Oxirgi tekshiruv: </span>
               {formatDate(bot.last_checked_at)}
             </p>
             {bot.last_error ? (
-              <p className="sm:col-span-2 text-destructive">Last error: {bot.last_error}</p>
+              <p className="sm:col-span-2 text-destructive">Oxirgi xato: {bot.last_error}</p>
             ) : null}
           </div>
 
           {diagnostics ? (
-            <div className="rounded-md border border-border/60 bg-background/40 p-3 text-sm">
+            <div className="clay-inset rounded-2xl p-3 text-sm">
               {diagnostics.connected ? (
                 <>
                   <p>
                     {diagnostics.bot.first_name} (@{diagnostics.bot.username}) · ID {diagnostics.bot.id}
                   </p>
-                  <p className="text-muted-foreground break-all">Webhook: {diagnostics.webhook.url || "not set"}</p>
+                  <p className="text-muted-foreground break-all">Webhook: {diagnostics.webhook.url || "sozlanmagan"}</p>
                   <p className="text-muted-foreground">
-                    Pending updates: {diagnostics.webhook.pending_update_count}
+                    Kutilayotgan yangilanishlar: {diagnostics.webhook.pending_update_count}
                   </p>
                   {diagnostics.webhook.last_error_message ? (
-                    <p className="text-destructive">Telegram error: {diagnostics.webhook.last_error_message}</p>
+                    <p className="text-destructive">Telegram xatosi: {diagnostics.webhook.last_error_message}</p>
                   ) : null}
                 </>
               ) : (
@@ -148,33 +148,33 @@ export function TelegramCard() {
               disabled={testMutation.isPending}
               onClick={() => testMutation.mutate()}
             >
-              Test connection
+              Ulanishni tekshirish
             </Button>
             <Button
               variant="secondary"
               disabled={operatorTestMutation.isPending}
               onClick={() => operatorTestMutation.mutate()}
             >
-              Send test message to operator group
+              Operator guruhiga test xabar yuborish
             </Button>
             <Button
               variant="destructive"
               disabled={disconnectMutation.isPending}
               onClick={() => {
-                if (window.confirm("Disconnect this Telegram bot? Conversations, leads and orders are kept.")) {
+                if (window.confirm("Ushbu Telegram botni uzasizmi? Suhbatlar, lidlar va buyurtmalar saqlanib qoladi.")) {
                   disconnectMutation.mutate();
                 }
               }}
             >
-              Disconnect
+              Uzish
             </Button>
           </div>
 
           <details className="text-sm text-muted-foreground">
-            <summary className="cursor-pointer">Replace with another bot</summary>
+            <summary className="cursor-pointer">Boshqa bot bilan almashtirish</summary>
             <p className="mt-2">
-              Disconnect the current bot, then paste the new token below. Your customers, conversations,
-              leads and orders stay exactly as they are.
+              Joriy botni uzing, so'ng yangi tokenni pastga joylashtiring. Mijozlaringiz, suhbatlaringiz,
+              lidlaringiz va buyurtmalaringiz o'zgarishsiz qoladi.
             </p>
           </details>
         </div>
@@ -199,29 +199,29 @@ export function TelegramCard() {
             />
           </div>
           <Button type="submit" disabled={connectMutation.isPending || token.trim().length < 20}>
-            {connectMutation.isPending ? "Connecting…" : "Connect Telegram Bot"}
+            {connectMutation.isPending ? "Ulanmoqda…" : "Telegram Botni ulash"}
           </Button>
           {bot && !bot.is_active ? (
             <p className="text-sm text-muted-foreground">
-              Previous bot @{bot.bot_username ?? "-"} was disconnected on {formatDate(bot.last_checked_at)}.
-              Paste a new token to reactivate messaging.
+              Oldingi @{bot.bot_username ?? "-"} boti {formatDate(bot.last_checked_at)} sanasida uzilgan.
+              Xabar almashishni qayta yoqish uchun yangi token joylashtiring.
             </p>
           ) : null}
           <ol className="list-decimal space-y-1 pl-5 text-sm text-muted-foreground">
-            <li>Open @BotFather in Telegram and send /newbot.</li>
-            <li>Choose a name and a username ending in “bot”.</li>
-            <li>Copy the HTTP API token BotFather returns.</li>
-            <li>Paste it above and press Connect — we validate it and register the webhook for you.</li>
+            <li>Telegram’da @BotFather’ni oching va /newbot buyrug'ini yuboring.</li>
+            <li>Nom va "bot" bilan tugaydigan username tanlang.</li>
+            <li>BotFather qaytargan HTTP API tokenni nusxalang.</li>
+            <li>Uni yuqoriga joylashtirib Ulash tugmasini bosing — biz uni tekshirib, webhookni siz uchun ro'yxatdan o'tkazamiz.</li>
           </ol>
         </form>
       )}
 
       {state.data && !state.data.aiKeyConfigured ? (
-        <p className="text-sm text-destructive">AI key missing — the agent cannot reply yet.</p>
+        <p className="text-sm text-destructive">AI kaliti yo'q — agent hali javob bera olmaydi.</p>
       ) : null}
       {state.data && !state.data.encryptionConfigured ? (
         <p className="text-sm text-destructive">
-          BOT_TOKEN_ENCRYPTION_KEY is missing on the server — tokens cannot be stored securely.
+          Serverda BOT_TOKEN_ENCRYPTION_KEY yo'q — tokenlarni xavfsiz saqlab bo'lmaydi.
         </p>
       ) : null}
     </section>
