@@ -7,9 +7,7 @@ import logoAsset from "@/assets/keta-logo.png.asset.json";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable/index";
 
 const TITLE = "SalesPilot AI — Telegram uchun AI savdo agenti va CRM";
 const DESCRIPTION =
@@ -39,10 +37,8 @@ const FEATURES = [
 
 function Index() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -55,18 +51,6 @@ function Index() {
     event.preventDefault();
     setBusy(true);
     try {
-      if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: window.location.origin,
-            data: { full_name: fullName },
-          },
-        });
-        if (error) throw error;
-        toast.success("Hisob yaratildi — tizimga kiritilmoqda");
-      }
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
       navigate({ to: "/dashboard" });
@@ -75,20 +59,6 @@ function Index() {
     } finally {
       setBusy(false);
     }
-  };
-
-  const google = async () => {
-    setBusy(true);
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
-    });
-    if (result.error) {
-      setBusy(false);
-      toast.error("Google orqali kirish amalga oshmadi");
-      return;
-    }
-    if (result.redirected) return;
-    navigate({ to: "/dashboard" });
   };
 
   return (
@@ -123,32 +93,15 @@ function Index() {
         </div>
 
         <div className="clay-panel h-fit p-6 sm:p-7 lg:sticky lg:top-10">
-          <h2 className="font-display text-xl font-semibold text-foreground">Xodimlar uchun kirish</h2>
+          <h2 className="font-display text-xl font-semibold text-foreground">Admin kirishi</h2>
           <p className="mt-1 text-sm text-muted-foreground">
             CRM, ombor va AI agent boshqaruviga kiring.
           </p>
 
-          <Tabs value={mode} onValueChange={(value) => setMode(value as "signin" | "signup")} className="mt-5">
-            <TabsList className="clay-inset grid w-full grid-cols-2 p-1">
-              <TabsTrigger value="signin">Kirish</TabsTrigger>
-              <TabsTrigger value="signup">Hisob yaratish</TabsTrigger>
-            </TabsList>
-            <TabsContent value={mode} className="mt-5">
+          <div className="mt-5">
               <form onSubmit={submit} className="space-y-4">
-                {mode === "signup" ? (
-                  <div className="space-y-2">
-                    <Label htmlFor="fullName">To‘liq ism</Label>
-                    <Input
-                      id="fullName"
-                      value={fullName}
-                      onChange={(event) => setFullName(event.target.value)}
-                      placeholder="Aziz Karimov"
-                      required
-                    />
-                  </div>
-                ) : null}
                 <div className="space-y-2">
-                  <Label htmlFor="email">Ish emaili</Label>
+                  <Label htmlFor="email">Email</Label>
                   <Input
                     id="email"
                     type="email"
@@ -164,7 +117,7 @@ function Index() {
                   <Input
                     id="password"
                     type="password"
-                    autoComplete={mode === "signup" ? "new-password" : "current-password"}
+                    autoComplete="current-password"
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
                     minLength={6}
@@ -172,18 +125,13 @@ function Index() {
                   />
                 </div>
                 <Button type="submit" className="w-full" disabled={busy}>
-                  {busy ? "Yuklanmoqda…" : mode === "signup" ? "Hisob yaratish" : "Kirish"}
+                  {busy ? "Yuklanmoqda…" : "Kirish"}
                 </Button>
               </form>
-            </TabsContent>
-          </Tabs>
-
-          <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground">
-            <span className="h-px flex-1 bg-border" /> yoki <span className="h-px flex-1 bg-border" />
+            <p className="mt-4 text-xs text-muted-foreground">
+              Tizim faqat administrator hisobi uchun. Yangi hisob yaratish o‘chirilgan.
+            </p>
           </div>
-          <Button variant="outline" className="w-full" onClick={google} disabled={busy}>
-            Google bilan davom etish
-          </Button>
         </div>
       </div>
     </div>
