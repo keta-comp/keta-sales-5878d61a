@@ -10,13 +10,13 @@ import {
   Package,
   Settings,
   ShoppingCart,
-  Sparkles,
   Target,
   UserRound,
   Users,
 } from "lucide-react";
 import { toast } from "sonner";
 
+import logoAsset from "@/assets/keta-logo.png.asset.json";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
@@ -84,8 +84,8 @@ export function DashboardShell({
 
   const brand = (
     <div className="flex items-center gap-2 px-3 py-4">
-      <span className="clay-raised grid size-10 place-items-center rounded-2xl bg-primary/15 text-primary">
-        <Sparkles className="size-5" />
+      <span className="clay-raised grid size-10 place-items-center overflow-hidden rounded-2xl bg-card">
+        <img src={logoAsset.url} alt="Keta AI logotipi" className="size-8 object-contain" />
       </span>
       <div className="leading-tight">
         <p className="font-display text-sm font-semibold">SalesPilot AI</p>
