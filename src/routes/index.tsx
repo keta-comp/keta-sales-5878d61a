@@ -10,9 +10,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 
-const TITLE = "SalesPilot AI — Telegram AI sales agent & CRM";
+const TITLE = "SalesPilot AI — Telegram uchun AI savdo agenti va CRM";
 const DESCRIPTION =
-  "An AI sales agent that talks to Telegram customers, checks live inventory, closes orders and hands hot leads to your operators — with a full CRM dashboard.";
+  "Telegramdagi mijozlar bilan suhbatlashadigan, omborni real vaqtda tekshiradigan, buyurtmalarni yopadigan va qaynoq murojaatlarni operatorlarga uzatadigan AI savdo agenti — to‘liq CRM paneli bilan.";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -29,11 +29,11 @@ export const Route = createFileRoute("/")({
 });
 
 const FEATURES = [
-  { icon: Bot, title: "AI sales agent", body: "Answers, qualifies, up-sells and closes on Telegram 24/7." },
-  { icon: Boxes, title: "Live inventory", body: "Every quote is checked against real stock before it is promised." },
-  { icon: MessagesSquare, title: "Operator handoff", body: "Hot or stuck chats are pushed to your operator group instantly." },
-  { icon: Users, title: "Built-in CRM", body: "Customers, leads, scoring and order history in one place." },
-  { icon: BarChart3, title: "Sales analytics", body: "Revenue, conversion and operator performance, updated live." },
+  { icon: Bot, title: "AI savdo agenti", body: "Telegramda 24/7 javob beradi, mijozni saralaydi va savdoni yopadi." },
+  { icon: Boxes, title: "Real ombor", body: "Har bir taklif e’lon qilinishdan oldin haqiqiy qoldiq bilan tekshiriladi." },
+  { icon: MessagesSquare, title: "Operatorga uzatish", body: "Qaynoq yoki qotib qolgan suhbatlar darhol operator guruhiga yuboriladi." },
+  { icon: Users, title: "Ichki CRM", body: "Mijozlar, murojaatlar, baholash va buyurtma tarixi bir joyda." },
+  { icon: BarChart3, title: "Savdo tahlili", body: "Tushum, konversiya va operator natijalari real vaqtda." },
 ];
 
 function Index() {
@@ -64,13 +64,13 @@ function Index() {
           },
         });
         if (error) throw error;
-        toast.success("Account created — signing you in");
+        toast.success("Hisob yaratildi — tizimga kiritilmoqda");
       }
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
       navigate({ to: "/dashboard" });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Authentication failed");
+      toast.error(error instanceof Error ? error.message : "Kirishda xatolik yuz berdi");
     } finally {
       setBusy(false);
     }
@@ -83,7 +83,7 @@ function Index() {
     });
     if (result.error) {
       setBusy(false);
-      toast.error("Google sign-in failed");
+      toast.error("Google orqali kirish amalga oshmadi");
       return;
     }
     if (result.redirected) return;
@@ -95,18 +95,18 @@ function Index() {
       <div className="pointer-events-none absolute inset-x-0 top-0 h-[420px] bg-[radial-gradient(60%_100%_at_50%_0%,var(--color-primary)/18%,transparent)]" />
       <div className="relative mx-auto grid w-full max-w-6xl gap-12 px-4 py-14 lg:grid-cols-[1.1fr_0.9fr] lg:py-20">
         <div>
-          <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground">
-            <Sparkles className="size-3.5 text-primary" /> Live AI sales department
+          <div className="clay-raised inline-flex items-center gap-2 rounded-full bg-card px-4 py-2 text-xs text-muted-foreground">
+            <Sparkles className="size-3.5 text-primary" /> Jonli AI savdo bo‘limi
           </div>
           <h1 className="mt-5 font-display text-4xl font-semibold leading-tight text-foreground sm:text-5xl">
-            Your Telegram traffic, sold by an AI sales agent.
+            Telegram mijozlaringizni AI savdo agenti sotadi.
           </h1>
           <p className="mt-4 max-w-xl text-base text-muted-foreground">{DESCRIPTION}</p>
 
           <div className="mt-10 grid gap-3 sm:grid-cols-2">
             {FEATURES.map((feature) => (
-              <div key={feature.title} className="surface-panel p-4">
-                <feature.icon className="size-5 text-primary" />
+              <div key={feature.title} className="clay-panel clay-hover p-5">
+                <span className="clay-inset grid size-11 place-items-center"><feature.icon className="size-5 text-primary" /></span>
                 <p className="mt-3 text-sm font-semibold text-foreground">{feature.title}</p>
                 <p className="mt-1 text-sm text-muted-foreground">{feature.body}</p>
               </div>
@@ -114,22 +114,22 @@ function Index() {
           </div>
         </div>
 
-        <div className="surface-panel h-fit p-6 lg:sticky lg:top-10">
-          <h2 className="font-display text-xl font-semibold text-foreground">Staff sign in</h2>
+        <div className="clay-panel h-fit p-6 sm:p-7 lg:sticky lg:top-10">
+          <h2 className="font-display text-xl font-semibold text-foreground">Xodimlar uchun kirish</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Access the CRM, inventory and AI agent controls.
+            CRM, ombor va AI agent boshqaruviga kiring.
           </p>
 
           <Tabs value={mode} onValueChange={(value) => setMode(value as "signin" | "signup")} className="mt-5">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="signin">Sign in</TabsTrigger>
-              <TabsTrigger value="signup">Create account</TabsTrigger>
+            <TabsList className="clay-inset grid w-full grid-cols-2 p-1">
+              <TabsTrigger value="signin">Kirish</TabsTrigger>
+              <TabsTrigger value="signup">Hisob yaratish</TabsTrigger>
             </TabsList>
             <TabsContent value={mode} className="mt-5">
               <form onSubmit={submit} className="space-y-4">
                 {mode === "signup" ? (
                   <div className="space-y-2">
-                    <Label htmlFor="fullName">Full name</Label>
+                    <Label htmlFor="fullName">To‘liq ism</Label>
                     <Input
                       id="fullName"
                       value={fullName}
@@ -140,7 +140,7 @@ function Index() {
                   </div>
                 ) : null}
                 <div className="space-y-2">
-                  <Label htmlFor="email">Work email</Label>
+                  <Label htmlFor="email">Ish emaili</Label>
                   <Input
                     id="email"
                     type="email"
@@ -152,7 +152,7 @@ function Index() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
+                  <Label htmlFor="password">Parol</Label>
                   <Input
                     id="password"
                     type="password"
@@ -164,17 +164,17 @@ function Index() {
                   />
                 </div>
                 <Button type="submit" className="w-full" disabled={busy}>
-                  {mode === "signup" ? "Create account" : "Sign in"}
+                  {busy ? "Yuklanmoqda…" : mode === "signup" ? "Hisob yaratish" : "Kirish"}
                 </Button>
               </form>
             </TabsContent>
           </Tabs>
 
           <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground">
-            <span className="h-px flex-1 bg-border" /> or <span className="h-px flex-1 bg-border" />
+            <span className="h-px flex-1 bg-border" /> yoki <span className="h-px flex-1 bg-border" />
           </div>
           <Button variant="outline" className="w-full" onClick={google} disabled={busy}>
-            Continue with Google
+            Google bilan davom etish
           </Button>
         </div>
       </div>

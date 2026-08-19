@@ -20,10 +20,10 @@ import { formatMoney } from "@/lib/types";
 export const Route = createFileRoute("/_authenticated/dashboard/analytics")({
   head: () => ({
     meta: [
-      { title: "Sales analytics — SalesPilot AI" },
-      { name: "description", content: "30-day revenue, lead conversion and best-selling products." },
-      { property: "og:title", content: "Sales analytics — SalesPilot AI" },
-      { property: "og:description", content: "Revenue and conversion analytics for your AI sales agent." },
+      { title: "Savdo tahlili — SalesPilot AI" },
+      { name: "description", content: "30 kunlik daromad, lidlar konversiyasi va eng ko'p sotilgan mahsulotlar." },
+      { property: "og:title", content: "Savdo tahlili — SalesPilot AI" },
+      { property: "og:description", content: "AI savdo agentingiz uchun daromad va konversiya tahlili." },
     ],
   }),
   component: AnalyticsPage,
@@ -43,22 +43,22 @@ function AnalyticsPage() {
 
   return (
     <>
-      <PageHeader title="Sales analytics" description="Last 30 days, computed from real orders and leads." />
+      <PageHeader title="Savdo tahlili" description="So'nggi 30 kun, haqiqiy buyurtmalar va lidlar asosida hisoblangan." />
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Revenue (30d)" value={formatMoney(revenue, currency)} tone="success" />
-        <StatCard label="Leads (30d)" value={leads} />
-        <StatCard label="Orders (30d)" value={orders} />
+        <StatCard label="Daromad (30 kun)" value={formatMoney(revenue, currency)} tone="success" />
+        <StatCard label="Lidlar (30 kun)" value={leads} />
+        <StatCard label="Buyurtmalar (30 kun)" value={orders} />
         <StatCard
-          label="Conversion"
+          label="Konversiya"
           value={`${leads ? Math.round((orders / leads) * 1000) / 10 : 0}%`}
           tone="info"
         />
       </div>
 
-      <section className="surface-panel p-4">
-        <h2 className="font-display text-base font-semibold">Revenue trend</h2>
-        <div className="mt-4 h-72">
+      <section className="clay-panel rounded-3xl p-4">
+        <h2 className="font-display text-base font-semibold">Daromad dinamikasi</h2>
+        <div className="clay-inset mt-4 h-72 rounded-2xl p-2">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={days}>
               <defs>
@@ -91,9 +91,9 @@ function AnalyticsPage() {
       </section>
 
       <div className="grid gap-6 xl:grid-cols-2">
-        <section className="surface-panel p-4">
-          <h2 className="font-display text-base font-semibold">Leads vs orders</h2>
-          <div className="mt-4 h-64">
+        <section className="clay-panel rounded-3xl p-4">
+          <h2 className="font-display text-base font-semibold">Lidlar va buyurtmalar</h2>
+          <div className="clay-inset mt-4 h-64 rounded-2xl p-2">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={days}>
                 <CartesianGrid stroke="var(--color-border)" vertical={false} />
@@ -106,38 +106,38 @@ function AnalyticsPage() {
                     borderRadius: 12,
                   }}
                 />
-                <Bar dataKey="leads" fill="var(--color-info)" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="orders" fill="var(--color-success)" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="leads" fill="var(--color-info)" radius={[4, 4, 0, 0]} name="Lidlar" />
+                <Bar dataKey="orders" fill="var(--color-success)" radius={[4, 4, 0, 0]} name="Buyurtmalar" />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </section>
 
-        <section className="surface-panel p-4">
-          <h2 className="font-display text-base font-semibold">Best sellers</h2>
-          <div className="mt-3 divide-y divide-border text-sm">
+        <section className="clay-panel rounded-3xl p-4">
+          <h2 className="font-display text-base font-semibold">Eng ko'p sotilganlar</h2>
+          <div className="clay-inset mt-3 divide-y divide-border rounded-2xl p-2 text-sm">
             {topProducts.map((product) => (
-              <div key={product.name} className="flex items-center justify-between gap-3 py-2">
+              <div key={product.name} className="flex items-center justify-between gap-3 px-2 py-2">
                 <span className="truncate text-foreground">{product.name}</span>
-                <span className="text-xs text-muted-foreground">{product.quantity} sold</span>
+                <span className="text-xs text-muted-foreground">{product.quantity} dona sotildi</span>
                 <span className="tabular-nums">{formatMoney(product.revenue, currency)}</span>
               </div>
             ))}
             {topProducts.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted-foreground">No sales data yet.</p>
+              <p className="py-6 text-center text-sm text-muted-foreground">Hozircha sotuv ma'lumotlari yo'q.</p>
             ) : null}
           </div>
 
-          <h3 className="mt-6 font-display text-sm font-semibold">Lead funnel</h3>
+          <h3 className="mt-6 font-display text-sm font-semibold">Lidlar voronkasi</h3>
           <div className="mt-2 space-y-2">
             {(
               [
-                ["Total leads", funnel.total],
-                ["Hot", funnel.hot],
-                ["Warm", funnel.warm],
-                ["Cold", funnel.cold],
-                ["Won", funnel.won],
-                ["Lost", funnel.lost],
+                ["Jami lidlar", funnel.total],
+                ["Qizg'in", funnel.hot],
+                ["O'rtacha", funnel.warm],
+                ["Sovuq", funnel.cold],
+                ["Yutilgan", funnel.won],
+                ["Yo'qotilgan", funnel.lost],
               ] as const
             ).map(([label, count]) => (
               <div key={label}>
@@ -145,7 +145,7 @@ function AnalyticsPage() {
                   <span>{label}</span>
                   <span>{count}</span>
                 </div>
-                <div className="mt-1 h-2 rounded-full bg-muted">
+                <div className="clay-inset mt-1 h-2 rounded-full">
                   <div
                     className="h-2 rounded-full bg-primary"
                     style={{ width: `${Math.min(100, (count / Math.max(1, funnel.total)) * 100)}%` }}
@@ -156,31 +156,31 @@ function AnalyticsPage() {
           </div>
         </section>
 
-        <section className="surface-panel p-4">
-          <h2 className="font-display text-base font-semibold">Best sellers</h2>
-          <div className="mt-3 divide-y divide-border text-sm">
+        <section className="clay-panel rounded-3xl p-4">
+          <h2 className="font-display text-base font-semibold">Eng ko'p sotilganlar</h2>
+          <div className="clay-inset mt-3 divide-y divide-border rounded-2xl p-2 text-sm">
             {topProducts.map((product) => (
-              <div key={product.name} className="flex items-center justify-between gap-3 py-2">
+              <div key={product.name} className="flex items-center justify-between gap-3 px-2 py-2">
                 <span className="truncate text-foreground">{product.name}</span>
-                <span className="text-xs text-muted-foreground">{product.quantity} sold</span>
+                <span className="text-xs text-muted-foreground">{product.quantity} dona sotildi</span>
                 <span className="tabular-nums">{formatMoney(product.revenue, currency)}</span>
               </div>
             ))}
             {topProducts.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted-foreground">No sales data yet.</p>
+              <p className="py-6 text-center text-sm text-muted-foreground">Hozircha sotuv ma'lumotlari yo'q.</p>
             ) : null}
           </div>
 
-          <h3 className="mt-6 font-display text-sm font-semibold">Lead funnel</h3>
+          <h3 className="mt-6 font-display text-sm font-semibold">Lidlar voronkasi</h3>
           <div className="mt-2 space-y-2">
             {(
               [
-                ["Total leads", funnel.total],
-                ["Hot", funnel.hot],
-                ["Warm", funnel.warm],
-                ["Cold", funnel.cold],
-                ["Won", funnel.won],
-                ["Lost", funnel.lost],
+                ["Jami lidlar", funnel.total],
+                ["Qizg'in", funnel.hot],
+                ["O'rtacha", funnel.warm],
+                ["Sovuq", funnel.cold],
+                ["Yutilgan", funnel.won],
+                ["Yo'qotilgan", funnel.lost],
               ] as const
             ).map(([label, count]) => (
               <div key={label}>
@@ -188,7 +188,7 @@ function AnalyticsPage() {
                   <span>{label}</span>
                   <span>{count}</span>
                 </div>
-                <div className="mt-1 h-2 rounded-full bg-muted">
+                <div className="clay-inset mt-1 h-2 rounded-full">
                   <div
                     className="h-2 rounded-full bg-primary"
                     style={{ width: `${Math.min(100, (count / Math.max(1, funnel.total)) * 100)}%` }}

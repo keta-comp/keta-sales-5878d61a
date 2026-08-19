@@ -16,10 +16,10 @@ import { formatMoney } from "@/lib/types";
 export const Route = createFileRoute("/_authenticated/dashboard/customers")({
   head: () => ({
     meta: [
-      { title: "Customers — SalesPilot AI" },
-      { name: "description", content: "Telegram customer records with spend, orders and conversation history." },
-      { property: "og:title", content: "Customers — SalesPilot AI" },
-      { property: "og:description", content: "Customer CRM built from real Telegram sales conversations." },
+      { title: "Mijozlar — SalesPilot AI" },
+      { name: "description", content: "Xarid, buyurtma va suhbat tarixi bilan Telegram mijozlar bazasi." },
+      { property: "og:title", content: "Mijozlar — SalesPilot AI" },
+      { property: "og:description", content: "Haqiqiy Telegram savdo suhbatlari asosida yaratilgan mijozlar CRM." },
     ],
   }),
   component: CustomersPage,
@@ -48,26 +48,26 @@ function CustomersPage() {
     mutationFn: (input: { id: string; full_name?: string | null; phone?: string | null; location?: string | null; notes?: string | null }) =>
       save({ data: input }),
     onSuccess: () => {
-      toast.success("Customer saved");
+      toast.success("Mijoz saqlandi");
       void queryClient.invalidateQueries({ queryKey: ["customers"] });
       void queryClient.invalidateQueries({ queryKey: ["customer"] });
     },
-    onError: (error: unknown) => toast.error(error instanceof Error ? error.message : "Save failed"),
+    onError: (error: unknown) => toast.error(error instanceof Error ? error.message : "Saqlash amalga oshmadi"),
   });
 
   const customer = detail.data?.customer;
 
   return (
     <>
-      <PageHeader title="Customers" description="Auto-created from Telegram, enriched by the AI agent." />
+      <PageHeader title="Mijozlar" description="Telegramdan avtomatik yaratilgan va AI agenti tomonidan boyitilgan." />
 
       <div className="max-w-sm">
-        <Label htmlFor="customer-search">Search</Label>
+        <Label htmlFor="customer-search">Qidirish</Label>
         <Input
           id="customer-search"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
-          placeholder="Name, @username or phone"
+          placeholder="Ism, @foydalanuvchi yoki telefon"
         />
       </div>
 
@@ -76,24 +76,24 @@ function CustomersPage() {
       ) : customers.error ? (
         <ErrorState error={customers.error} onRetry={() => void customers.refetch()} />
       ) : customers.data.length === 0 ? (
-        <EmptyState title="No customers yet" description="They are created when someone messages your bot." />
+        <EmptyState title="Hali mijozlar yo'q" description="Botingizga kimdir yozganda ular avtomatik yaratiladi." />
       ) : (
-        <div className="surface-panel overflow-x-auto">
+        <div className="clay-inset overflow-x-auto rounded-2xl">
           <table className="w-full text-sm">
             <thead className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
-                <th className="px-4 py-3">Customer</th>
-                <th className="px-4 py-3">Contact</th>
-                <th className="px-4 py-3">Orders</th>
-                <th className="px-4 py-3">Total spent</th>
-                <th className="px-4 py-3">Last seen</th>
+                <th className="px-4 py-3">Mijoz</th>
+                <th className="px-4 py-3">Aloqa</th>
+                <th className="px-4 py-3">Buyurtmalar</th>
+                <th className="px-4 py-3">Jami xarajat</th>
+                <th className="px-4 py-3">Oxirgi faollik</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {customers.data.map((row) => (
-                <tr key={row.id} className="hover:bg-muted/40">
-                  <td className="px-4 py-3 font-medium text-foreground">{row.full_name ?? "Telegram customer"}</td>
+                <tr key={row.id} className="clay-hover">
+                  <td className="px-4 py-3 font-medium text-foreground">{row.full_name ?? "Telegram mijozi"}</td>
                   <td className="px-4 py-3 text-muted-foreground">
                     {row.telegram_username ? `@${row.telegram_username}` : (row.phone ?? "—")}
                   </td>
@@ -103,8 +103,8 @@ function CustomersPage() {
                     {new Date(row.last_interaction_at).toLocaleString()}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <Button variant="outline" size="sm" onClick={() => setOpenId(row.id)}>
-                      Open
+                    <Button variant="outline" size="sm" className="clay-raised" onClick={() => setOpenId(row.id)}>
+                      Ochish
                     </Button>
                   </td>
                 </tr>
@@ -117,7 +117,7 @@ function CustomersPage() {
       <Sheet open={Boolean(openId)} onOpenChange={(next) => setOpenId(next ? openId : null)}>
         <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
           <SheetHeader>
-            <SheetTitle>Customer profile</SheetTitle>
+            <SheetTitle>Mijoz profili</SheetTitle>
           </SheetHeader>
           {detail.isPending ? (
             <LoadingState />
@@ -156,24 +156,25 @@ function CustomerForm({
 
   return (
     <div className="space-y-5 px-4 pb-8">
-      <div className="grid gap-3">
+      <div className="clay-panel grid gap-3 p-4">
         <div>
-          <Label htmlFor="c-name">Full name</Label>
+          <Label htmlFor="c-name">To'liq ism</Label>
           <Input id="c-name" value={fullName} onChange={(event) => setFullName(event.target.value)} />
         </div>
         <div>
-          <Label htmlFor="c-phone">Phone</Label>
+          <Label htmlFor="c-phone">Telefon</Label>
           <Input id="c-phone" value={phone} onChange={(event) => setPhone(event.target.value)} />
         </div>
         <div>
-          <Label htmlFor="c-location">Location</Label>
+          <Label htmlFor="c-location">Manzil</Label>
           <Input id="c-location" value={location} onChange={(event) => setLocation(event.target.value)} />
         </div>
         <div>
-          <Label htmlFor="c-notes">Notes</Label>
+          <Label htmlFor="c-notes">Eslatmalar</Label>
           <Textarea id="c-notes" rows={3} value={notes} onChange={(event) => setNotes(event.target.value)} />
         </div>
         <Button
+          className="clay-raised"
           onClick={() =>
             onSave({
               full_name: fullName || null,
@@ -183,34 +184,34 @@ function CustomerForm({
             })
           }
         >
-          Save customer
+          Mijozni saqlash
         </Button>
       </div>
 
       <div>
-        <p className="text-sm font-medium text-foreground">Leads ({leads.length})</p>
+        <p className="text-sm font-medium text-foreground">Lidlar ({leads.length})</p>
         <div className="mt-2 space-y-2">
           {leads.map((lead) => (
-            <div key={lead.id} className="flex items-center justify-between gap-2 rounded-lg border border-border p-2.5 text-xs">
-              <span className="truncate text-muted-foreground">{lead.requested_product ?? "Enquiry"}</span>
+            <div key={lead.id} className="clay-inset flex items-center justify-between gap-2 rounded-xl p-2.5 text-xs">
+              <span className="truncate text-muted-foreground">{lead.requested_product ?? "So'rov"}</span>
               <StatusBadge value={lead.status} />
             </div>
           ))}
-          {leads.length === 0 ? <p className="text-xs text-muted-foreground">No leads yet.</p> : null}
+          {leads.length === 0 ? <p className="text-xs text-muted-foreground">Hali lidlar yo'q.</p> : null}
         </div>
       </div>
 
       <div>
-        <p className="text-sm font-medium text-foreground">Orders ({orders.length})</p>
+        <p className="text-sm font-medium text-foreground">Buyurtmalar ({orders.length})</p>
         <div className="mt-2 space-y-2">
           {orders.map((order) => (
-            <div key={order.id} className="flex items-center justify-between gap-2 rounded-lg border border-border p-2.5 text-xs">
+            <div key={order.id} className="clay-inset flex items-center justify-between gap-2 rounded-xl p-2.5 text-xs">
               <span className="text-foreground">{order.order_number}</span>
               <span className="text-muted-foreground">{formatMoney(order.total)}</span>
               <StatusBadge value={order.status} />
             </div>
           ))}
-          {orders.length === 0 ? <p className="text-xs text-muted-foreground">No orders yet.</p> : null}
+          {orders.length === 0 ? <p className="text-xs text-muted-foreground">Hali buyurtmalar yo'q.</p> : null}
         </div>
       </div>
     </div>
