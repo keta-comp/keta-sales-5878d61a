@@ -729,36 +729,48 @@ export async function runSalesAgent(params: {
   } as const;
 
   const gateway = createLovableAiGatewayProvider(apiKey);
-  const model = (ai?.model as string) || "google/gemini-3.7-flash";
+  // Low-latency default model for normal sales chat.
+  const model = ai?.model || "google/gemini-3.7-flash";
 
   try {
-    const result = await generateText({
-      model: gateway(model),
-      system: buildSystemPrompt(
-        business as Record<string, unknown> | null,
-        ai as Record<string, unknown> | null,
-        {
-          full_name: customer?.full_name ?? null,
-          phone: customer?.phone ?? null,
-          location: customer?.location ?? null,
-        },
-      ),
-      messages: (history ?? []).map((m) => ({
-        role: m.role === "customer" ? ("user" as const) : ("assistant" as const),
-        content: m.content,
-      })),
-      tools,
-      stopWhen: stepCountIs(50),
-    });
+    const llmStart = Date.now();
+    const result = await withTimeout(
+      generateText({
+        model: gateway(model),
+        system: buildSystemPrompt(
+          business,
+          ai,
+          {
+            full_name: customer?.full_name ?? null,
+            phone: customer?.phone ?? null,
+            location: customer?.location ?? null,
+          },
+          prefetched,
+        ),
+        messages: history.map((m) => ({
+          role: m.role === "customer" ? ("user" as const) : ("assistant" as const),
+          content: m.content,
+        })),
+        tools,
+        // Tight loop budget: the context is pre-fetched, so extra hops are rarely needed.
+        stopWhen: stepCountIs(4),
+        abortSignal: AbortSignal.timeout(12_000),
+      }),
+      13_000,
+      "AI generation",
+    );
+    timer.set("llm_total_ms", Date.now() - llmStart);
+    timer.set("llm_steps", result.steps?.length ?? 1);
 
     const reply = result.text.trim();
     return {
       reply: reply || "Kechirasiz, savolingizni qayta yozib yuborsangiz — yordam beraman.",
       escalated,
       leadId,
+      timings: timer.result(),
     };
   } catch (error) {
     console.error("[ai-agent]", error);
-    return { reply: "", escalated, leadId, error: gatewayErrorMessage(error) };
+    return { reply: "", escalated, leadId, error: gatewayErrorMessage(error), timings: timer.result() };
   }
 }
