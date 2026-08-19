@@ -17,12 +17,14 @@ export const Route = createFileRoute("/api/public/telegram/webhook/$botId/$secre
   server: {
     handlers: {
       POST: async ({ request, params }) => {
-        const [telegram, agent, { getBotById }, { supabaseAdmin }] = await Promise.all([
+        const [telegram, agentMod, { getBotById }, { supabaseAdmin }, perf] = await Promise.all([
           import("@/lib/telegram.server"),
           import("@/lib/agent.server"),
           import("@/lib/bots.server"),
           import("@/integrations/supabase/client.server"),
+          import("@/lib/perf.server"),
         ]);
+        const timer = perf.createTimer();
 
         const bot = await getBotById(params.botId);
         if (!bot) return new Response("Not found", { status: 404 });
@@ -60,99 +62,139 @@ export const Route = createFileRoute("/api/public/telegram/webhook/$botId/$secre
 
         const businessId = bot.business_id;
 
-        // Idempotency: Telegram retries deliveries.
+        // Idempotency: Telegram retries deliveries. Unique update_id rejects duplicates.
         if (typeof update.update_id === "number") {
           const { error } = await supabaseAdmin
             .from("telegram_updates")
             .insert({ business_id: businessId, update_id: update.update_id, payload: update as never });
           if (error) return Response.json({ ok: true, duplicate: true });
         }
+        timer.mark("webhook_ack_ms");
+        const ackMs = timer.total();
 
-        try {
-          const customer = await agent.getOrCreateCustomer({
-            businessId,
-            telegramUserId: String(message.from.id),
-            telegramUsername: message.from.username ?? null,
-            fullName: [message.from.first_name, message.from.last_name].filter(Boolean).join(" ") || null,
-          });
-          const conversation = await agent.getOrCreateConversation(
-            businessId,
-            customer.id,
-            String(message.chat.id),
-          );
-
-          await agent.saveMessage({
-            businessId,
-            conversationId: conversation.id,
-            role: "customer",
-            content: text,
-            telegramMessageId: message.message_id,
-          });
-          await supabaseAdmin
-            .from("conversations")
-            .update({ unread_count: (conversation.unread_count ?? 0) + 1 })
-            .eq("id", conversation.id);
-
-          const { data: settings } = await supabaseAdmin
-            .from("ai_settings")
-            .select("enabled")
-            .eq("business_id", businessId)
-            .maybeSingle();
-
-          // A conversation taken over by a human, or a disabled agent, is not answered by AI.
-          const { data: current } = await supabaseAdmin
-            .from("conversations")
-            .select("mode")
-            .eq("id", conversation.id)
-            .single();
-
-          if (settings?.enabled === false || current?.mode === "human") {
-            return Response.json({ ok: true, mode: current?.mode ?? "ai", ai: false });
-          }
-
-          const result = await agent.runSalesAgent({
-            businessId,
-            customerId: customer.id,
-            conversationId: conversation.id,
-          });
-
-          if (result.error) {
-            await agent.saveMessage({
+        // Everything below happens AFTER Telegram gets its 200.
+        perf.runBackground(async () => {
+          const work = perf.createTimer();
+          try {
+            const from = message.from!;
+            const customer = await agentMod.getOrCreateCustomer({
               businessId,
-              conversationId: conversation.id,
-              role: "system",
-              content: `AI error: ${result.error}`,
+              telegramUserId: String(from.id),
+              telegramUsername: from.username ?? null,
+              fullName: [from.first_name, from.last_name].filter(Boolean).join(" ") || null,
             });
-            await telegram.sendTelegramMessage(
-              token,
-              message.chat.id,
-              "Kechirasiz, hozir texnik nosozlik. Operatorimiz tez orada siz bilan bog'lanadi.",
+            work.mark("customer_lookup_ms");
+
+            const conversation = await agentMod.getOrCreateConversation(
+              businessId,
+              customer.id,
+              String(message.chat.id),
             );
-            return Response.json({ ok: false, error: result.error }, { status: 200 });
+            work.mark("conversation_lookup_ms");
+
+            // Persist the inbound message (needed for correctness) while reading agent gates.
+            const [, settingsRes, currentRes] = await Promise.all([
+              agentMod.saveMessage({
+                businessId,
+                conversationId: conversation.id,
+                role: "customer",
+                content: text,
+                telegramMessageId: message.message_id,
+              }),
+              agentMod.getSettings(businessId),
+              supabaseAdmin
+                .from("conversations")
+                .select("mode")
+                .eq("id", conversation.id)
+                .maybeSingle(),
+            ]);
+            work.mark("context_load_ms");
+
+            supabaseAdmin
+              .from("conversations")
+              .update({ unread_count: (conversation.unread_count ?? 0) + 1 })
+              .eq("id", conversation.id)
+              .then(undefined, (e: unknown) => console.error("[unread]", e));
+
+            // A conversation taken over by a human, or a disabled agent, is not answered by AI.
+            if (settingsRes.ai?.enabled === false || currentRes.data?.mode === "human") {
+              return;
+            }
+
+            const result = await agentMod.runSalesAgent({
+              businessId,
+              customerId: customer.id,
+              conversationId: conversation.id,
+              latestText: text,
+            });
+
+            if (result.error) {
+              await telegram.sendTelegramMessage(
+                token,
+                message.chat.id,
+                "Bir ozdan keyin yana urinib ko'ring yoki operator bilan bog'lanishingiz mumkin.",
+              );
+              perf.runBackground(
+                () =>
+                  agentMod.saveMessage({
+                    businessId,
+                    conversationId: conversation.id,
+                    role: "system",
+                    content: `AI error: ${result.error}`,
+                  }),
+                "ai-error-log",
+              );
+              console.error("[telegram-latency]", {
+                ...work.result(),
+                webhook_ack_ms: ackMs,
+                ai_error: result.error,
+              });
+              return;
+            }
+
+            // Send to the customer first; persistence happens right after.
+            const sendStart = Date.now();
+            const sent = await telegram.sendTelegramMessage(token, message.chat.id, result.reply);
+            work.set("telegram_send_ms", Date.now() - sendStart);
+
+            const timings = {
+              webhook_ack_ms: ackMs,
+              ...work.result(),
+              ...(result.timings ?? {}),
+            };
+            console.error("[telegram-latency]", timings);
+
+            perf.runBackground(
+              () =>
+                agentMod.saveMessage({
+                  businessId,
+                  conversationId: conversation.id,
+                  role: "ai",
+                  content: result.reply,
+                  telegramMessageId: sent.message_id,
+                  metadata: { escalated: result.escalated, lead_id: result.leadId, timings },
+                }),
+              "save-ai-message",
+            );
+          } catch (error) {
+            console.error("[telegram-webhook]", error);
+            await supabaseAdmin
+              .from("telegram_bots")
+              .update({ last_error: error instanceof Error ? error.message : "webhook failure" })
+              .eq("id", bot.id);
+            try {
+              await telegram.sendTelegramMessage(
+                token,
+                message.chat.id,
+                "Bir ozdan keyin yana urinib ko'ring yoki operator bilan bog'lanishingiz mumkin.",
+              );
+            } catch (sendError) {
+              console.error("[telegram-webhook] fallback send failed", sendError);
+            }
           }
+        }, "telegram-message");
 
-          const sent = await telegram.sendTelegramMessage(token, message.chat.id, result.reply);
-          await agent.saveMessage({
-            businessId,
-            conversationId: conversation.id,
-            role: "ai",
-            content: result.reply,
-            telegramMessageId: sent.message_id,
-            metadata: { escalated: result.escalated, lead_id: result.leadId },
-          });
-
-          return Response.json({ ok: true, escalated: result.escalated });
-        } catch (error) {
-          console.error("[telegram-webhook]", error);
-          await supabaseAdmin
-            .from("telegram_bots")
-            .update({ last_error: error instanceof Error ? error.message : "webhook failure" })
-            .eq("id", bot.id);
-          return Response.json(
-            { ok: false, error: error instanceof Error ? error.message : "unknown" },
-            { status: 500 },
-          );
-        }
+        return Response.json({ ok: true, ack_ms: ackMs });
       },
     },
   },

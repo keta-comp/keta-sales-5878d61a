@@ -4,6 +4,7 @@ import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { createLovableAiGatewayProvider, gatewayErrorMessage } from "./ai-gateway.server";
 import { getActiveBot } from "./bots.server";
+import { createTimer, runBackground, withTimeout, type Timings } from "./perf.server";
 import { sendTelegramMessage } from "./telegram.server";
 
 type Json = Record<string, unknown>;
@@ -13,6 +14,7 @@ export type AgentResult = {
   escalated: boolean;
   leadId: string | null;
   error?: string;
+  timings?: Timings;
 };
 
 function money(value: number | null, currency: string) {
@@ -27,12 +29,65 @@ function availability(stock: number, reserved: number, threshold: number) {
   return "in_stock";
 }
 
-export async function getSettings(businessId: string) {
+type BusinessSettingsRow = {
+  business_name: string | null;
+  business_description: string | null;
+  working_hours: string | null;
+  delivery_info: string | null;
+  payment_methods: string | null;
+  return_policy: string | null;
+  currency: string | null;
+  operator_group_chat_id: string | null;
+};
+
+type AiSettingsRow = {
+  model: string | null;
+  tone_of_voice: string | null;
+  sales_strategy: string | null;
+  language_instruction: string | null;
+  escalation_rules: string | null;
+  max_discount_percent: number | null;
+  custom_instructions: string | null;
+  enabled: boolean | null;
+};
+
+type SettingsBundle = {
+  business: BusinessSettingsRow | null;
+  ai: AiSettingsRow | null;
+};
+
+const SETTINGS_TTL_MS = 60_000;
+const settingsCache = new Map<string, { at: number; value: SettingsBundle }>();
+
+/** Business + AI settings change rarely, so they are cached per business for a short window. */
+export async function getSettings(businessId: string, useCache = true): Promise<SettingsBundle> {
+  const cached = settingsCache.get(businessId);
+  if (useCache && cached && Date.now() - cached.at < SETTINGS_TTL_MS) return cached.value;
+
   const [{ data: business }, { data: ai }] = await Promise.all([
-    supabaseAdmin.from("business_settings").select("*").eq("business_id", businessId).maybeSingle(),
-    supabaseAdmin.from("ai_settings").select("*").eq("business_id", businessId).maybeSingle(),
+    supabaseAdmin
+      .from("business_settings")
+      .select(
+        "business_name, business_description, working_hours, delivery_info, payment_methods, return_policy, currency, operator_group_chat_id",
+      )
+      .eq("business_id", businessId)
+      .maybeSingle(),
+    supabaseAdmin
+      .from("ai_settings")
+      .select(
+        "model, tone_of_voice, sales_strategy, language_instruction, escalation_rules, max_discount_percent, custom_instructions, enabled",
+      )
+      .eq("business_id", businessId)
+      .maybeSingle(),
   ]);
-  return { business, ai };
+  const value: SettingsBundle = { business, ai };
+  settingsCache.set(businessId, { at: Date.now(), value });
+  return value;
+}
+
+/** Called after the dashboard changes settings so the next message uses fresh values. */
+export function invalidateSettingsCache(businessId: string) {
+  settingsCache.delete(businessId);
 }
 
 export async function getOrCreateCustomer(input: {
@@ -43,20 +98,25 @@ export async function getOrCreateCustomer(input: {
 }) {
   const { data: existing } = await supabaseAdmin
     .from("customers")
-    .select("*")
+    .select("id, full_name, phone, location, telegram_username")
     .eq("business_id", input.businessId)
     .eq("telegram_user_id", input.telegramUserId)
     .maybeSingle();
 
   if (existing) {
-    await supabaseAdmin
-      .from("customers")
-      .update({
-        last_interaction_at: new Date().toISOString(),
-        telegram_username: input.telegramUsername ?? existing.telegram_username,
-        full_name: existing.full_name ?? input.fullName ?? null,
-      })
-      .eq("id", existing.id);
+    // Touch-up write is not on the reply path.
+    runBackground(
+      () =>
+        supabaseAdmin
+          .from("customers")
+          .update({
+            last_interaction_at: new Date().toISOString(),
+            telegram_username: input.telegramUsername ?? existing.telegram_username,
+            full_name: existing.full_name ?? input.fullName ?? null,
+          })
+          .eq("id", existing.id) as unknown as Promise<unknown>,
+      "customer-touch",
+    );
     return existing;
   }
 
@@ -68,7 +128,7 @@ export async function getOrCreateCustomer(input: {
       telegram_username: input.telegramUsername ?? null,
       full_name: input.fullName ?? null,
     })
-    .select("*")
+    .select("id, full_name, phone, location, telegram_username")
     .single();
   if (error) throw error;
   return data;
@@ -81,7 +141,7 @@ export async function getOrCreateConversation(
 ) {
   const { data: existing } = await supabaseAdmin
     .from("conversations")
-    .select("*")
+    .select("id, mode, unread_count")
     .eq("business_id", businessId)
     .eq("customer_id", customerId)
     .eq("telegram_chat_id", telegramChatId)
@@ -91,7 +151,7 @@ export async function getOrCreateConversation(
   const { data, error } = await supabaseAdmin
     .from("conversations")
     .insert({ business_id: businessId, customer_id: customerId, telegram_chat_id: telegramChatId })
-    .select("*")
+    .select("id, mode, unread_count")
     .single();
   if (error) throw error;
   return data;
@@ -106,9 +166,9 @@ export async function saveMessage(input: {
   operatorId?: string | null;
   metadata?: Json;
 }) {
-  const { data, error } = await supabaseAdmin
-    .from("messages")
-    .insert({
+  // Both writes are independent — run them concurrently and skip the read-back.
+  const [{ error }] = await Promise.all([
+    supabaseAdmin.from("messages").insert({
       business_id: input.businessId,
       conversation_id: input.conversationId,
       role: input.role,
@@ -116,20 +176,27 @@ export async function saveMessage(input: {
       telegram_message_id: input.telegramMessageId ?? null,
       operator_id: input.operatorId ?? null,
       metadata: (input.metadata ?? {}) as never,
-    })
-    .select("*")
-    .single();
+    }),
+    supabaseAdmin
+      .from("conversations")
+      .update({
+        last_message_at: new Date().toISOString(),
+        last_message_preview: input.content.slice(0, 160),
+      })
+      .eq("id", input.conversationId),
+  ]);
   if (error) throw error;
+  return { ok: true };
+}
 
-  await supabaseAdmin
-    .from("conversations")
-    .update({
-      last_message_at: new Date().toISOString(),
-      last_message_preview: input.content.slice(0, 160),
-    })
-    .eq("id", input.conversationId);
+const SIMPLE_PATTERNS =
+  /^(salom|assalom\w*|assalomu alaykum|hayrli\s\w+|hi|hello|hey|good (morning|evening|afternoon)|rahmat|thanks|thank you|ok|xayr|bye)[\s!.,?]*$/i;
 
-  return data;
+/** Small talk needs no catalog tools — one fast LLM call is enough. */
+function isSmallTalk(text: string | undefined): boolean {
+  if (!text) return false;
+  const trimmed = text.trim();
+  return trimmed.length <= 30 && SIMPLE_PATTERNS.test(trimmed);
 }
 
 export async function notifyOperatorGroup(businessId: string, leadId: string, reason: string) {
@@ -191,26 +258,76 @@ export async function notifyOperatorGroup(businessId: string, leadId: string, re
   }
 }
 
+const PRODUCT_SELECT =
+  "id, sku, name, description, price, compare_at_price, stock_quantity, reserved_quantity, low_stock_threshold, tags, specifications, category_id, categories(name)";
+
+function shapeProductRow(p: Record<string, any>, currency: string) {
+  return {
+    id: p["id"],
+    sku: p["sku"],
+    name: p["name"],
+    category: p["categories"]?.name ?? null,
+    description: p["description"],
+    price: money(p["price"], currency),
+    price_raw: Number(p["price"]),
+    compare_at_price: p["compare_at_price"] ? money(p["compare_at_price"], currency) : null,
+    availability: availability(p["stock_quantity"], p["reserved_quantity"], p["low_stock_threshold"]),
+    available_units: Math.max(0, p["stock_quantity"] - p["reserved_quantity"]),
+    specifications: p["specifications"],
+    tags: p["tags"],
+  };
+}
+
+const STOPWORDS = new Set([
+  "salom","assalomu","alaykum","rahmat","narxi","qancha","bormi","bor","yoq","yo'q","men","siz","bu",
+  "the","a","is","hi","hello","how","much","price","do","you","have","want","need","and","for","what",
+]);
+
+/**
+ * Targeted catalog pre-search from the customer's own words, so the model usually
+ * needs zero tool round trips to answer a product question.
+ */
+export async function prefetchProducts(businessId: string, text: string, currency: string) {
+  const terms = text
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .split(/\s+/)
+    .filter((t) => t.length > 2 && !STOPWORDS.has(t))
+    .slice(0, 4);
+  if (!terms.length) return [];
+  const or = terms.map((t) => `name.ilike.%${t}%,description.ilike.%${t}%,sku.ilike.%${t}%`).join(",");
+  const { data } = await supabaseAdmin
+    .from("products")
+    .select(PRODUCT_SELECT)
+    .eq("business_id", businessId)
+    .eq("is_active", true)
+    .eq("is_archived", false)
+    .or(or)
+    .limit(6);
+  return (data ?? []).map((row) => shapeProductRow(row as Record<string, any>, currency));
+}
+
 function buildSystemPrompt(
-  business: Record<string, unknown> | null,
-  ai: Record<string, unknown> | null,
+  business: BusinessSettingsRow | null,
+  ai: AiSettingsRow | null,
   customer: { full_name: string | null; phone: string | null; location: string | null },
+  prefetched: ReturnType<typeof shapeProductRow>[],
 ) {
   return [
-    `You are the AI sales agent for "${business?.["business_name"] ?? "the business"}".`,
-    `Business description: ${business?.["business_description"] ?? "-"}`,
-    `Working hours: ${business?.["working_hours"] ?? "-"}`,
-    `Delivery: ${business?.["delivery_info"] ?? "-"}`,
-    `Payment methods: ${business?.["payment_methods"] ?? "-"}`,
-    `Return policy: ${business?.["return_policy"] ?? "-"}`,
-    `Currency: ${business?.["currency"] ?? "UZS"}`,
-    `Maximum discount you may mention: ${ai?.["max_discount_percent"] ?? 0}%`,
+    `You are the AI sales agent for "${business?.business_name ?? "the business"}".`,
+    `Business description: ${business?.business_description ?? "-"}`,
+    `Working hours: ${business?.working_hours ?? "-"}`,
+    `Delivery: ${business?.delivery_info ?? "-"}`,
+    `Payment methods: ${business?.payment_methods ?? "-"}`,
+    `Return policy: ${business?.return_policy ?? "-"}`,
+    `Currency: ${business?.currency ?? "UZS"}`,
+    `Maximum discount you may mention: ${ai?.max_discount_percent ?? 0}%`,
     "",
-    `Tone of voice: ${ai?.["tone_of_voice"] ?? "professional"}`,
-    `Sales strategy: ${ai?.["sales_strategy"] ?? ""}`,
-    `Language: ${ai?.["language_instruction"] ?? "Reply in the customer's language."}`,
-    `Escalation rules: ${ai?.["escalation_rules"] ?? ""}`,
-    ai?.["custom_instructions"] ? `Extra instructions: ${ai["custom_instructions"]}` : "",
+    `Tone of voice: ${ai?.tone_of_voice ?? "professional"}`,
+    `Sales strategy: ${ai?.sales_strategy ?? ""}`,
+    `Language: ${ai?.language_instruction ?? "Reply in the customer's language."}`,
+    `Escalation rules: ${ai?.escalation_rules ?? ""}`,
+    ai?.custom_instructions ? `Extra instructions: ${ai.custom_instructions}` : "",
     "",
     "GOAL: maximize sales honestly. Understand intent, find matching products with tools,",
     "explain value, handle objections, offer in-stock alternatives, upsell relevant accessories,",
@@ -220,12 +337,18 @@ function buildSystemPrompt(
     "- NEVER invent products, stock, prices, discounts, specs or delivery promises. Every fact must come from a tool result.",
     "- If a product is out of stock, say so plainly and offer real alternatives from search_alternatives.",
     "- Keep replies short (max ~4 sentences), no markdown tables, no emoji spam.",
-    "- Always call create_lead (or update_lead) once you know what the customer wants.",
+    "- Business facts above (hours, delivery, payment, returns) are already final: answer those directly, never call a tool for them.",
+    "- Prefer the PRE-FETCHED CATALOG RESULTS below; only call search_products when they do not answer the question.",
+    "- Answer in ONE turn whenever possible. Do not chain tool calls you do not need.",
+    "- Call create_lead (or update_lead) once you know what the customer wants; skip it for pure small talk.",
     "- Set lead score: hot when the customer signals buying (olaman, buyurtma, payment/delivery questions, gives phone), warm when interested, cold when just browsing.",
     "- Call request_human_operator when the customer asks for a human, negotiates a discount above the allowed maximum, complains, has a payment/delivery problem, or is a high-value ready buyer.",
     "- Only call create_order after the customer confirmed the product, quantity, phone and delivery address.",
     "",
     `Known customer info: name=${customer.full_name ?? "unknown"}, phone=${customer.phone ?? "unknown"}, location=${customer.location ?? "unknown"}.`,
+    prefetched.length
+      ? `\nPRE-FETCHED CATALOG RESULTS (live data, matched to the customer's last message):\n${JSON.stringify(prefetched)}`
+      : "",
   ]
     .filter(Boolean)
     .join("\n");
@@ -235,38 +358,52 @@ export async function runSalesAgent(params: {
   businessId: string;
   customerId: string;
   conversationId: string;
+  latestText?: string;
 }): Promise<AgentResult> {
+  const timer = createTimer();
   const apiKey = process.env["LOVABLE_API_KEY"];
   if (!apiKey) {
     return { reply: "", escalated: false, leadId: null, error: "LOVABLE_API_KEY is not configured" };
   }
 
-  const { business, ai } = await getSettings(params.businessId);
-  const currency = (business?.currency ?? "UZS") as string;
+  // Settings come from the short-lived cache; the rest loads concurrently.
+  const settings = await getSettings(params.businessId);
+  const business = settings.business;
+  const ai = settings.ai;
+  const currency = business?.currency ?? "UZS";
+  timer.mark("settings_ms");
 
-  const { data: customer } = await supabaseAdmin
-    .from("customers")
-    .select("*")
-    .eq("business_id", params.businessId)
-    .eq("id", params.customerId)
-    .single();
+  const [customerRes, historyRes, leadRes, prefetched] = await Promise.all([
+    supabaseAdmin
+      .from("customers")
+      .select("id, full_name, phone, location")
+      .eq("business_id", params.businessId)
+      .eq("id", params.customerId)
+      .maybeSingle(),
+    supabaseAdmin
+      .from("messages")
+      .select("role, content")
+      .eq("conversation_id", params.conversationId)
+      .order("created_at", { ascending: false })
+      .limit(14),
+    supabaseAdmin
+      .from("leads")
+      .select("id")
+      .eq("business_id", params.businessId)
+      .eq("customer_id", params.customerId)
+      .not("status", "in", "(won,lost)")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    params.latestText && !isSmallTalk(params.latestText)
+      ? prefetchProducts(params.businessId, params.latestText, currency).catch(() => [])
+      : Promise.resolve([]),
+  ]);
+  timer.mark("context_load_ms");
 
-  const { data: history } = await supabaseAdmin
-    .from("messages")
-    .select("role, content")
-    .eq("business_id", params.businessId)
-    .eq("conversation_id", params.conversationId)
-    .order("created_at", { ascending: true })
-    .limit(40);
-
-  const { data: openLead } = await supabaseAdmin
-    .from("leads")
-    .select("*")
-    .eq("business_id", params.businessId)
-    .eq("customer_id", params.customerId)
-    .not("status", "in", "(won,lost)")
-    .order("created_at", { ascending: false })
-    .maybeSingle();
+  const customer = customerRes.data;
+  const history = (historyRes.data ?? []).slice().reverse();
+  const openLead = leadRes.data;
 
   let leadId: string | null = openLead?.id ?? null;
   let escalated = false;
@@ -425,19 +562,6 @@ export async function runSalesAgent(params: {
         return { products: (data ?? []).map(shapeProduct) };
       },
     }),
-    get_business_settings: tool({
-      description: "Get delivery, payment, working hours and return policy information.",
-      inputSchema: z.object({}),
-      execute: async () => ({
-        business_name: business?.business_name,
-        working_hours: business?.working_hours,
-        delivery_info: business?.delivery_info,
-        payment_methods: business?.payment_methods,
-        return_policy: business?.return_policy,
-        currency,
-        max_discount_percent: ai?.max_discount_percent ?? 0,
-      }),
-    }),
     create_lead: tool({
       description: "Create or update the CRM lead for this customer with what you learned.",
       inputSchema: z.object({
@@ -470,12 +594,16 @@ export async function runSalesAgent(params: {
             })
             .eq("id", params.customerId);
         }
-        await supabaseAdmin.from("lead_events").insert({
-          business_id: params.businessId,
-          lead_id: id,
-          event_type: "lead_updated_by_ai",
-          detail: input.ai_summary ?? "Lead details captured",
-        });
+        runBackground(
+          () =>
+            supabaseAdmin.from("lead_events").insert({
+              business_id: params.businessId,
+              lead_id: id,
+              event_type: "lead_updated_by_ai",
+              detail: input.ai_summary ?? "Lead details captured",
+            }) as unknown as Promise<unknown>,
+          "lead-event",
+        );
         return { lead_id: id, ok: true };
       },
     }),
@@ -553,18 +681,27 @@ export async function runSalesAgent(params: {
           .insert(lines.map((l) => ({ ...l, order_id: order.id, business_id: params.businessId })));
         if (itemsError) return { error: itemsError.message };
 
-        await supabaseAdmin
-          .from("customers")
-          .update({ phone: input.phone, location: input.delivery_address })
-          .eq("id", params.customerId);
-        await supabaseAdmin.from("lead_events").insert({
-          business_id: params.businessId,
-          lead_id: leadRef,
-          event_type: "order_created",
-          detail: `Order ${order.order_number} created by AI`,
-        });
         escalated = true;
-        await notifyOperatorGroup(params.businessId, leadRef, `New order ${order.order_number} needs confirmation.`);
+        // Customer never waits for CRM side effects or the operator notification.
+        runBackground(async () => {
+          await Promise.all([
+            supabaseAdmin
+              .from("customers")
+              .update({ phone: input.phone, location: input.delivery_address })
+              .eq("id", params.customerId),
+            supabaseAdmin.from("lead_events").insert({
+              business_id: params.businessId,
+              lead_id: leadRef,
+              event_type: "order_created",
+              detail: `Order ${order.order_number} created by AI`,
+            }),
+          ]);
+          await notifyOperatorGroup(
+            params.businessId,
+            leadRef,
+            `New order ${order.order_number} needs confirmation.`,
+          );
+        }, "order-side-effects");
         return {
           ok: true,
           order_number: order.order_number,
@@ -590,50 +727,64 @@ export async function runSalesAgent(params: {
           .from("conversations")
           .update({ mode: "human" })
           .eq("id", params.conversationId);
-        await supabaseAdmin.from("lead_events").insert({
-          business_id: params.businessId,
-          lead_id: id,
-          event_type: "handoff_requested",
-          detail: reason,
-        });
-        const notified = await notifyOperatorGroup(params.businessId, id, reason);
         escalated = true;
-        return { ok: true, lead_id: id, operator_notified: notified.sent };
+        runBackground(async () => {
+          await supabaseAdmin.from("lead_events").insert({
+            business_id: params.businessId,
+            lead_id: id,
+            event_type: "handoff_requested",
+            detail: reason,
+          });
+          await notifyOperatorGroup(params.businessId, id, reason);
+        }, "handoff-notify");
+        return { ok: true, lead_id: id, operator_notified: true };
       },
     }),
   } as const;
 
   const gateway = createLovableAiGatewayProvider(apiKey);
-  const model = (ai?.model as string) || "google/gemini-3.7-flash";
+  // Low-latency default model for normal sales chat.
+  const model = ai?.model || "google/gemini-3.7-flash";
 
   try {
-    const result = await generateText({
-      model: gateway(model),
-      system: buildSystemPrompt(
-        business as Record<string, unknown> | null,
-        ai as Record<string, unknown> | null,
-        {
-          full_name: customer?.full_name ?? null,
-          phone: customer?.phone ?? null,
-          location: customer?.location ?? null,
-        },
-      ),
-      messages: (history ?? []).map((m) => ({
-        role: m.role === "customer" ? ("user" as const) : ("assistant" as const),
-        content: m.content,
-      })),
-      tools,
-      stopWhen: stepCountIs(50),
-    });
+    const llmStart = Date.now();
+    const smallTalk = isSmallTalk(params.latestText);
+    const result = await withTimeout(
+      generateText({
+        model: gateway(model),
+        system: buildSystemPrompt(
+          business,
+          ai,
+          {
+            full_name: customer?.full_name ?? null,
+            phone: customer?.phone ?? null,
+            location: customer?.location ?? null,
+          },
+          prefetched,
+        ),
+        messages: history.map((m) => ({
+          role: m.role === "customer" ? ("user" as const) : ("assistant" as const),
+          content: m.content,
+        })),
+        // Small talk skips the tool catalog entirely: one round trip, no tool hops.
+        ...(smallTalk ? {} : { tools, stopWhen: stepCountIs(4) }),
+        abortSignal: AbortSignal.timeout(12_000),
+      }),
+      13_000,
+      "AI generation",
+    );
+    timer.set("llm_total_ms", Date.now() - llmStart);
+    timer.set("llm_steps", result.steps?.length ?? 1);
 
     const reply = result.text.trim();
     return {
       reply: reply || "Kechirasiz, savolingizni qayta yozib yuborsangiz — yordam beraman.",
       escalated,
       leadId,
+      timings: timer.result(),
     };
   } catch (error) {
     console.error("[ai-agent]", error);
-    return { reply: "", escalated, leadId, error: gatewayErrorMessage(error) };
+    return { reply: "", escalated, leadId, error: gatewayErrorMessage(error), timings: timer.result() };
   }
 }

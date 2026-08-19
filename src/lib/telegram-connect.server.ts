@@ -1,4 +1,4 @@
-import { getActiveBot } from "./bots.server";
+import { getActiveBot, invalidateBotCache } from "./bots.server";
 import {
   botWebhookUrl,
   deleteWebhook,
@@ -77,6 +77,7 @@ export async function connectBot(businessId: string, rawToken: string): Promise<
     .update({ is_active: false, webhook_status: "disconnected" })
     .eq("business_id", businessId)
     .eq("is_active", true);
+  invalidateBotCache();
 
   // 4. Store the new bot with an encrypted token and a fresh webhook secret.
   const webhookSecret = newWebhookSecret();
@@ -224,6 +225,7 @@ export async function disconnectBot(businessId: string) {
       last_checked_at: new Date().toISOString(),
     })
     .eq("id", bot.id);
+  invalidateBotCache(bot.id);
   return { ok: true as const, webhookRemoved };
 }
 

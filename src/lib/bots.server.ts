@@ -25,13 +25,35 @@ export async function getActiveBot(businessId: string): Promise<ActiveBot | null
   };
 }
 
-/** Loads a bot by its row id (used by the webhook route). */
-export async function getBotById(botId: string) {
+type BotRow = {
+  id: string;
+  business_id: string;
+  bot_token_encrypted: string;
+  webhook_secret: string;
+  is_active: boolean;
+};
+
+const BOT_TTL_MS = 30_000;
+const botCache = new Map<string, { at: number; value: BotRow | null }>();
+
+/** Loads a bot by its row id (used by the webhook route). Cached briefly to cut webhook latency. */
+export async function getBotById(botId: string): Promise<BotRow | null> {
+  const cached = botCache.get(botId);
+  if (cached && Date.now() - cached.at < BOT_TTL_MS) return cached.value;
+
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data } = await supabaseAdmin
     .from("telegram_bots")
-    .select("*")
+    .select("id, business_id, bot_token_encrypted, webhook_secret, is_active")
     .eq("id", botId)
     .maybeSingle();
-  return data;
+  const value = (data as BotRow | null) ?? null;
+  botCache.set(botId, { at: Date.now(), value });
+  return value;
+}
+
+/** Called when a bot is connected/disconnected so the webhook sees the change at once. */
+export function invalidateBotCache(botId?: string) {
+  if (botId) botCache.delete(botId);
+  else botCache.clear();
 }
