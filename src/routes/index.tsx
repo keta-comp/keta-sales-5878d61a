@@ -3,6 +3,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { BarChart3, Bot, Boxes, MessagesSquare, Sparkles, Users } from "lucide-react";
 import { toast } from "sonner";
 
+import logoAsset from "@/assets/keta-logo.png.asset.json";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -95,6 +96,13 @@ function Index() {
       <div className="pointer-events-none absolute inset-x-0 top-0 h-[420px] bg-[radial-gradient(60%_100%_at_50%_0%,var(--color-primary)/18%,transparent)]" />
       <div className="relative mx-auto grid w-full max-w-6xl gap-12 px-4 py-14 lg:grid-cols-[1.1fr_0.9fr] lg:py-20">
         <div>
+          <img
+            src={logoAsset.url}
+            alt="Keta AI savdo agenti logotipi"
+            className="mb-6 size-16 object-contain"
+            width={64}
+            height={64}
+          />
           <div className="clay-raised inline-flex items-center gap-2 rounded-full bg-card px-4 py-2 text-xs text-muted-foreground">
             <Sparkles className="size-3.5 text-primary" /> Jonli AI savdo bo‘limi
           </div>
