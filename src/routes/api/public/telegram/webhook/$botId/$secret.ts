@@ -72,8 +72,9 @@ export const Route = createFileRoute("/api/public/telegram/webhook/$botId/$secre
         timer.mark("webhook_ack_ms");
         const ackMs = timer.total();
 
-        // Everything below happens AFTER Telegram gets its 200.
-        perf.runBackground(async () => {
+        // Everything below happens AFTER Telegram gets its 200 when the runtime
+        // supports waitUntil; otherwise we await it so the reply is never lost.
+        const task = perf.runBackground(async () => {
           const work = perf.createTimer();
           try {
             const from = message.from!;
@@ -193,6 +194,10 @@ export const Route = createFileRoute("/api/public/telegram/webhook/$botId/$secre
             }
           }
         }, "telegram-message");
+
+        if (!perf.hasWaitUntil()) {
+          await task;
+        }
 
         return Response.json({ ok: true, ack_ms: ackMs });
       },
