@@ -582,12 +582,16 @@ export async function runSalesAgent(params: {
             })
             .eq("id", params.customerId);
         }
-        await supabaseAdmin.from("lead_events").insert({
-          business_id: params.businessId,
-          lead_id: id,
-          event_type: "lead_updated_by_ai",
-          detail: input.ai_summary ?? "Lead details captured",
-        });
+        runBackground(
+          () =>
+            supabaseAdmin.from("lead_events").insert({
+              business_id: params.businessId,
+              lead_id: id,
+              event_type: "lead_updated_by_ai",
+              detail: input.ai_summary ?? "Lead details captured",
+            }) as unknown as Promise<unknown>,
+          "lead-event",
+        );
         return { lead_id: id, ok: true };
       },
     }),
@@ -665,18 +669,27 @@ export async function runSalesAgent(params: {
           .insert(lines.map((l) => ({ ...l, order_id: order.id, business_id: params.businessId })));
         if (itemsError) return { error: itemsError.message };
 
-        await supabaseAdmin
-          .from("customers")
-          .update({ phone: input.phone, location: input.delivery_address })
-          .eq("id", params.customerId);
-        await supabaseAdmin.from("lead_events").insert({
-          business_id: params.businessId,
-          lead_id: leadRef,
-          event_type: "order_created",
-          detail: `Order ${order.order_number} created by AI`,
-        });
         escalated = true;
-        await notifyOperatorGroup(params.businessId, leadRef, `New order ${order.order_number} needs confirmation.`);
+        // Customer never waits for CRM side effects or the operator notification.
+        runBackground(async () => {
+          await Promise.all([
+            supabaseAdmin
+              .from("customers")
+              .update({ phone: input.phone, location: input.delivery_address })
+              .eq("id", params.customerId),
+            supabaseAdmin.from("lead_events").insert({
+              business_id: params.businessId,
+              lead_id: leadRef,
+              event_type: "order_created",
+              detail: `Order ${order.order_number} created by AI`,
+            }),
+          ]);
+          await notifyOperatorGroup(
+            params.businessId,
+            leadRef,
+            `New order ${order.order_number} needs confirmation.`,
+          );
+        }, "order-side-effects");
         return {
           ok: true,
           order_number: order.order_number,
@@ -702,15 +715,17 @@ export async function runSalesAgent(params: {
           .from("conversations")
           .update({ mode: "human" })
           .eq("id", params.conversationId);
-        await supabaseAdmin.from("lead_events").insert({
-          business_id: params.businessId,
-          lead_id: id,
-          event_type: "handoff_requested",
-          detail: reason,
-        });
-        const notified = await notifyOperatorGroup(params.businessId, id, reason);
         escalated = true;
-        return { ok: true, lead_id: id, operator_notified: notified.sent };
+        runBackground(async () => {
+          await supabaseAdmin.from("lead_events").insert({
+            business_id: params.businessId,
+            lead_id: id,
+            event_type: "handoff_requested",
+            detail: reason,
+          });
+          await notifyOperatorGroup(params.businessId, id, reason);
+        }, "handoff-notify");
+        return { ok: true, lead_id: id, operator_notified: true };
       },
     }),
   } as const;
