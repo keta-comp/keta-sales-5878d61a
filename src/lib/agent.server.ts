@@ -768,6 +768,8 @@ export async function runSalesAgent(params: {
         })),
         // Small talk skips the tool catalog entirely: one round trip, no tool hops.
         ...(smallTalk ? {} : { tools, stopWhen: stepCountIs(4) }),
+        // Short sales replies generate faster and read better in Telegram.
+        maxOutputTokens: 400,
         abortSignal: AbortSignal.timeout(12_000),
       }),
       13_000,
