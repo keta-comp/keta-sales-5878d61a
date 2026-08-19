@@ -225,6 +225,7 @@ export async function disconnectBot(businessId: string) {
       last_checked_at: new Date().toISOString(),
     })
     .eq("id", bot.id);
+  invalidateBotCache(bot.id);
   return { ok: true as const, webhookRemoved };
 }
 
