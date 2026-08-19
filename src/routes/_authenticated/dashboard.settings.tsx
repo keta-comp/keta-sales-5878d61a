@@ -5,18 +5,13 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 
 import { ErrorState, LoadingState, PageHeader } from "@/components/app/primitives";
+import { TelegramCard } from "@/components/app/TelegramCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  getSettings,
-  getTelegramStatus,
-  saveAiSettings,
-  saveBusinessSettings,
-  setTelegramWebhook,
-} from "@/lib/settings.functions";
+import { getSettings, saveAiSettings, saveBusinessSettings } from "@/lib/settings.functions";
 
 export const Route = createFileRoute("/_authenticated/dashboard/settings")({
   head: () => ({
@@ -33,13 +28,10 @@ export const Route = createFileRoute("/_authenticated/dashboard/settings")({
 function SettingsPage() {
   const queryClient = useQueryClient();
   const fetchSettings = useServerFn(getSettings);
-  const fetchTelegram = useServerFn(getTelegramStatus);
   const saveBusiness = useServerFn(saveBusinessSettings);
   const saveAi = useServerFn(saveAiSettings);
-  const registerWebhook = useServerFn(setTelegramWebhook);
 
   const settings = useQuery({ queryKey: ["settings"], queryFn: () => fetchSettings() });
-  const telegram = useQuery({ queryKey: ["telegram-status"], queryFn: () => fetchTelegram() });
 
   const businessMutation = useMutation({
     mutationFn: (input: Parameters<typeof saveBusiness>[0] extends { data: infer D } ? D : never) =>
@@ -61,16 +53,6 @@ function SettingsPage() {
     onError: (error: unknown) => toast.error(error instanceof Error ? error.message : "Save failed"),
   });
 
-  const webhookMutation = useMutation({
-    mutationFn: () => registerWebhook({ data: { baseUrl: window.location.origin } }),
-    onSuccess: (result) => {
-      toast.success(`Webhook registered: ${result.url}`);
-      void queryClient.invalidateQueries({ queryKey: ["telegram-status"] });
-    },
-    onError: (error: unknown) =>
-      toast.error(error instanceof Error ? error.message : "Could not register webhook"),
-  });
-
   if (settings.isPending) return <LoadingState />;
   if (settings.error) return <ErrorState error={settings.error} onRetry={() => void settings.refetch()} />;
 
@@ -81,42 +63,7 @@ function SettingsPage() {
     <>
       <PageHeader title="Settings" description="Business knowledge, AI behaviour and the Telegram connection." />
 
-      <section className="surface-panel p-4">
-        <h2 className="font-display text-base font-semibold">Telegram connection</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {settings.data.telegramConfigured
-            ? "Bot token is configured on the server."
-            : "Add your bot token (TELEGRAM_BOT_TOKEN) to connect the AI agent to Telegram."}
-        </p>
-        <div className="mt-3 space-y-1 text-sm text-muted-foreground">
-          {telegram.data && "bot" in telegram.data && telegram.data.bot ? (
-            <p>
-              Bot: <span className="text-foreground">@{telegram.data.bot.username}</span>
-            </p>
-          ) : null}
-          {telegram.data && "webhook" in telegram.data && telegram.data.webhook ? (
-            <>
-              <p>
-                Webhook: <span className="text-foreground">{telegram.data.webhook.url || "not set"}</span>
-              </p>
-              <p>Pending updates: {telegram.data.webhook.pending_update_count}</p>
-              {telegram.data.webhook.last_error_message ? (
-                <p className="text-destructive">Last error: {telegram.data.webhook.last_error_message}</p>
-              ) : null}
-            </>
-          ) : null}
-          {telegram.data && "error" in telegram.data && telegram.data.error ? (
-            <p className="text-destructive">{telegram.data.error}</p>
-          ) : null}
-        </div>
-        <Button
-          className="mt-4"
-          disabled={webhookMutation.isPending || !settings.data.telegramConfigured}
-          onClick={() => webhookMutation.mutate()}
-        >
-          Register webhook for this domain
-        </Button>
-      </section>
+      <TelegramCard />
 
       {business ? (
         <BusinessForm

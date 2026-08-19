@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { createLovableAiGatewayProvider, gatewayErrorMessage } from "./ai-gateway.server";
+import { getActiveBot } from "./bots.server";
 import { sendTelegramMessage } from "./telegram.server";
 
 type Json = Record<string, unknown>;
@@ -26,15 +27,16 @@ function availability(stock: number, reserved: number, threshold: number) {
   return "in_stock";
 }
 
-export async function getSettings() {
+export async function getSettings(businessId: string) {
   const [{ data: business }, { data: ai }] = await Promise.all([
-    supabaseAdmin.from("business_settings").select("*").limit(1).maybeSingle(),
-    supabaseAdmin.from("ai_settings").select("*").limit(1).maybeSingle(),
+    supabaseAdmin.from("business_settings").select("*").eq("business_id", businessId).maybeSingle(),
+    supabaseAdmin.from("ai_settings").select("*").eq("business_id", businessId).maybeSingle(),
   ]);
   return { business, ai };
 }
 
 export async function getOrCreateCustomer(input: {
+  businessId: string;
   telegramUserId: string;
   telegramUsername?: string | null;
   fullName?: string | null;
@@ -42,6 +44,7 @@ export async function getOrCreateCustomer(input: {
   const { data: existing } = await supabaseAdmin
     .from("customers")
     .select("*")
+    .eq("business_id", input.businessId)
     .eq("telegram_user_id", input.telegramUserId)
     .maybeSingle();
 
@@ -60,6 +63,7 @@ export async function getOrCreateCustomer(input: {
   const { data, error } = await supabaseAdmin
     .from("customers")
     .insert({
+      business_id: input.businessId,
       telegram_user_id: input.telegramUserId,
       telegram_username: input.telegramUsername ?? null,
       full_name: input.fullName ?? null,
@@ -70,10 +74,15 @@ export async function getOrCreateCustomer(input: {
   return data;
 }
 
-export async function getOrCreateConversation(customerId: string, telegramChatId: string) {
+export async function getOrCreateConversation(
+  businessId: string,
+  customerId: string,
+  telegramChatId: string,
+) {
   const { data: existing } = await supabaseAdmin
     .from("conversations")
     .select("*")
+    .eq("business_id", businessId)
     .eq("customer_id", customerId)
     .eq("telegram_chat_id", telegramChatId)
     .maybeSingle();
@@ -81,7 +90,7 @@ export async function getOrCreateConversation(customerId: string, telegramChatId
 
   const { data, error } = await supabaseAdmin
     .from("conversations")
-    .insert({ customer_id: customerId, telegram_chat_id: telegramChatId })
+    .insert({ business_id: businessId, customer_id: customerId, telegram_chat_id: telegramChatId })
     .select("*")
     .single();
   if (error) throw error;
@@ -89,6 +98,7 @@ export async function getOrCreateConversation(customerId: string, telegramChatId
 }
 
 export async function saveMessage(input: {
+  businessId: string;
   conversationId: string;
   role: "customer" | "ai" | "operator" | "system";
   content: string;
@@ -99,6 +109,7 @@ export async function saveMessage(input: {
   const { data, error } = await supabaseAdmin
     .from("messages")
     .insert({
+      business_id: input.businessId,
       conversation_id: input.conversationId,
       role: input.role,
       content: input.content,
@@ -121,14 +132,18 @@ export async function saveMessage(input: {
   return data;
 }
 
-export async function notifyOperatorGroup(leadId: string, reason: string) {
-  const { business } = await getSettings();
+export async function notifyOperatorGroup(businessId: string, leadId: string, reason: string) {
+  const { business } = await getSettings(businessId);
   const chatId = business?.operator_group_chat_id;
   if (!chatId) return { sent: false, reason: "operator_group_chat_id is not configured" };
+
+  const bot = await getActiveBot(businessId);
+  if (!bot) return { sent: false, reason: "no active Telegram bot for this business" };
 
   const { data: lead } = await supabaseAdmin
     .from("leads")
     .select("*, customers(full_name, telegram_username, phone, location)")
+    .eq("business_id", businessId)
     .eq("id", leadId)
     .maybeSingle();
   if (!lead) return { sent: false, reason: "lead not found" };
@@ -144,6 +159,7 @@ export async function notifyOperatorGroup(leadId: string, reason: string) {
   const text = [
     `${icon} <b>NEW ${lead.score.toUpperCase()} LEAD</b>`,
     "",
+    `<b>Business:</b> ${business?.business_name ?? "-"}`,
     `<b>Customer:</b> ${customer?.full_name ?? "Unknown"}`,
     `<b>Telegram:</b> ${customer?.telegram_username ? "@" + customer.telegram_username : "-"}`,
     `<b>Phone:</b> ${lead.phone ?? customer?.phone ?? "-"}`,
@@ -160,8 +176,9 @@ export async function notifyOperatorGroup(leadId: string, reason: string) {
   ].join("\n");
 
   try {
-    await sendTelegramMessage(chatId, text);
+    await sendTelegramMessage(bot.token, chatId, text);
     await supabaseAdmin.from("lead_events").insert({
+      business_id: businessId,
       lead_id: leadId,
       event_type: "operator_notified",
       detail: "Lead sent to operator group",
@@ -215,6 +232,7 @@ function buildSystemPrompt(
 }
 
 export async function runSalesAgent(params: {
+  businessId: string;
   customerId: string;
   conversationId: string;
 }): Promise<AgentResult> {
@@ -223,18 +241,20 @@ export async function runSalesAgent(params: {
     return { reply: "", escalated: false, leadId: null, error: "LOVABLE_API_KEY is not configured" };
   }
 
-  const { business, ai } = await getSettings();
+  const { business, ai } = await getSettings(params.businessId);
   const currency = (business?.currency ?? "UZS") as string;
 
   const { data: customer } = await supabaseAdmin
     .from("customers")
     .select("*")
+    .eq("business_id", params.businessId)
     .eq("id", params.customerId)
     .single();
 
   const { data: history } = await supabaseAdmin
     .from("messages")
     .select("role, content")
+    .eq("business_id", params.businessId)
     .eq("conversation_id", params.conversationId)
     .order("created_at", { ascending: true })
     .limit(40);
@@ -242,6 +262,7 @@ export async function runSalesAgent(params: {
   const { data: openLead } = await supabaseAdmin
     .from("leads")
     .select("*")
+    .eq("business_id", params.businessId)
     .eq("customer_id", params.customerId)
     .not("status", "in", "(won,lost)")
     .order("created_at", { ascending: false })
@@ -273,6 +294,7 @@ export async function runSalesAgent(params: {
       const { data, error } = await supabaseAdmin
         .from("leads")
         .update(input as never)
+        .eq("business_id", params.businessId)
         .eq("id", leadId)
         .select("id")
         .single();
@@ -282,6 +304,7 @@ export async function runSalesAgent(params: {
     const { data, error } = await supabaseAdmin
       .from("leads")
       .insert({
+        business_id: params.businessId,
         customer_id: params.customerId,
         conversation_id: params.conversationId,
         ...(input as object),
@@ -302,6 +325,7 @@ export async function runSalesAgent(params: {
         let builder = supabaseAdmin
           .from("products")
           .select(productSelect)
+          .eq("business_id", params.businessId)
           .eq("is_active", true)
           .eq("is_archived", false)
           .limit(12);
@@ -325,6 +349,7 @@ export async function runSalesAgent(params: {
         const { data, error } = await supabaseAdmin
           .from("products")
           .select(productSelect)
+          .eq("business_id", params.businessId)
           .eq("id", product_id)
           .maybeSingle();
         if (error) return { error: error.message };
@@ -339,6 +364,7 @@ export async function runSalesAgent(params: {
         const { data, error } = await supabaseAdmin
           .from("products")
           .select("name, stock_quantity, reserved_quantity, low_stock_threshold")
+          .eq("business_id", params.businessId)
           .eq("id", product_id)
           .maybeSingle();
         if (error) return { error: error.message };
@@ -368,6 +394,7 @@ export async function runSalesAgent(params: {
           const { data } = await supabaseAdmin
             .from("products")
             .select("category_id")
+            .eq("business_id", params.businessId)
             .eq("id", product_id)
             .maybeSingle();
           categoryId = data?.category_id ?? null;
@@ -376,6 +403,7 @@ export async function runSalesAgent(params: {
           const { data } = await supabaseAdmin
             .from("categories")
             .select("id")
+            .eq("business_id", params.businessId)
             .ilike("name", `%${category}%`)
             .maybeSingle();
           categoryId = data?.id ?? null;
@@ -383,6 +411,7 @@ export async function runSalesAgent(params: {
         let builder = supabaseAdmin
           .from("products")
           .select(productSelect)
+          .eq("business_id", params.businessId)
           .eq("is_active", true)
           .eq("is_archived", false)
           .gt("stock_quantity", 0)
@@ -442,6 +471,7 @@ export async function runSalesAgent(params: {
             .eq("id", params.customerId);
         }
         await supabaseAdmin.from("lead_events").insert({
+          business_id: params.businessId,
           lead_id: id,
           event_type: "lead_updated_by_ai",
           detail: input.ai_summary ?? "Lead details captured",
@@ -477,6 +507,7 @@ export async function runSalesAgent(params: {
         const { data: products, error: prodErr } = await supabaseAdmin
           .from("products")
           .select("id, name, sku, price, stock_quantity, reserved_quantity")
+          .eq("business_id", params.businessId)
           .in("id", ids);
         if (prodErr) return { error: prodErr.message };
         if (!products?.length) return { error: "products not found" };
@@ -504,6 +535,7 @@ export async function runSalesAgent(params: {
         const { data: order, error } = await supabaseAdmin
           .from("orders")
           .insert({
+            business_id: params.businessId,
             customer_id: params.customerId,
             conversation_id: params.conversationId,
             lead_id: leadRef,
@@ -518,7 +550,7 @@ export async function runSalesAgent(params: {
 
         const { error: itemsError } = await supabaseAdmin
           .from("order_items")
-          .insert(lines.map((l) => ({ ...l, order_id: order.id })));
+          .insert(lines.map((l) => ({ ...l, order_id: order.id, business_id: params.businessId })));
         if (itemsError) return { error: itemsError.message };
 
         await supabaseAdmin
@@ -526,12 +558,13 @@ export async function runSalesAgent(params: {
           .update({ phone: input.phone, location: input.delivery_address })
           .eq("id", params.customerId);
         await supabaseAdmin.from("lead_events").insert({
+          business_id: params.businessId,
           lead_id: leadRef,
           event_type: "order_created",
           detail: `Order ${order.order_number} created by AI`,
         });
         escalated = true;
-        await notifyOperatorGroup(leadRef, `New order ${order.order_number} needs confirmation.`);
+        await notifyOperatorGroup(params.businessId, leadRef, `New order ${order.order_number} needs confirmation.`);
         return {
           ok: true,
           order_number: order.order_number,
@@ -558,11 +591,12 @@ export async function runSalesAgent(params: {
           .update({ mode: "human" })
           .eq("id", params.conversationId);
         await supabaseAdmin.from("lead_events").insert({
+          business_id: params.businessId,
           lead_id: id,
           event_type: "handoff_requested",
           detail: reason,
         });
-        const notified = await notifyOperatorGroup(id, reason);
+        const notified = await notifyOperatorGroup(params.businessId, id, reason);
         escalated = true;
         return { ok: true, lead_id: id, operator_notified: notified.sent };
       },

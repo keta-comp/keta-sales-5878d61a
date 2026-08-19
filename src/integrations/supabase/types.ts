@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       ai_settings: {
         Row: {
+          business_id: string
           created_at: string
           custom_instructions: string
           enabled: boolean
@@ -29,6 +30,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          business_id?: string
           created_at?: string
           custom_instructions?: string
           enabled?: boolean
@@ -42,6 +44,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          business_id?: string
           created_at?: string
           custom_instructions?: string
           enabled?: boolean
@@ -54,11 +57,52 @@ export type Database = {
           tone_of_voice?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ai_settings_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: true
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      business_members: {
+        Row: {
+          business_id: string
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_members_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       business_settings: {
         Row: {
           business_description: string
+          business_id: string
           business_name: string
           created_at: string
           currency: string
@@ -72,6 +116,7 @@ export type Database = {
         }
         Insert: {
           business_description?: string
+          business_id?: string
           business_name?: string
           created_at?: string
           currency?: string
@@ -85,6 +130,7 @@ export type Database = {
         }
         Update: {
           business_description?: string
+          business_id?: string
           business_name?: string
           created_at?: string
           currency?: string
@@ -96,10 +142,43 @@ export type Database = {
           updated_at?: string
           working_hours?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: "business_settings_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: true
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      businesses: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          owner_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name?: string
+          owner_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          owner_id?: string
+          updated_at?: string
+        }
         Relationships: []
       }
       categories: {
         Row: {
+          business_id: string
           created_at: string
           description: string | null
           id: string
@@ -108,6 +187,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          business_id?: string
           created_at?: string
           description?: string | null
           id?: string
@@ -116,6 +196,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          business_id?: string
           created_at?: string
           description?: string | null
           id?: string
@@ -123,11 +204,20 @@ export type Database = {
           slug?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "categories_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       conversations: {
         Row: {
           assigned_operator_id: string | null
+          business_id: string
           channel: string
           created_at: string
           customer_id: string
@@ -141,6 +231,7 @@ export type Database = {
         }
         Insert: {
           assigned_operator_id?: string | null
+          business_id?: string
           channel?: string
           created_at?: string
           customer_id: string
@@ -154,6 +245,7 @@ export type Database = {
         }
         Update: {
           assigned_operator_id?: string | null
+          business_id?: string
           channel?: string
           created_at?: string
           customer_id?: string
@@ -174,6 +266,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "conversations_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "conversations_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
@@ -184,6 +283,7 @@ export type Database = {
       }
       customers: {
         Row: {
+          business_id: string
           created_at: string
           full_name: string | null
           id: string
@@ -198,6 +298,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          business_id?: string
           created_at?: string
           full_name?: string | null
           id?: string
@@ -212,6 +313,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          business_id?: string
           created_at?: string
           full_name?: string | null
           id?: string
@@ -225,10 +327,19 @@ export type Database = {
           total_spent?: number
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "customers_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       inventory_movements: {
         Row: {
+          business_id: string
           change: number
           created_at: string
           created_by: string | null
@@ -238,6 +349,7 @@ export type Database = {
           reference_id: string | null
         }
         Insert: {
+          business_id?: string
           change: number
           created_at?: string
           created_by?: string | null
@@ -247,6 +359,7 @@ export type Database = {
           reference_id?: string | null
         }
         Update: {
+          business_id?: string
           change?: number
           created_at?: string
           created_by?: string | null
@@ -256,6 +369,13 @@ export type Database = {
           reference_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "inventory_movements_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "inventory_movements_product_id_fkey"
             columns: ["product_id"]
@@ -268,6 +388,7 @@ export type Database = {
       lead_events: {
         Row: {
           actor: string
+          business_id: string
           created_at: string
           detail: string | null
           event_type: string
@@ -276,6 +397,7 @@ export type Database = {
         }
         Insert: {
           actor?: string
+          business_id?: string
           created_at?: string
           detail?: string | null
           event_type: string
@@ -284,6 +406,7 @@ export type Database = {
         }
         Update: {
           actor?: string
+          business_id?: string
           created_at?: string
           detail?: string | null
           event_type?: string
@@ -291,6 +414,13 @@ export type Database = {
           lead_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "lead_events_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "lead_events_lead_id_fkey"
             columns: ["lead_id"]
@@ -305,6 +435,7 @@ export type Database = {
           ai_summary: string | null
           assigned_operator_id: string | null
           budget: string | null
+          business_id: string
           conversation_id: string | null
           created_at: string
           customer_id: string
@@ -324,6 +455,7 @@ export type Database = {
           ai_summary?: string | null
           assigned_operator_id?: string | null
           budget?: string | null
+          business_id?: string
           conversation_id?: string | null
           created_at?: string
           customer_id: string
@@ -343,6 +475,7 @@ export type Database = {
           ai_summary?: string | null
           assigned_operator_id?: string | null
           budget?: string | null
+          business_id?: string
           conversation_id?: string | null
           created_at?: string
           customer_id?: string
@@ -364,6 +497,13 @@ export type Database = {
             columns: ["assigned_operator_id"]
             isOneToOne: false
             referencedRelation: "operators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
             referencedColumns: ["id"]
           },
           {
@@ -391,6 +531,7 @@ export type Database = {
       }
       messages: {
         Row: {
+          business_id: string
           content: string
           conversation_id: string
           created_at: string
@@ -401,6 +542,7 @@ export type Database = {
           telegram_message_id: number | null
         }
         Insert: {
+          business_id?: string
           content: string
           conversation_id: string
           created_at?: string
@@ -411,6 +553,7 @@ export type Database = {
           telegram_message_id?: number | null
         }
         Update: {
+          business_id?: string
           content?: string
           conversation_id?: string
           created_at?: string
@@ -421,6 +564,13 @@ export type Database = {
           telegram_message_id?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "messages_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "messages_conversation_id_fkey"
             columns: ["conversation_id"]
@@ -441,6 +591,7 @@ export type Database = {
         Row: {
           assigned_at: string
           assigned_by: string | null
+          business_id: string
           id: string
           lead_id: string
           operator_id: string
@@ -448,6 +599,7 @@ export type Database = {
         Insert: {
           assigned_at?: string
           assigned_by?: string | null
+          business_id?: string
           id?: string
           lead_id: string
           operator_id: string
@@ -455,11 +607,19 @@ export type Database = {
         Update: {
           assigned_at?: string
           assigned_by?: string | null
+          business_id?: string
           id?: string
           lead_id?: string
           operator_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "operator_assignments_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "operator_assignments_lead_id_fkey"
             columns: ["lead_id"]
@@ -478,6 +638,7 @@ export type Database = {
       }
       operators: {
         Row: {
+          business_id: string
           created_at: string
           full_name: string
           id: string
@@ -489,6 +650,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          business_id?: string
           created_at?: string
           full_name: string
           id?: string
@@ -500,6 +662,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          business_id?: string
           created_at?: string
           full_name?: string
           id?: string
@@ -510,10 +673,19 @@ export type Database = {
           updated_at?: string
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "operators_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       order_items: {
         Row: {
+          business_id: string
           created_at: string
           id: string
           line_total: number
@@ -525,6 +697,7 @@ export type Database = {
           unit_price: number
         }
         Insert: {
+          business_id?: string
           created_at?: string
           id?: string
           line_total?: number
@@ -536,6 +709,7 @@ export type Database = {
           unit_price?: number
         }
         Update: {
+          business_id?: string
           created_at?: string
           id?: string
           line_total?: number
@@ -547,6 +721,13 @@ export type Database = {
           unit_price?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "order_items_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "order_items_order_id_fkey"
             columns: ["order_id"]
@@ -566,6 +747,7 @@ export type Database = {
       orders: {
         Row: {
           assigned_operator_id: string | null
+          business_id: string
           conversation_id: string | null
           created_at: string
           customer_id: string
@@ -583,6 +765,7 @@ export type Database = {
         }
         Insert: {
           assigned_operator_id?: string | null
+          business_id?: string
           conversation_id?: string | null
           created_at?: string
           customer_id: string
@@ -600,6 +783,7 @@ export type Database = {
         }
         Update: {
           assigned_operator_id?: string | null
+          business_id?: string
           conversation_id?: string | null
           created_at?: string
           customer_id?: string
@@ -621,6 +805,13 @@ export type Database = {
             columns: ["assigned_operator_id"]
             isOneToOne: false
             referencedRelation: "operators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
             referencedColumns: ["id"]
           },
           {
@@ -648,6 +839,7 @@ export type Database = {
       }
       products: {
         Row: {
+          business_id: string
           category_id: string | null
           compare_at_price: number | null
           cost_price: number | null
@@ -668,6 +860,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          business_id?: string
           category_id?: string | null
           compare_at_price?: number | null
           cost_price?: number | null
@@ -688,6 +881,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          business_id?: string
           category_id?: string | null
           compare_at_price?: number | null
           cost_price?: number | null
@@ -708,6 +902,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "products_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "products_category_id_fkey"
             columns: ["category_id"]
@@ -741,23 +942,96 @@ export type Database = {
         }
         Relationships: []
       }
+      telegram_bots: {
+        Row: {
+          bot_first_name: string | null
+          bot_token_encrypted: string
+          bot_username: string | null
+          business_id: string
+          connected_at: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          last_checked_at: string | null
+          last_error: string | null
+          telegram_bot_id: number | null
+          updated_at: string
+          webhook_secret: string
+          webhook_status: string
+          webhook_url: string | null
+        }
+        Insert: {
+          bot_first_name?: string | null
+          bot_token_encrypted: string
+          bot_username?: string | null
+          business_id: string
+          connected_at?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          last_checked_at?: string | null
+          last_error?: string | null
+          telegram_bot_id?: number | null
+          updated_at?: string
+          webhook_secret: string
+          webhook_status?: string
+          webhook_url?: string | null
+        }
+        Update: {
+          bot_first_name?: string | null
+          bot_token_encrypted?: string
+          bot_username?: string | null
+          business_id?: string
+          connected_at?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          last_checked_at?: string | null
+          last_error?: string | null
+          telegram_bot_id?: number | null
+          updated_at?: string
+          webhook_secret?: string
+          webhook_status?: string
+          webhook_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "telegram_bots_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       telegram_updates: {
         Row: {
+          business_id: string
           created_at: string
           payload: Json
           update_id: number
         }
         Insert: {
+          business_id: string
           created_at?: string
           payload: Json
           update_id: number
         }
         Update: {
+          business_id?: string
           created_at?: string
           payload?: Json
           update_id?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "telegram_updates_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
@@ -789,6 +1063,24 @@ export type Database = {
         Args: { _actor?: string; _order_id: string }
         Returns: undefined
       }
+      current_business_id: { Args: never; Returns: string }
+      get_my_telegram_bot: {
+        Args: never
+        Returns: {
+          bot_first_name: string
+          bot_username: string
+          business_id: string
+          connected_at: string
+          created_at: string
+          id: string
+          is_active: boolean
+          last_checked_at: string
+          last_error: string
+          telegram_bot_id: number
+          webhook_status: string
+          webhook_url: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -796,6 +1088,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_business_member: { Args: { _business_id: string }; Returns: boolean }
       revert_order_stock: {
         Args: { _actor?: string; _order_id: string }
         Returns: undefined
