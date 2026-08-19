@@ -98,20 +98,25 @@ export async function getOrCreateCustomer(input: {
 }) {
   const { data: existing } = await supabaseAdmin
     .from("customers")
-    .select("*")
+    .select("id, full_name, phone, location, telegram_username")
     .eq("business_id", input.businessId)
     .eq("telegram_user_id", input.telegramUserId)
     .maybeSingle();
 
   if (existing) {
-    await supabaseAdmin
-      .from("customers")
-      .update({
-        last_interaction_at: new Date().toISOString(),
-        telegram_username: input.telegramUsername ?? existing.telegram_username,
-        full_name: existing.full_name ?? input.fullName ?? null,
-      })
-      .eq("id", existing.id);
+    // Touch-up write is not on the reply path.
+    runBackground(
+      () =>
+        supabaseAdmin
+          .from("customers")
+          .update({
+            last_interaction_at: new Date().toISOString(),
+            telegram_username: input.telegramUsername ?? existing.telegram_username,
+            full_name: existing.full_name ?? input.fullName ?? null,
+          })
+          .eq("id", existing.id) as unknown as Promise<unknown>,
+      "customer-touch",
+    );
     return existing;
   }
 
@@ -123,7 +128,7 @@ export async function getOrCreateCustomer(input: {
       telegram_username: input.telegramUsername ?? null,
       full_name: input.fullName ?? null,
     })
-    .select("*")
+    .select("id, full_name, phone, location, telegram_username")
     .single();
   if (error) throw error;
   return data;
@@ -136,7 +141,7 @@ export async function getOrCreateConversation(
 ) {
   const { data: existing } = await supabaseAdmin
     .from("conversations")
-    .select("*")
+    .select("id, mode, unread_count")
     .eq("business_id", businessId)
     .eq("customer_id", customerId)
     .eq("telegram_chat_id", telegramChatId)
@@ -146,7 +151,7 @@ export async function getOrCreateConversation(
   const { data, error } = await supabaseAdmin
     .from("conversations")
     .insert({ business_id: businessId, customer_id: customerId, telegram_chat_id: telegramChatId })
-    .select("*")
+    .select("id, mode, unread_count")
     .single();
   if (error) throw error;
   return data;
