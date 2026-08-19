@@ -105,7 +105,7 @@ export const Route = createFileRoute("/api/public/telegram/webhook/$botId/$secre
               agentMod.getSettings(businessId),
               supabaseAdmin
                 .from("conversations")
-                .select("mode")
+                .select("mode, last_message_at")
                 .eq("id", conversation.id)
                 .maybeSingle(),
             ]);
@@ -117,9 +117,25 @@ export const Route = createFileRoute("/api/public/telegram/webhook/$botId/$secre
               .eq("id", conversation.id)
               .then(undefined, (e: unknown) => console.error("[unread]", e));
 
-            // A conversation taken over by a human, or a disabled agent, is not answered by AI.
-            if (settingsRes.ai?.enabled === false || currentRes.data?.mode === "human") {
-              return;
+            if (settingsRes.ai?.enabled === false) return;
+
+            // Human takeover: the AI stays silent while an operator is actually active.
+            // It resumes when the customer restarts the chat or the operator has been
+            // idle for 30+ minutes, so a handoff can never mute the bot forever.
+            if (currentRes.data?.mode === "human") {
+              const { data: lastOperator } = await supabaseAdmin
+                .from("messages")
+                .select("created_at")
+                .eq("conversation_id", conversation.id)
+                .eq("role", "operator")
+                .order("created_at", { ascending: false })
+                .limit(1)
+                .maybeSingle();
+              const lastAt = lastOperator?.created_at ? Date.parse(lastOperator.created_at) : 0;
+              const idleMs = Date.now() - lastAt;
+              const restarted = /^\/start\b/.test(text);
+              if (!restarted && idleMs < 30 * 60 * 1000) return;
+              await supabaseAdmin.from("conversations").update({ mode: "ai" }).eq("id", conversation.id);
             }
 
             const result = await agentMod.runSalesAgent({
