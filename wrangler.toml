@@ -1,0 +1,15 @@
+name = "keta-sales"
+main = ".output/server/index.mjs"
+compatibility_date = "2026-09-01"
+compatibility_flags = ["nodejs_compat"]
+
+[assets]
+directory = ".output/public"
+binding = "ASSETS"
+
+# Sirli qiymatlar `wrangler secret put` bilan qo'yiladi:
+#   GEMINI_API_KEY, TELEGRAM_BOT_TOKEN, SUPABASE_SERVICE_ROLE_KEY,
+#   BOT_TOKEN_ENCRYPTION_KEY
+# Oddiy (maxfiy bo'lmagan) qiymatlar esa shu yerda:
+[vars]
+PUBLIC_APP_URL = "https://keta-sales.SIZING-SUBDOMAIN.workers.dev"
