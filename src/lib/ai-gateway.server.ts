@@ -8,12 +8,58 @@ export function createLovableAiGatewayProvider(apiKey: string) {
   });
 }
 
+/** Direct Google Gemini provider (self-hosted mode) via its OpenAI-compatible API. */
+export function createGeminiProvider(apiKey: string) {
+  return createOpenAICompatible({
+    name: "gemini",
+    baseURL: "https://generativelanguage.googleapis.com/v1beta/openai",
+    headers: { Authorization: `Bearer ${apiKey}` },
+  });
+}
+
+export type AiRuntime = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  model: (id: string) => any;
+  defaultModel: string;
+  backend: "gemini" | "lovable";
+};
+
+/**
+ * AI runtime for the sales agent.
+ * - GEMINI_API_KEY set  → direct Google Gemini (self-hosted, independent mode).
+ * - otherwise           → Lovable AI Gateway (LOVABLE_API_KEY).
+ */
+export function resolveAiRuntime(): AiRuntime | { error: string } {
+  const geminiKey = process.env["GEMINI_API_KEY"];
+  if (geminiKey) {
+    const provider = createGeminiProvider(geminiKey);
+    return {
+      backend: "gemini",
+      // Direct Gemini ids have no "vendor/" prefix; map gateway-style ids.
+      defaultModel: "gemini-2.5-flash",
+      model: (id: string) => provider(stripVendorPrefix(id)),
+    };
+  }
+  const lovableKey = process.env["LOVABLE_API_KEY"];
+  if (!lovableKey) return { error: "GEMINI_API_KEY (yoki LOVABLE_API_KEY) sozlanmagan" };
+  const provider = createLovableAiGatewayProvider(lovableKey);
+  return {
+    backend: "lovable",
+    defaultModel: "google/gemini-3.7-flash",
+    model: (id: string) => provider(id),
+  };
+}
+
+function stripVendorPrefix(id: string): string {
+  return id.includes("/") ? id.slice(id.indexOf("/") + 1) : id;
+}
+
 export function gatewayErrorMessage(error: unknown): string {
   const status = (error as { statusCode?: number; status?: number } | null)?.statusCode ??
     (error as { status?: number } | null)?.status;
   if (status === 402) return "AI credits exhausted. Add credits in Lovable to resume the AI agent.";
   if (status === 403) return "AI access is blocked by workspace policy.";
-  if (status === 401) return "AI gateway key is missing or invalid.";
+  if (status === 401) return "AI kaliti yo'q yoki noto'g'ri (GEMINI_API_KEY).";
   if (status === 429) return "AI gateway is rate limited. Please retry shortly.";
   return error instanceof Error ? error.message : "Unknown AI gateway error";
 }

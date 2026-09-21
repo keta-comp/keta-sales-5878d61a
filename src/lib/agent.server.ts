@@ -361,9 +361,9 @@ export async function runSalesAgent(params: {
   latestText?: string;
 }): Promise<AgentResult> {
   const timer = createTimer();
-  const apiKey = process.env["LOVABLE_API_KEY"];
-  if (!apiKey) {
-    return { reply: "", escalated: false, leadId: null, error: "LOVABLE_API_KEY is not configured" };
+  const runtime = resolveAiRuntime();
+  if ("error" in runtime) {
+    return { reply: "", escalated: false, leadId: null, error: runtime.error };
   }
 
   // Settings come from the short-lived cache; the rest loads concurrently.
@@ -742,16 +742,15 @@ export async function runSalesAgent(params: {
     }),
   } as const;
 
-  const gateway = createLovableAiGatewayProvider(apiKey);
   // Low-latency default model for normal sales chat.
-  const model = ai?.model || "google/gemini-3.7-flash";
+  const model = ai?.model || runtime.defaultModel;
 
   try {
     const llmStart = Date.now();
     const smallTalk = isSmallTalk(params.latestText);
     const result = await withTimeout(
       generateText({
-        model: gateway(model),
+        model: runtime.model(model),
         system: buildSystemPrompt(
           business,
           ai,
