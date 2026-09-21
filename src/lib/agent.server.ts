@@ -92,15 +92,21 @@ export function invalidateSettingsCache(businessId: string) {
 
 export async function getOrCreateCustomer(input: {
   businessId: string;
-  telegramUserId: string;
+  telegramUserId?: string;
+  instagramUserId?: string;
   telegramUsername?: string | null;
+  instagramUsername?: string | null;
   fullName?: string | null;
 }) {
+  const channelColumn = input.instagramUserId ? "instagram_user_id" : "telegram_user_id";
+  const channelValue = input.instagramUserId ?? input.telegramUserId;
+  if (!channelValue) throw new Error("customer channel id is required");
+
   const { data: existing } = await supabaseAdmin
     .from("customers")
     .select("id, full_name, phone, location, telegram_username")
     .eq("business_id", input.businessId)
-    .eq("telegram_user_id", input.telegramUserId)
+    .eq(channelColumn, channelValue)
     .maybeSingle();
 
   if (existing) {
@@ -124,8 +130,9 @@ export async function getOrCreateCustomer(input: {
     .from("customers")
     .insert({
       business_id: input.businessId,
-      telegram_user_id: input.telegramUserId,
-      telegram_username: input.telegramUsername ?? null,
+      telegram_user_id: input.telegramUserId ?? null,
+      instagram_user_id: input.instagramUserId ?? null,
+      telegram_username: input.telegramUsername ?? input.instagramUsername ?? null,
       full_name: input.fullName ?? null,
     })
     .select("id, full_name, phone, location, telegram_username")
@@ -138,6 +145,7 @@ export async function getOrCreateConversation(
   businessId: string,
   customerId: string,
   telegramChatId: string,
+  channel: "telegram" | "instagram" = "telegram",
 ) {
   const { data: existing } = await supabaseAdmin
     .from("conversations")
@@ -145,12 +153,13 @@ export async function getOrCreateConversation(
     .eq("business_id", businessId)
     .eq("customer_id", customerId)
     .eq("telegram_chat_id", telegramChatId)
+    .eq("channel", channel)
     .maybeSingle();
   if (existing) return existing;
 
   const { data, error } = await supabaseAdmin
     .from("conversations")
-    .insert({ business_id: businessId, customer_id: customerId, telegram_chat_id: telegramChatId })
+    .insert({ business_id: businessId, customer_id: customerId, telegram_chat_id: telegramChatId, channel })
     .select("id, mode, unread_count")
     .single();
   if (error) throw error;
