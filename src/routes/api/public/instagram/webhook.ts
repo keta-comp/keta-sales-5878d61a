@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
+import type { InstagramMessagingEvent, InstagramWebhookPayload } from "@/lib/instagram.server";
+
 export const Route = createFileRoute("/api/public/instagram/webhook")({
   server: {
     handlers: {
@@ -31,9 +33,9 @@ export const Route = createFileRoute("/api/public/instagram/webhook")({
           return new Response("Unauthorized", { status: 401 });
         }
 
-        let payload: ig.InstagramWebhookPayload;
+        let payload: InstagramWebhookPayload;
         try {
-          payload = JSON.parse(rawBody) as ig.InstagramWebhookPayload;
+          payload = JSON.parse(rawBody) as InstagramWebhookPayload;
         } catch {
           return Response.json({ ok: false, error: "invalid_json" }, { status: 400 });
         }
