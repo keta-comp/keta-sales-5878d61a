@@ -242,25 +242,37 @@ export const sendOperatorMessage = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: conversation, error } = await context.supabase
       .from("conversations")
-      .select("id, telegram_chat_id, business_id")
+      .select("id, telegram_chat_id, business_id, channel")
       .eq("id", data.conversationId)
       .single();
     if (error) throw new Error(error.message);
-    if (!conversation.telegram_chat_id) throw new Error("Conversation has no Telegram chat");
+    if (!conversation.telegram_chat_id) throw new Error("Suhbatga bog'langan chat topilmadi");
 
-    const { getActiveBot } = await import("./bots.server");
-    const { sendTelegramMessage } = await import("./telegram.server");
-    const bot = await getActiveBot(conversation.business_id);
-    if (!bot) throw new Error("Connect your Telegram bot in Settings before replying.");
     let telegramMessageId: number | null = null;
-    try {
-      const sent = await sendTelegramMessage(bot.token, conversation.telegram_chat_id, data.content);
-      telegramMessageId = sent.message_id;
-    } catch (sendError) {
-      console.error("[operator-message]", sendError);
-      throw new Error(
-        sendError instanceof Error ? sendError.message : "Could not deliver the Telegram message",
-      );
+    if ((conversation as { channel?: string }).channel === "instagram") {
+      const { sendInstagramMessage } = await import("./instagram.server");
+      try {
+        await sendInstagramMessage(conversation.telegram_chat_id, data.content);
+      } catch (sendError) {
+        console.error("[operator-message]", sendError);
+        throw new Error(
+          sendError instanceof Error ? sendError.message : "Instagram xabarini yetkazib bo'lmadi",
+        );
+      }
+    } else {
+      const { getActiveBot } = await import("./bots.server");
+      const { sendTelegramMessage } = await import("./telegram.server");
+      const bot = await getActiveBot(conversation.business_id);
+      if (!bot) throw new Error("Connect your Telegram bot in Settings before replying.");
+      try {
+        const sent = await sendTelegramMessage(bot.token, conversation.telegram_chat_id, data.content);
+        telegramMessageId = sent.message_id;
+      } catch (sendError) {
+        console.error("[operator-message]", sendError);
+        throw new Error(
+          sendError instanceof Error ? sendError.message : "Could not deliver the Telegram message",
+        );
+      }
     }
 
     const { error: insertError } = await context.supabase.from("messages").insert({
