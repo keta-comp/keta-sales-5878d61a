@@ -963,68 +963,6 @@ export type Database = {
         }
         Relationships: []
       }
-      telegram_bots: {
-        Row: {
-          bot_first_name: string | null
-          bot_token_encrypted: string
-          bot_username: string | null
-          business_id: string
-          connected_at: string | null
-          created_at: string
-          id: string
-          is_active: boolean
-          last_checked_at: string | null
-          last_error: string | null
-          telegram_bot_id: number | null
-          updated_at: string
-          webhook_secret: string
-          webhook_status: string
-          webhook_url: string | null
-        }
-        Insert: {
-          bot_first_name?: string | null
-          bot_token_encrypted: string
-          bot_username?: string | null
-          business_id: string
-          connected_at?: string | null
-          created_at?: string
-          id?: string
-          is_active?: boolean
-          last_checked_at?: string | null
-          last_error?: string | null
-          telegram_bot_id?: number | null
-          updated_at?: string
-          webhook_secret: string
-          webhook_status?: string
-          webhook_url?: string | null
-        }
-        Update: {
-          bot_first_name?: string | null
-          bot_token_encrypted?: string
-          bot_username?: string | null
-          business_id?: string
-          connected_at?: string | null
-          created_at?: string
-          id?: string
-          is_active?: boolean
-          last_checked_at?: string | null
-          last_error?: string | null
-          telegram_bot_id?: number | null
-          updated_at?: string
-          webhook_secret?: string
-          webhook_status?: string
-          webhook_url?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "telegram_bots_business_id_fkey"
-            columns: ["business_id"]
-            isOneToOne: false
-            referencedRelation: "businesses"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       telegram_updates: {
         Row: {
           business_id: string
@@ -1085,23 +1023,6 @@ export type Database = {
         Returns: undefined
       }
       current_business_id: { Args: never; Returns: string }
-      get_my_telegram_bot: {
-        Args: never
-        Returns: {
-          bot_first_name: string
-          bot_username: string
-          business_id: string
-          connected_at: string
-          created_at: string
-          id: string
-          is_active: boolean
-          last_checked_at: string
-          last_error: string
-          telegram_bot_id: number
-          webhook_status: string
-          webhook_url: string
-        }[]
-      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

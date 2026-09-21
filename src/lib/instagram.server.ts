@@ -20,8 +20,10 @@ export function metaAppSecret(): string {
   return secret.trim();
 }
 
-/** Webhook verify token derived from the app secret — paste it into the Meta dashboard. */
+/** Webhook verify token pasted into the Meta dashboard. Prefer the explicit shared secret. */
 export function instagramVerifyToken(): string {
+  const explicit = process.env["INSTAGRAM_VERIFY_TOKEN"];
+  if (explicit) return explicit.trim();
   return createHmac("sha256", metaAppSecret()).update("instagram-webhook-verify").digest("base64url");
 }
 
