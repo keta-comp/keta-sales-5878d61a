@@ -2,7 +2,7 @@ import { generateText, stepCountIs, tool } from "ai";
 import { z } from "zod";
 
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { createLovableAiGatewayProvider, gatewayErrorMessage } from "./ai-gateway.server";
+import { gatewayErrorMessage, resolveAiRuntime } from "./ai-gateway.server";
 import { getActiveBot } from "./bots.server";
 import { createTimer, runBackground, withTimeout, type Timings } from "./perf.server";
 import { sendTelegramMessage } from "./telegram.server";
