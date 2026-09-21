@@ -153,9 +153,14 @@ function ConversationsPage() {
                   >
                     <div className="flex items-center justify-between gap-2">
                       <span className="truncate text-sm font-medium text-foreground">
-                        {customer?.full_name ?? customer?.telegram_username ?? "Telegram mijozi"}
+                        {customer?.full_name ?? customer?.telegram_username ?? "Mijoz"}
                       </span>
-                      <StatusBadge value={row.mode} />
+                      <span className="flex items-center gap-1">
+                        <span className="rounded-full bg-secondary px-1.5 py-0.5 text-[10px] text-secondary-foreground">
+                          {row.channel === "instagram" ? "Instagram" : "Telegram"}
+                        </span>
+                        <StatusBadge value={row.mode} />
+                      </span>
                     </div>
                     <span className="truncate text-xs text-muted-foreground">
                       {row.last_message_preview ?? "Xabarlar yo'q"}

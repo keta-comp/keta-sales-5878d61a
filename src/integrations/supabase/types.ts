@@ -287,6 +287,7 @@ export type Database = {
           created_at: string
           full_name: string | null
           id: string
+          instagram_user_id: string | null
           last_interaction_at: string
           location: string | null
           notes: string | null
@@ -302,6 +303,7 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id?: string
+          instagram_user_id?: string | null
           last_interaction_at?: string
           location?: string | null
           notes?: string | null
@@ -317,6 +319,7 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id?: string
+          instagram_user_id?: string | null
           last_interaction_at?: string
           location?: string | null
           notes?: string | null
@@ -336,6 +339,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      instagram_events: {
+        Row: {
+          created_at: string
+          mid: string
+          payload: Json
+        }
+        Insert: {
+          created_at?: string
+          mid: string
+          payload?: Json
+        }
+        Update: {
+          created_at?: string
+          mid?: string
+          payload?: Json
+        }
+        Relationships: []
       }
       inventory_movements: {
         Row: {
