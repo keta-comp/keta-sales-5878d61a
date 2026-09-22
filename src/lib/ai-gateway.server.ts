@@ -61,7 +61,7 @@ export function resolveAiRuntime(): AiRuntime | { error: string } {
     };
   }
   const lovableKey = process.env["LOVABLE_API_KEY"];
-  if (!lovableKey) return { error: "GEMINI_API_KEY (yoki LOVABLE_API_KEY) sozlanmagan" };
+  if (!lovableKey) return { error: "OPENROUTER_API_KEY yoki GEMINI_API_KEY (yoki LOVABLE_API_KEY) sozlanmagan" };
   const provider = createLovableAiGatewayProvider(lovableKey);
   return {
     backend: "lovable",
