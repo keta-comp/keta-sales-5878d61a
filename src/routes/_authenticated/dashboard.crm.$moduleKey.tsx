@@ -54,7 +54,7 @@ function CrmModulePage() {
 
   const records = useQuery({
     queryKey: ["crm-records", moduleKey],
-    queryFn: () fetchRecords({ data: { moduleKey } }),
+    queryFn: () => fetchRecords({ data: { moduleKey } }),
   });
 
   useEffect(() => {
