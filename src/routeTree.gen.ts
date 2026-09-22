@@ -23,9 +23,11 @@ import { Route as AuthenticatedDashboardInventoryRouteImport } from './routes/_a
 import { Route as AuthenticatedDashboardLeadsRouteImport } from './routes/_authenticated/dashboard.leads'
 import { Route as AuthenticatedDashboardOperatorsRouteImport } from './routes/_authenticated/dashboard.operators'
 import { Route as AuthenticatedDashboardOrdersRouteImport } from './routes/_authenticated/dashboard.orders'
+import { Route as AuthenticatedDashboardPaymentsRouteImport } from './routes/_authenticated/dashboard.payments'
 import { Route as AuthenticatedDashboardPipelineRouteImport } from './routes/_authenticated/dashboard.pipeline'
 import { Route as AuthenticatedDashboardProductsRouteImport } from './routes/_authenticated/dashboard.products'
 import { Route as AuthenticatedDashboardSettingsRouteImport } from './routes/_authenticated/dashboard.settings'
+import { Route as AuthenticatedDashboardTasksRouteImport } from './routes/_authenticated/dashboard.tasks'
 import { Route as AuthenticatedDashboardCrmModuleKeyRouteImport } from './routes/_authenticated/dashboard.crm.$moduleKey'
 import { Route as ApiPublicInstagramWebhookRouteImport } from './routes/api/public/instagram/webhook'
 import { Route as ApiPublicTelegramWebhookRouteImport } from './routes/api/public/telegram/webhook'
@@ -108,6 +110,12 @@ const AuthenticatedDashboardOrdersRoute =
     path: '/orders',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
+const AuthenticatedDashboardPaymentsRoute =
+  AuthenticatedDashboardPaymentsRouteImport.update({
+    id: '/payments',
+    path: '/payments',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
 const AuthenticatedDashboardPipelineRoute =
   AuthenticatedDashboardPipelineRouteImport.update({
     id: '/pipeline',
@@ -124,6 +132,12 @@ const AuthenticatedDashboardSettingsRoute =
   AuthenticatedDashboardSettingsRouteImport.update({
     id: '/settings',
     path: '/settings',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
+const AuthenticatedDashboardTasksRoute =
+  AuthenticatedDashboardTasksRouteImport.update({
+    id: '/tasks',
+    path: '/tasks',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
 const AuthenticatedDashboardCrmModuleKeyRoute =
@@ -158,9 +172,11 @@ export interface FileRoutesByFullPath {
   '/dashboard/leads': typeof AuthenticatedDashboardLeadsRoute
   '/dashboard/operators': typeof AuthenticatedDashboardOperatorsRoute
   '/dashboard/orders': typeof AuthenticatedDashboardOrdersRoute
+  '/dashboard/payments': typeof AuthenticatedDashboardPaymentsRoute
   '/dashboard/pipeline': typeof AuthenticatedDashboardPipelineRoute
   '/dashboard/products': typeof AuthenticatedDashboardProductsRoute
   '/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
+  '/dashboard/tasks': typeof AuthenticatedDashboardTasksRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/dashboard/crm/$moduleKey': typeof AuthenticatedDashboardCrmModuleKeyRoute
   '/api/public/instagram/webhook': typeof ApiPublicInstagramWebhookRoute
@@ -178,9 +194,11 @@ export interface FileRoutesByTo {
   '/dashboard/leads': typeof AuthenticatedDashboardLeadsRoute
   '/dashboard/operators': typeof AuthenticatedDashboardOperatorsRoute
   '/dashboard/orders': typeof AuthenticatedDashboardOrdersRoute
+  '/dashboard/payments': typeof AuthenticatedDashboardPaymentsRoute
   '/dashboard/pipeline': typeof AuthenticatedDashboardPipelineRoute
   '/dashboard/products': typeof AuthenticatedDashboardProductsRoute
   '/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
+  '/dashboard/tasks': typeof AuthenticatedDashboardTasksRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
   '/dashboard/crm/$moduleKey': typeof AuthenticatedDashboardCrmModuleKeyRoute
   '/api/public/instagram/webhook': typeof ApiPublicInstagramWebhookRoute
@@ -201,9 +219,11 @@ export interface FileRoutesById {
   '/_authenticated/dashboard/leads': typeof AuthenticatedDashboardLeadsRoute
   '/_authenticated/dashboard/operators': typeof AuthenticatedDashboardOperatorsRoute
   '/_authenticated/dashboard/orders': typeof AuthenticatedDashboardOrdersRoute
+  '/_authenticated/dashboard/payments': typeof AuthenticatedDashboardPaymentsRoute
   '/_authenticated/dashboard/pipeline': typeof AuthenticatedDashboardPipelineRoute
   '/_authenticated/dashboard/products': typeof AuthenticatedDashboardProductsRoute
   '/_authenticated/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
+  '/_authenticated/dashboard/tasks': typeof AuthenticatedDashboardTasksRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/_authenticated/dashboard/crm/$moduleKey': typeof AuthenticatedDashboardCrmModuleKeyRoute
   '/api/public/instagram/webhook': typeof ApiPublicInstagramWebhookRoute
@@ -224,9 +244,11 @@ export interface FileRouteTypes {
     | '/dashboard/leads'
     | '/dashboard/operators'
     | '/dashboard/orders'
+    | '/dashboard/payments'
     | '/dashboard/pipeline'
     | '/dashboard/products'
     | '/dashboard/settings'
+    | '/dashboard/tasks'
     | '/dashboard/'
     | '/dashboard/crm/$moduleKey'
     | '/api/public/instagram/webhook'
@@ -244,9 +266,11 @@ export interface FileRouteTypes {
     | '/dashboard/leads'
     | '/dashboard/operators'
     | '/dashboard/orders'
+    | '/dashboard/payments'
     | '/dashboard/pipeline'
     | '/dashboard/products'
     | '/dashboard/settings'
+    | '/dashboard/tasks'
     | '/dashboard'
     | '/dashboard/crm/$moduleKey'
     | '/api/public/instagram/webhook'
@@ -266,9 +290,11 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard/leads'
     | '/_authenticated/dashboard/operators'
     | '/_authenticated/dashboard/orders'
+    | '/_authenticated/dashboard/payments'
     | '/_authenticated/dashboard/pipeline'
     | '/_authenticated/dashboard/products'
     | '/_authenticated/dashboard/settings'
+    | '/_authenticated/dashboard/tasks'
     | '/_authenticated/dashboard/'
     | '/_authenticated/dashboard/crm/$moduleKey'
     | '/api/public/instagram/webhook'
@@ -383,6 +409,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardOrdersRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
+    '/_authenticated/dashboard/payments': {
+      id: '/_authenticated/dashboard/payments'
+      path: '/payments'
+      fullPath: '/dashboard/payments'
+      preLoaderRoute: typeof AuthenticatedDashboardPaymentsRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
     '/_authenticated/dashboard/pipeline': {
       id: '/_authenticated/dashboard/pipeline'
       path: '/pipeline'
@@ -402,6 +435,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/dashboard/settings'
       preLoaderRoute: typeof AuthenticatedDashboardSettingsRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
+    '/_authenticated/dashboard/tasks': {
+      id: '/_authenticated/dashboard/tasks'
+      path: '/tasks'
+      fullPath: '/dashboard/tasks'
+      preLoaderRoute: typeof AuthenticatedDashboardTasksRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
     '/_authenticated/dashboard/crm/$moduleKey': {
@@ -437,9 +477,11 @@ interface AuthenticatedDashboardRouteChildren {
   AuthenticatedDashboardLeadsRoute: typeof AuthenticatedDashboardLeadsRoute
   AuthenticatedDashboardOperatorsRoute: typeof AuthenticatedDashboardOperatorsRoute
   AuthenticatedDashboardOrdersRoute: typeof AuthenticatedDashboardOrdersRoute
+  AuthenticatedDashboardPaymentsRoute: typeof AuthenticatedDashboardPaymentsRoute
   AuthenticatedDashboardPipelineRoute: typeof AuthenticatedDashboardPipelineRoute
   AuthenticatedDashboardProductsRoute: typeof AuthenticatedDashboardProductsRoute
   AuthenticatedDashboardSettingsRoute: typeof AuthenticatedDashboardSettingsRoute
+  AuthenticatedDashboardTasksRoute: typeof AuthenticatedDashboardTasksRoute
   AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
   AuthenticatedDashboardCrmModuleKeyRoute: typeof AuthenticatedDashboardCrmModuleKeyRoute
 }
@@ -456,9 +498,11 @@ const AuthenticatedDashboardRouteChildren: AuthenticatedDashboardRouteChildren =
     AuthenticatedDashboardLeadsRoute: AuthenticatedDashboardLeadsRoute,
     AuthenticatedDashboardOperatorsRoute: AuthenticatedDashboardOperatorsRoute,
     AuthenticatedDashboardOrdersRoute: AuthenticatedDashboardOrdersRoute,
+    AuthenticatedDashboardPaymentsRoute: AuthenticatedDashboardPaymentsRoute,
     AuthenticatedDashboardPipelineRoute: AuthenticatedDashboardPipelineRoute,
     AuthenticatedDashboardProductsRoute: AuthenticatedDashboardProductsRoute,
     AuthenticatedDashboardSettingsRoute: AuthenticatedDashboardSettingsRoute,
+    AuthenticatedDashboardTasksRoute: AuthenticatedDashboardTasksRoute,
     AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,
     AuthenticatedDashboardCrmModuleKeyRoute:
       AuthenticatedDashboardCrmModuleKeyRoute,
