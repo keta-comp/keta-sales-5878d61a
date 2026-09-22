@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import {
   Activity,
   Flame,
+  LayoutGrid,
   MessagesSquare,
   ShoppingCart,
   Target,
