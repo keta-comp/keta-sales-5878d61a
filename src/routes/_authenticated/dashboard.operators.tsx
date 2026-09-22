@@ -16,9 +16,9 @@ import { formatMoney } from "@/lib/types";
 export const Route = createFileRoute("/_authenticated/dashboard/operators")({
   head: () => ({
     meta: [
-      { title: "Operatorlar — KETA CRM" },
+      { title: "Operatorlar — NEXORA CRM" },
       { name: "description", content: "Inson savdo operatorlarini boshqaring va ularning konversiya natijalarini kuzating." },
-      { property: "og:title", content: "Operatorlar — KETA CRM" },
+      { property: "og:title", content: "Operatorlar — NEXORA CRM" },
       { property: "og:description", content: "AI savdo jamoangiz uchun operatorlar ro'yxati va natijalari." },
     ],
   }),

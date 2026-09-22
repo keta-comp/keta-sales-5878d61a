@@ -22,9 +22,9 @@ import { exportPlatformExcel, listOrganizationsFn } from "@/lib/super-admin.func
 export const Route = createFileRoute("/_authenticated/super-admin/organizations/")({
   head: () => ({
     meta: [
-      { title: "Organizationlar — KETA CRM Control Center" },
-      { name: "description", content: "KETA CRM platformasidagi barcha bizneslar ro‘yxati, holati va faolligi." },
-      { property: "og:title", content: "Organizationlar — KETA CRM Control Center" },
+      { title: "Organizationlar — NEXORA CRM Control Center" },
+      { name: "description", content: "NEXORA CRM platformasidagi barcha bizneslar ro‘yxati, holati va faolligi." },
+      { property: "og:title", content: "Organizationlar — NEXORA CRM Control Center" },
       { property: "og:description", content: "Barcha bizneslar: soha, foydalanuvchilar soni, holat va plan." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -63,7 +63,7 @@ function OrganizationsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Organizationlar"
-        description="KETA CRM'dan foydalanayotgan barcha bizneslar."
+        description="NEXORA CRM'dan foydalanayotgan barcha bizneslar."
         actions={
           <Button variant="outline" size="sm" onClick={() => void exportExcel()}>
             <Download className="size-4" /> Excel

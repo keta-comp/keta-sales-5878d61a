@@ -11,12 +11,12 @@ import { askBusinessAssistant } from "@/lib/workspace.functions";
 export const Route = createFileRoute("/_authenticated/dashboard/assistant")({
   head: () => ({
     meta: [
-      { title: "AI yordamchi — KETA CRM" },
+      { title: "AI yordamchi — NEXORA CRM" },
       {
         name: "description",
         content: "Biznesingiz haqida savol bering — javob faqat bazadagi real raqamlar asosida beriladi.",
       },
-      { property: "og:title", content: "AI yordamchi — KETA CRM" },
+      { property: "og:title", content: "AI yordamchi — NEXORA CRM" },
       { property: "og:description", content: "Savol bering, AI hisobotni o‘zi tahlil qiladi." },
     ],
   }),

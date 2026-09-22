@@ -25,12 +25,12 @@ import { formatMoney } from "@/lib/types";
 export const Route = createFileRoute("/_authenticated/dashboard/")({
   head: () => ({
     meta: [
-      { title: "Ish ekrani — KETA CRM" },
+      { title: "Ish ekrani — NEXORA CRM" },
       {
         name: "description",
         content: "Bugungi tushum, yangi mijozlar, murojaatlar va bajarilishi kerak bo‘lgan ishlar bir ekranda.",
       },
-      { property: "og:title", content: "Ish ekrani — KETA CRM" },
+      { property: "og:title", content: "Ish ekrani — NEXORA CRM" },
       { property: "og:description", content: "Biznesingizning bugungi holati real ma’lumotlar asosida." },
     ],
   }),

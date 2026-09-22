@@ -131,7 +131,7 @@ export const exportReportExcel = createServerFn({ method: "POST" })
       },
     ]);
 
-    return { base64, filename: `keta-crm-hisobot-${data.from.slice(0, 10)}_${data.to.slice(0, 10)}.xlsx` };
+    return { base64, filename: `nexora-crm-hisobot-${data.from.slice(0, 10)}_${data.to.slice(0, 10)}.xlsx` };
   });
 
 export const askBusinessAssistant = createServerFn({ method: "POST" })
@@ -197,7 +197,7 @@ export const askBusinessAssistant = createServerFn({ method: "POST" })
     };
 
     const prompt = [
-      "Siz KETA CRM ichidagi biznes tahlilchisisiz. Faqat berilgan REAL ma'lumotlar asosida javob bering.",
+      "Siz NEXORA CRM ichidagi biznes tahlilchisisiz. Faqat berilgan REAL ma'lumotlar asosida javob bering.",
       "Qoidalar:",
       "- Hech qachon taxminiy yoki uydirma raqam bermang.",
       "- Agar ma'lumot yetarli bo'lmasa, aynan shu gapni yozing: \"Bu ma'lumotni aniqlash uchun yetarli ma'lumot mavjud emas.\"",

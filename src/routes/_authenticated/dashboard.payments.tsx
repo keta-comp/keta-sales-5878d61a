@@ -24,9 +24,9 @@ import { formatMoney } from "@/lib/types";
 export const Route = createFileRoute("/_authenticated/dashboard/payments")({
   head: () => ({
     meta: [
-      { title: "To‘lovlar — KETA CRM" },
+      { title: "To‘lovlar — NEXORA CRM" },
       { name: "description", content: "Kirim-chiqim, qarzdorlik va to‘lov usullari bo‘yicha hisob." },
-      { property: "og:title", content: "To‘lovlar — KETA CRM" },
+      { property: "og:title", content: "To‘lovlar — NEXORA CRM" },
       { property: "og:description", content: "To‘lovlarni qayd qiling va qarzdorlikni kuzatib boring." },
     ],
   }),

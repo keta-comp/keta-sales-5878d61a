@@ -16,9 +16,9 @@ import { exportPlatformExcel, getSaasAnalytics } from "@/lib/super-admin.functio
 export const Route = createFileRoute("/_authenticated/super-admin/analytics")({
   head: () => ({
     meta: [
-      { title: "Analitika — KETA CRM Control Center" },
+      { title: "Analitika — NEXORA CRM Control Center" },
       { name: "description", content: "Platforma o‘sishi: yangi organizationlar, foydalanuvchilar, faollik va churn." },
-      { property: "og:title", content: "Analitika — KETA CRM Control Center" },
+      { property: "og:title", content: "Analitika — NEXORA CRM Control Center" },
       { property: "og:description", content: "Platforma o‘sishi va faollik ko‘rsatkichlari." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

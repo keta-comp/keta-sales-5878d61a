@@ -11,9 +11,9 @@ import { getSaasAnalytics } from "@/lib/super-admin.functions";
 export const Route = createFileRoute("/_authenticated/super-admin/industries")({
   head: () => ({
     meta: [
-      { title: "Sohalar — KETA CRM Control Center" },
-      { name: "description", content: "KETA CRM foydalanuvchilarining sohalari bo‘yicha taqsimoti." },
-      { property: "og:title", content: "Sohalar — KETA CRM Control Center" },
+      { title: "Sohalar — NEXORA CRM Control Center" },
+      { name: "description", content: "NEXORA CRM foydalanuvchilarining sohalari bo‘yicha taqsimoti." },
+      { property: "og:title", content: "Sohalar — NEXORA CRM Control Center" },
       { property: "og:description", content: "Organizationlar soha bo‘yicha taqsimoti." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

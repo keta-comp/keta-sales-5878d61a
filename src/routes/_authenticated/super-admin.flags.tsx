@@ -12,9 +12,9 @@ import { getFeatureFlags, saveFeatureFlag } from "@/lib/super-admin.functions";
 export const Route = createFileRoute("/_authenticated/super-admin/flags")({
   head: () => ({
     meta: [
-      { title: "Funksiyalar — KETA CRM Control Center" },
-      { name: "description", content: "KETA CRM funksiyalarini plan yoki organization bo‘yicha yoqish va o‘chirish." },
-      { property: "og:title", content: "Funksiyalar — KETA CRM Control Center" },
+      { title: "Funksiyalar — NEXORA CRM Control Center" },
+      { name: "description", content: "NEXORA CRM funksiyalarini plan yoki organization bo‘yicha yoqish va o‘chirish." },
+      { property: "og:title", content: "Funksiyalar — NEXORA CRM Control Center" },
       { property: "og:description", content: "Funksiya boshqaruvi: AI yordamchi, Telegram hisobotlar va boshqalar." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

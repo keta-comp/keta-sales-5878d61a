@@ -16,9 +16,9 @@ import { getSystemSettings, saveSystemSettings } from "@/lib/super-admin.functio
 export const Route = createFileRoute("/_authenticated/super-admin/settings")({
   head: () => ({
     meta: [
-      { title: "Tizim sozlamalari — KETA CRM Control Center" },
+      { title: "Tizim sozlamalari — NEXORA CRM Control Center" },
       { name: "description", content: "Platforma nomi, qo‘llab-quvvatlash aloqasi, standart vaqt mintaqasi va texnik ishlar rejimi." },
-      { property: "og:title", content: "Tizim sozlamalari — KETA CRM Control Center" },
+      { property: "og:title", content: "Tizim sozlamalari — NEXORA CRM Control Center" },
       { property: "og:description", content: "Platforma darajasidagi asosiy sozlamalar." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -38,7 +38,7 @@ interface FormState {
 }
 
 const EMPTY: FormState = {
-  platform_name: "KETA CRM",
+  platform_name: "NEXORA CRM",
   support_email: "keta.comp.dev@gmail.com",
   support_phone: "+998 77 763 02 16",
   default_timezone: "Asia/Tashkent",

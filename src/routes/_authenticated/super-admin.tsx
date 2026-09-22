@@ -57,7 +57,7 @@ function AccessDenied() {
       <div>
         <p className="font-display text-xl font-semibold">403 — Ruxsat yo‘q</p>
         <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-          Bu bo‘lim faqat KETA CRM platforma administratori uchun. Siz o‘z CRM kabinangizga
+          Bu bo‘lim faqat NEXORA CRM platforma administratori uchun. Siz o‘z CRM kabinangizga
           qaytishingiz mumkin.
         </p>
       </div>
@@ -157,10 +157,10 @@ function SuperAdminLayout() {
   const brand = (
     <div className="flex items-center gap-2 px-3 py-4">
       <span className="clay-raised grid size-10 place-items-center overflow-hidden rounded-2xl bg-card">
-        <img src={logoAsset.url} alt="KETA CRM" className="size-8 object-contain" />
+        <img src={logoAsset.url} alt="NEXORA CRM" className="size-8 object-contain" />
       </span>
       <div className="leading-tight">
-        <p className="font-display text-sm font-semibold">KETA CRM</p>
+        <p className="font-display text-sm font-semibold">NEXORA CRM</p>
         <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Control Center</p>
       </div>
     </div>

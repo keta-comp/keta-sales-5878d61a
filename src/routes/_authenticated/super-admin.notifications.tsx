@@ -25,9 +25,9 @@ import { getFeatureFlags, listSystemNotifications, sendSystemNotification } from
 export const Route = createFileRoute("/_authenticated/super-admin/notifications")({
   head: () => ({
     meta: [
-      { title: "E’lonlar — KETA CRM Control Center" },
+      { title: "E’lonlar — NEXORA CRM Control Center" },
       { name: "description", content: "Platforma e’lonlari: texnik ishlar, ogohlantirish va yangilik xabarlari." },
-      { property: "og:title", content: "E’lonlar — KETA CRM Control Center" },
+      { property: "og:title", content: "E’lonlar — NEXORA CRM Control Center" },
       { property: "og:description", content: "Organizationlarga platforma e’lonlarini yuborish." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

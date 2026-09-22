@@ -1,7 +1,7 @@
 import logoAsset from "@/assets/keta-crm-logo.png.asset.json";
 import { cn } from "@/lib/utils";
 
-export const BRAND_NAME = "KETA CRM";
+export const BRAND_NAME = "NEXORA CRM";
 export const BRAND_TAGLINE = "Qoraqalpog‘iston uchun";
 export const CONTACT_PHONE = "+998 77 763 02 16";
 export const CONTACT_PHONE_HREF = "tel:+998777630216";
@@ -49,7 +49,7 @@ export function BrandMark({
     <div className={cn("flex items-center gap-2.5", className)}>
       <img
         src={logoAsset.url}
-        alt="KETA CRM logotipi"
+        alt="NEXORA CRM logotipi"
         className={cn("object-contain", size === "sm" ? "h-7 w-9" : "h-9 w-12")}
       />
       <div className="leading-tight">

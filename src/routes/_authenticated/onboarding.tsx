@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/onboarding")({
   head: () => ({
-    meta: [{ title: "CRMni sozlash — KETA CRM" }],
+    meta: [{ title: "CRMni sozlash — NEXORA CRM" }],
   }),
   component: Onboarding,
 });
@@ -86,10 +86,10 @@ function Onboarding() {
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
         <div className="flex items-center gap-3">
           <span className="clay-raised grid size-12 place-items-center overflow-hidden rounded-2xl bg-card">
-            <img src={logoAsset.url} alt="KETA CRM logotipi" className="size-9 object-contain" />
+            <img src={logoAsset.url} alt="NEXORA CRM logotipi" className="size-9 object-contain" />
           </span>
           <div>
-            <p className="font-display text-lg font-semibold">KETA CRM</p>
+            <p className="font-display text-lg font-semibold">NEXORA CRM</p>
             <p className="text-sm text-muted-foreground">O‘z CRMingizni sozlang</p>
           </div>
         </div>
@@ -130,7 +130,7 @@ function Onboarding() {
               <Label htmlFor="biznes-nomi">Biznes nomi</Label>
               <Input
                 id="biznes-nomi"
-                placeholder="Masalan: Keta stomatologiya klinikasi"
+                placeholder="Masalan: Nexora stomatologiya klinikasi"
                 value={businessName}
                 onChange={(e) => setBusinessName(e.target.value)}
               />

@@ -261,7 +261,7 @@ export async function buildBusinessReport(
   const customerNames = new Map(customerRows.map((c) => [c.id, c.full_name]));
 
   return {
-    businessName: settings.data?.business_name ?? "KETA CRM",
+    businessName: settings.data?.business_name ?? "NEXORA CRM",
     currency: settings.data?.currency ?? "UZS",
     range,
     revenue,
@@ -339,7 +339,7 @@ export function formatReportMessage(
 ): string {
   const kind = (report.range.kind === "custom" ? "today" : report.range.kind) as ReportKind;
   const lines = [
-    `📊 <b>KETA CRM</b>`,
+    `📊 <b>NEXORA CRM</b>`,
     `${TITLES[kind]}`,
     "",
     `📅 ${report.range.label}`,
@@ -409,7 +409,7 @@ export function buildReportExcel(report: BusinessReport): { base64: string; file
   ]);
   return {
     base64,
-    filename: `keta-crm-hisobot-${report.range.from.slice(0, 10)}.xlsx`,
+    filename: `nexora-crm-hisobot-${report.range.from.slice(0, 10)}.xlsx`,
   };
 }
 

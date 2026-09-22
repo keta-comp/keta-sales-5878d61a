@@ -79,13 +79,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "KETA CRM — Qoraqalpog‘iston bizneslari uchun zamonaviy CRM" },
+      { title: "NEXORA CRM — Qoraqalpog‘iston bizneslari uchun zamonaviy CRM" },
       {
         name: "description",
         content:
-          "KETA CRM — Qoraqalpog‘iston bizneslari uchun mijozlar, savdo, murojaatlar va jamoani boshqarish platformasi. Keta.uz tomonidan ishlab chiqilgan.",
+          "NEXORA CRM — Qoraqalpog‘iston bizneslari uchun mijozlar, savdo, murojaatlar va jamoani boshqarish platformasi. KETA.COMP tomonidan ishlab chiqilgan.",
       },
-      { property: "og:title", content: "KETA CRM — Qoraqalpog‘iston bizneslari uchun zamonaviy CRM" },
+      { property: "og:title", content: "NEXORA CRM — Qoraqalpog‘iston bizneslari uchun zamonaviy CRM" },
       {
         property: "og:description",
         content: "Mijozlar, savdo, murojaatlar va jamoani bitta platformada boshqaring.",

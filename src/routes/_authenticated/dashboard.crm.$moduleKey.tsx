@@ -28,7 +28,7 @@ import { deleteCrmRecord, getMyCrmConfig, listCrmRecords, saveCrmRecord } from "
 import type { CrmField } from "@/lib/crm-config";
 
 export const Route = createFileRoute("/_authenticated/dashboard/crm/$moduleKey")({
-  head: () => ({ meta: [{ title: "CRM moduli — KETA CRM" }] }),
+  head: () => ({ meta: [{ title: "CRM moduli — NEXORA CRM" }] }),
   component: CrmModulePage,
 });
 
