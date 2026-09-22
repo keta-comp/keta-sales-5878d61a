@@ -38,7 +38,8 @@ export const Route = createFileRoute("/auth")({
 function AuthPage() {
   const navigate = useNavigate();
   const { mode: initialMode, redirect: redirectTo } = Route.useSearch();
-  const [mode, setMode] = useState<"login" | "register">(initialMode);
+  const adminOnly = (redirectTo ?? "").startsWith("/super-admin");
+  const [mode, setMode] = useState<"login" | "register">(adminOnly ? "login" : initialMode);
   const [fullName, setFullName] = useState("");
   const [businessName, setBusinessName] = useState("");
   const [email, setEmail] = useState("");
@@ -90,32 +91,37 @@ function AuthPage() {
 
       <div className="clay-panel w-full max-w-md p-6 sm:p-8">
         <h1 className="font-display text-2xl font-semibold text-foreground">
-          {mode === "login" ? "Kabinaga kirish" : "Bepul boshlash"}
+          {adminOnly ? "Boshqaruv markaziga kirish" : mode === "login" ? "Kabinaga kirish" : "Bepul boshlash"}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          {mode === "login"
-            ? "Mijozlar, savdo va jamoangizni boshqarishni davom ettiring."
-            : "Hisob yarating — keyin sohangizni tanlab CRMni sozlaymiz."}
+          {adminOnly
+            ? "Bu bo‘lim faqat platforma administratorlari uchun."
+            : mode === "login"
+              ? "Mijozlar, savdo va jamoangizni boshqarishni davom ettiring."
+              : "Hisob yarating — keyin sohangizni tanlab CRMni sozlaymiz."}
         </p>
 
-        <div className="mt-6 grid grid-cols-2 gap-1 rounded-2xl bg-muted p-1 text-sm font-medium">
-          <button
-            type="button"
-            onClick={() => setMode("login")}
-            className={mode === "login" ? "clay-raised bg-card py-2" : "rounded-xl py-2 text-muted-foreground"}
-          >
-            Kirish
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode("register")}
-            className={
-              mode === "register" ? "clay-raised bg-card py-2" : "rounded-xl py-2 text-muted-foreground"
-            }
-          >
-            Ro‘yxatdan o‘tish
-          </button>
-        </div>
+        {!adminOnly && (
+          <div className="mt-6 grid grid-cols-2 gap-1 rounded-2xl bg-muted p-1 text-sm font-medium">
+            <button
+              type="button"
+              onClick={() => setMode("login")}
+              className={mode === "login" ? "clay-raised bg-card py-2" : "rounded-xl py-2 text-muted-foreground"}
+            >
+              Kirish
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode("register")}
+              className={
+                mode === "register" ? "clay-raised bg-card py-2" : "rounded-xl py-2 text-muted-foreground"
+              }
+            >
+              Ro‘yxatdan o‘tish
+            </button>
+          </div>
+        )}
+
 
         <form onSubmit={submit} className="mt-6 space-y-4">
           {mode === "register" && (
@@ -171,9 +177,11 @@ function AuthPage() {
         </form>
 
         <p className="mt-5 text-xs text-muted-foreground">
-          {mode === "register"
-            ? "Ro‘yxatdan o‘tgach biznes sohangizni tanlaysiz — CRM sizga moslab tayyorlanadi."
-            : "Hisobingiz yo‘qmi? “Ro‘yxatdan o‘tish”ni tanlang — karta talab qilinmaydi."}
+          {adminOnly
+            ? "Ro‘yxatdan o‘tish bu bo‘limda mavjud emas — faqat mavjud administrator hisobi bilan kiriladi."
+            : mode === "register"
+              ? "Ro‘yxatdan o‘tgach biznes sohangizni tanlaysiz — CRM sizga moslab tayyorlanadi."
+              : "Hisobingiz yo‘qmi? “Ro‘yxatdan o‘tish”ni tanlang — karta talab qilinmaydi."}
         </p>
       </div>
 
