@@ -768,6 +768,7 @@ export async function runSalesAgent(params: {
   const model = ai?.model || runtime.defaultModel;
 
   try {
+    const crmContext = await getCrmAgentContext(params.businessId).catch(() => null);
     const llmStart = Date.now();
     const smallTalk = isSmallTalk(params.latestText);
     const result = await withTimeout(
@@ -782,6 +783,7 @@ export async function runSalesAgent(params: {
             location: customer?.location ?? null,
           },
           prefetched,
+          crmContext,
         ),
         messages: history.map((m) => ({
           role: m.role === "customer" ? ("user" as const) : ("assistant" as const),
