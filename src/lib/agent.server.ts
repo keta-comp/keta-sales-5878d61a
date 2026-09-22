@@ -325,7 +325,7 @@ function buildSystemPrompt(
 ) {
   const crmBlock = crmContext
     ? [
-    crmContext ? "" : "",
+    ...crmBlock,
         "BUSINESS DOMAIN CONTEXT (from the owner's CRM setup — reflect it in your wording):",
         `Industry: ${crmContext.industry}`,
         crmContext.businessDescription ? `Industry notes: ${crmContext.businessDescription}` : "",
