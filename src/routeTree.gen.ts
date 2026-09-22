@@ -35,6 +35,7 @@ import { Route as AuthenticatedSuperAdminIndexRouteImport } from './routes/_auth
 import { Route as AuthenticatedDashboardCrmModuleKeyRouteImport } from './routes/_authenticated/dashboard.crm.$moduleKey'
 import { Route as AuthenticatedDashboardCustomersIndexRouteImport } from './routes/_authenticated/dashboard.customers.index'
 import { Route as AuthenticatedDashboardCustomersIdRouteImport } from './routes/_authenticated/dashboard.customers.$id'
+import { Route as AuthenticatedSuperAdminOrganizationsIndexRouteImport } from './routes/_authenticated/super-admin.organizations.index'
 import { Route as ApiPublicInstagramWebhookRouteImport } from './routes/api/public/instagram/webhook'
 import { Route as ApiPublicTelegramDailyReportRouteImport } from './routes/api/public/telegram/daily-report'
 import { Route as ApiPublicTelegramWebhookRouteImport } from './routes/api/public/telegram/webhook'
@@ -188,6 +189,12 @@ const AuthenticatedDashboardCustomersIdRoute =
     path: '/$id',
     getParentRoute: () => AuthenticatedDashboardCustomersRoute,
   } as any)
+const AuthenticatedSuperAdminOrganizationsIndexRoute =
+  AuthenticatedSuperAdminOrganizationsIndexRouteImport.update({
+    id: '/organizations/',
+    path: '/organizations/',
+    getParentRoute: () => AuthenticatedSuperAdminRoute,
+  } as any)
 const ApiPublicInstagramWebhookRoute =
   ApiPublicInstagramWebhookRouteImport.update({
     id: '/api/public/instagram/webhook',
@@ -236,6 +243,7 @@ export interface FileRoutesByFullPath {
   '/api/public/telegram/daily-report': typeof ApiPublicTelegramDailyReportRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
   '/dashboard/customers/': typeof AuthenticatedDashboardCustomersIndexRoute
+  '/super-admin/organizations/': typeof AuthenticatedSuperAdminOrganizationsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -263,6 +271,7 @@ export interface FileRoutesByTo {
   '/api/public/telegram/daily-report': typeof ApiPublicTelegramDailyReportRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
   '/dashboard/customers': typeof AuthenticatedDashboardCustomersIndexRoute
+  '/super-admin/organizations': typeof AuthenticatedSuperAdminOrganizationsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -295,6 +304,7 @@ export interface FileRoutesById {
   '/api/public/telegram/daily-report': typeof ApiPublicTelegramDailyReportRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
   '/_authenticated/dashboard/customers/': typeof AuthenticatedDashboardCustomersIndexRoute
+  '/_authenticated/super-admin/organizations/': typeof AuthenticatedSuperAdminOrganizationsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -327,6 +337,7 @@ export interface FileRouteTypes {
     | '/api/public/telegram/daily-report'
     | '/api/public/telegram/webhook'
     | '/dashboard/customers/'
+    | '/super-admin/organizations/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -354,6 +365,7 @@ export interface FileRouteTypes {
     | '/api/public/telegram/daily-report'
     | '/api/public/telegram/webhook'
     | '/dashboard/customers'
+    | '/super-admin/organizations'
   id:
     | '__root__'
     | '/'
@@ -385,6 +397,7 @@ export interface FileRouteTypes {
     | '/api/public/telegram/daily-report'
     | '/api/public/telegram/webhook'
     | '/_authenticated/dashboard/customers/'
+    | '/_authenticated/super-admin/organizations/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -580,6 +593,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardCustomersIdRouteImport
       parentRoute: typeof AuthenticatedDashboardCustomersRoute
     }
+    '/_authenticated/super-admin/organizations/': {
+      id: '/_authenticated/super-admin/organizations/'
+      path: '/organizations'
+      fullPath: '/super-admin/organizations/'
+      preLoaderRoute: typeof AuthenticatedSuperAdminOrganizationsIndexRouteImport
+      parentRoute: typeof AuthenticatedSuperAdminRoute
+    }
     '/api/public/instagram/webhook': {
       id: '/api/public/instagram/webhook'
       path: '/api/public/instagram/webhook'
@@ -674,11 +694,14 @@ const AuthenticatedDashboardRouteWithChildren =
 
 interface AuthenticatedSuperAdminRouteChildren {
   AuthenticatedSuperAdminIndexRoute: typeof AuthenticatedSuperAdminIndexRoute
+  AuthenticatedSuperAdminOrganizationsIndexRoute: typeof AuthenticatedSuperAdminOrganizationsIndexRoute
 }
 
 const AuthenticatedSuperAdminRouteChildren: AuthenticatedSuperAdminRouteChildren =
   {
     AuthenticatedSuperAdminIndexRoute: AuthenticatedSuperAdminIndexRoute,
+    AuthenticatedSuperAdminOrganizationsIndexRoute:
+      AuthenticatedSuperAdminOrganizationsIndexRoute,
   }
 
 const AuthenticatedSuperAdminRouteWithChildren =
