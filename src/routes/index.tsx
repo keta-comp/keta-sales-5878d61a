@@ -92,7 +92,7 @@ function Landing() {
           <div className="flex items-center gap-2">
             <KarakalpakFlag className="hidden sm:block" />
             <Button asChild size="sm" className="hidden rounded-full px-5 sm:inline-flex">
-              <Link to="/auth" search={{ mode: "login" }}>
+              <Link to="/auth" search={{ mode: "login", redirect: undefined }}>
                 Kabinaga kirish <ArrowRight className="ml-1 size-4" />
               </Link>
             </Button>
@@ -117,7 +117,7 @@ function Landing() {
               ))}
             </nav>
             <Button asChild className="mt-4 w-full rounded-full">
-              <Link to="/auth" search={{ mode: "login" }}>
+              <Link to="/auth" search={{ mode: "login", redirect: undefined }}>
                 Kabinaga kirish
               </Link>
             </Button>
@@ -142,7 +142,7 @@ function Landing() {
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Button asChild size="lg" className="rounded-full px-7">
-              <Link to="/auth" search={{ mode: "register" }}>
+              <Link to="/auth" search={{ mode: "register", redirect: undefined }}>
                 Bepul boshlash <ArrowRight className="ml-1 size-4" />
               </Link>
             </Button>
@@ -253,7 +253,7 @@ function Landing() {
               tomonidan ishlab chiqilgan
             </p>
             <Button asChild className="mt-7 rounded-full px-6">
-              <Link to="/auth" search={{ mode: "register" }}>
+              <Link to="/auth" search={{ mode: "register", redirect: undefined }}>
                 Bepul boshlash <ArrowRight className="ml-1 size-4" />
               </Link>
             </Button>

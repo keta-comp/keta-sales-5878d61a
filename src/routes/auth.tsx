@@ -17,6 +17,10 @@ const DESCRIPTION =
 export const Route = createFileRoute("/auth")({
   validateSearch: (search: Record<string, unknown>) => ({
     mode: search['mode'] === "register" ? ("register" as const) : ("login" as const),
+    redirect:
+      typeof search['redirect'] === "string" && search['redirect'].startsWith("/")
+        ? (search['redirect'] as string)
+        : undefined,
   }),
   head: () => ({
     meta: [
@@ -33,7 +37,7 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
-  const { mode: initialMode } = Route.useSearch();
+  const { mode: initialMode, redirect: redirectTo } = Route.useSearch();
   const [mode, setMode] = useState<"login" | "register">(initialMode);
   const [fullName, setFullName] = useState("");
   const [businessName, setBusinessName] = useState("");
@@ -43,9 +47,9 @@ function AuthPage() {
 
   useEffect(() => {
     void supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/dashboard" });
+      if (data.session) navigate({ to: redirectTo ?? "/dashboard" });
     });
-  }, [navigate]);
+  }, [navigate, redirectTo]);
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -61,7 +65,7 @@ function AuthPage() {
         });
         if (error) throw error;
         void recordRegistration().catch(() => undefined);
-        navigate({ to: "/dashboard" });
+        navigate({ to: redirectTo ?? "/dashboard" });
         return;
       }
       const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -70,7 +74,7 @@ function AuthPage() {
         throw error;
       }
       void recordLogin().catch(() => undefined);
-      navigate({ to: "/dashboard" });
+      navigate({ to: redirectTo ?? "/dashboard" });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Kirishda xatolik yuz berdi");
     } finally {
