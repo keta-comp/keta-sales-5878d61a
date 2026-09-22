@@ -14,6 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      activities: {
+        Row: {
+          action: string
+          actor: string
+          actor_user_id: string | null
+          business_id: string
+          created_at: string
+          customer_id: string | null
+          detail: string | null
+          entity_id: string | null
+          entity_type: string
+          id: string
+        }
+        Insert: {
+          action: string
+          actor?: string
+          actor_user_id?: string | null
+          business_id?: string
+          created_at?: string
+          customer_id?: string | null
+          detail?: string | null
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+        }
+        Update: {
+          action?: string
+          actor?: string
+          actor_user_id?: string | null
+          business_id?: string
+          created_at?: string
+          customer_id?: string | null
+          detail?: string | null
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activities_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activities_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_settings: {
         Row: {
           business_id: string
@@ -362,15 +416,20 @@ export type Database = {
       }
       customers: {
         Row: {
+          assigned_operator_id: string | null
           business_id: string
           created_at: string
+          email: string | null
           full_name: string | null
           id: string
           instagram_user_id: string | null
+          last_contact_at: string | null
           last_interaction_at: string
           location: string | null
           notes: string | null
           phone: string | null
+          source: string
+          status: string
           telegram_user_id: string | null
           telegram_username: string | null
           total_orders: number
@@ -378,15 +437,20 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          assigned_operator_id?: string | null
           business_id?: string
           created_at?: string
+          email?: string | null
           full_name?: string | null
           id?: string
           instagram_user_id?: string | null
+          last_contact_at?: string | null
           last_interaction_at?: string
           location?: string | null
           notes?: string | null
           phone?: string | null
+          source?: string
+          status?: string
           telegram_user_id?: string | null
           telegram_username?: string | null
           total_orders?: number
@@ -394,15 +458,20 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          assigned_operator_id?: string | null
           business_id?: string
           created_at?: string
+          email?: string | null
           full_name?: string | null
           id?: string
           instagram_user_id?: string | null
+          last_contact_at?: string | null
           last_interaction_at?: string
           location?: string | null
           notes?: string | null
           phone?: string | null
+          source?: string
+          status?: string
           telegram_user_id?: string | null
           telegram_username?: string | null
           total_orders?: number
@@ -410,6 +479,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "customers_assigned_operator_id_fkey"
+            columns: ["assigned_operator_id"]
+            isOneToOne: false
+            referencedRelation: "operators"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "customers_business_id_fkey"
             columns: ["business_id"]
@@ -541,15 +617,19 @@ export type Database = {
           customer_id: string
           handoff_reason: string | null
           id: string
+          last_contact_at: string | null
           location: string | null
+          next_action: string | null
           notes: string | null
           phone: string | null
           product_id: string | null
           requested_product: string | null
           score: Database["public"]["Enums"]["lead_score"]
           source: string
+          stage: string | null
           status: Database["public"]["Enums"]["lead_status"]
           updated_at: string
+          value: number
         }
         Insert: {
           ai_summary?: string | null
@@ -561,15 +641,19 @@ export type Database = {
           customer_id: string
           handoff_reason?: string | null
           id?: string
+          last_contact_at?: string | null
           location?: string | null
+          next_action?: string | null
           notes?: string | null
           phone?: string | null
           product_id?: string | null
           requested_product?: string | null
           score?: Database["public"]["Enums"]["lead_score"]
           source?: string
+          stage?: string | null
           status?: Database["public"]["Enums"]["lead_status"]
           updated_at?: string
+          value?: number
         }
         Update: {
           ai_summary?: string | null
@@ -581,15 +665,19 @@ export type Database = {
           customer_id?: string
           handoff_reason?: string | null
           id?: string
+          last_contact_at?: string | null
           location?: string | null
+          next_action?: string | null
           notes?: string | null
           phone?: string | null
           product_id?: string | null
           requested_product?: string | null
           score?: Database["public"]["Enums"]["lead_score"]
           source?: string
+          stage?: string | null
           status?: Database["public"]["Enums"]["lead_status"]
           updated_at?: string
+          value?: number
         }
         Relationships: [
           {
@@ -852,6 +940,7 @@ export type Database = {
           created_at: string
           customer_id: string
           delivery_address: string | null
+          discount: number
           id: string
           lead_id: string | null
           notes: string | null
@@ -870,6 +959,7 @@ export type Database = {
           created_at?: string
           customer_id: string
           delivery_address?: string | null
+          discount?: number
           id?: string
           lead_id?: string | null
           notes?: string | null
@@ -888,6 +978,7 @@ export type Database = {
           created_at?: string
           customer_id?: string
           delivery_address?: string | null
+          discount?: number
           id?: string
           lead_id?: string | null
           notes?: string | null
@@ -933,6 +1024,76 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payments: {
+        Row: {
+          amount: number
+          business_id: string
+          created_at: string
+          created_by: string | null
+          customer_id: string | null
+          due_date: string | null
+          id: string
+          method: string
+          note: string | null
+          order_id: string | null
+          paid_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          business_id?: string
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          due_date?: string | null
+          id?: string
+          method?: string
+          note?: string | null
+          order_id?: string | null
+          paid_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          business_id?: string
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          due_date?: string | null
+          id?: string
+          method?: string
+          note?: string | null
+          order_id?: string | null
+          paid_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
             referencedColumns: ["id"]
           },
         ]
@@ -1042,6 +1203,96 @@ export type Database = {
         }
         Relationships: []
       }
+      tasks: {
+        Row: {
+          assigned_operator_id: string | null
+          business_id: string
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          customer_id: string | null
+          description: string | null
+          due_date: string | null
+          id: string
+          lead_id: string | null
+          order_id: string | null
+          priority: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_operator_id?: string | null
+          business_id?: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          lead_id?: string | null
+          order_id?: string | null
+          priority?: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_operator_id?: string | null
+          business_id?: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          lead_id?: string | null
+          order_id?: string | null
+          priority?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_assigned_operator_id_fkey"
+            columns: ["assigned_operator_id"]
+            isOneToOne: false
+            referencedRelation: "operators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       telegram_updates: {
         Row: {
           business_id: string
@@ -1117,7 +1368,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "operator"
+      app_role: "admin" | "operator" | "owner" | "manager"
       conversation_mode: "ai" | "human"
       lead_score: "hot" | "warm" | "cold"
       lead_status:
@@ -1264,7 +1515,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "operator"],
+      app_role: ["admin", "operator", "owner", "manager"],
       conversation_mode: ["ai", "human"],
       lead_score: ["hot", "warm", "cold"],
       lead_status: [
