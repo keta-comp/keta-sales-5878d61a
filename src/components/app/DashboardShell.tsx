@@ -14,7 +14,6 @@ import {
   Eye,
   Handshake,
   Home,
-  LAYOUT_DASHBOARD,
   LayoutDashboard,
   LayoutGrid,
   Layers,
