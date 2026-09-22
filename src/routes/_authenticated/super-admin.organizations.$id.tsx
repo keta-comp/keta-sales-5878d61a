@@ -260,6 +260,7 @@ function OrganizationDetailPage() {
               Bloklash
             </Button>
           </DialogFooter>
+        </DialogContent>
       </Dialog>
     </div>
   );
