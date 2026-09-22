@@ -4,6 +4,7 @@ import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { gatewayErrorMessage, resolveAiRuntime } from "./ai-gateway.server";
 import { getActiveBot } from "./bots.server";
+import { getCrmAgentContext, type CrmAgentContext } from "./crm-config.server";
 import { createTimer, runBackground, withTimeout, type Timings } from "./perf.server";
 import { sendTelegramMessage } from "./telegram.server";
 
