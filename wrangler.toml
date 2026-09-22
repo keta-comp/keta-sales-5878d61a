@@ -8,8 +8,10 @@ directory = ".output/public"
 binding = "ASSETS"
 
 # Sirli qiymatlar `wrangler secret put` bilan qo'yiladi:
-#   GEMINI_API_KEY, TELEGRAM_BOT_TOKEN, SUPABASE_SERVICE_ROLE_KEY,
-#   BOT_TOKEN_ENCRYPTION_KEY
+#   SUPABASE_SERVICE_ROLE_KEY, GEMINI_API_KEY, TELEGRAM_BOT_TOKEN,
+#   BOT_TOKEN_ENCRYPTION_KEY, LOVABLE_CRON_SECRET
 # Oddiy (maxfiy bo'lmagan) qiymatlar esa shu yerda:
 [vars]
-PUBLIC_APP_URL = "https://nexora-crm.SIZING-SUBDOMAIN.workers.dev"
+PUBLIC_APP_URL = "https://nexora-crm.uz"
+SUPABASE_URL = "https://pertsgqadpoaewihezhs.supabase.co"
+SUPABASE_PUBLISHABLE_KEY = "sb_publishable_EftWRQDGmz-zalY7Pyu-gA_J_Dom3Oa"
