@@ -159,5 +159,12 @@ export const createQuickOrder = createServerFn({ method: "POST" })
       detail: `Buyurtma #${order.order_number} yaratildi`,
       actorUserId: context.userId,
     });
+
+    const { notifyCurrentBusiness } = await import("./telegram-notify.server");
+    await notifyCurrentBusiness(
+      context.supabase as never,
+      "new_order",
+      `🛒 <b>Yangi buyurtma</b>\n#${order.order_number} — ${Math.round(total).toLocaleString("ru-RU")}`,
+    );
     return order;
   });

@@ -137,7 +137,9 @@ export const updateTelegramSettings = createServerFn({ method: "POST" })
 export const unlinkTelegram = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { error } = await context.supabase.from("telegram_links").delete().neq("id", "");
+    const { data: link } = await context.supabase.from("telegram_links").select("id").limit(1).maybeSingle();
+    if (!link) return { ok: true };
+    const { error } = await context.supabase.from("telegram_links").delete().eq("id", link.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });

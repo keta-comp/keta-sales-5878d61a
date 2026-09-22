@@ -98,6 +98,15 @@ export const savePayment = createServerFn({ method: "POST" })
 
     // Keep the order's payment status aligned with the money actually recorded.
     if (payload.order_id) await syncOrderPaymentStatus(context.supabase, payload.order_id);
+
+    if (payload.status === "paid") {
+      const { notifyCurrentBusiness } = await import("./telegram-notify.server");
+      await notifyCurrentBusiness(
+        context.supabase as never,
+        "payment",
+        `💳 <b>To‘lov qabul qilindi</b>\n${Math.round(payload.amount).toLocaleString("ru-RU")}`,
+      );
+    }
     return created;
   });
 

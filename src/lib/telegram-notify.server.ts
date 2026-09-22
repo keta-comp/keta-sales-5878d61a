@@ -38,3 +38,17 @@ export async function notifyBusiness(businessId: string, kind: NotifyKind, text:
     console.error("[telegram-notify]", error);
   }
 }
+
+/** Convenience wrapper for server functions that only hold an RLS client. */
+export async function notifyCurrentBusiness(
+  supabase: { rpc: (fn: "current_business_id") => Promise<{ data: unknown }> },
+  kind: NotifyKind,
+  text: string,
+) {
+  try {
+    const { data } = await supabase.rpc("current_business_id");
+    if (typeof data === "string" && data) await notifyBusiness(data, kind, text);
+  } catch (error) {
+    console.error("[telegram-notify] business lookup", error);
+  }
+}

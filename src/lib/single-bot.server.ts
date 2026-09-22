@@ -51,7 +51,7 @@ export async function ensureSingleBotWebhook() {
     await telegramCall(token, "setWebhook", {
       url,
       secret_token: singleBotHeaderSecret(token),
-      allowed_updates: ["message", "edited_message"],
+      allowed_updates: ["message", "edited_message", "callback_query"],
       drop_pending_updates: true,
       max_connections: 100,
     });
