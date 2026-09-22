@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
+import { Route as AuthenticatedSuperAdminRouteImport } from './routes/_authenticated/super-admin'
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard.index'
 import { Route as AuthenticatedDashboardAnalyticsRouteImport } from './routes/_authenticated/dashboard.analytics'
 import { Route as AuthenticatedDashboardAssistantRouteImport } from './routes/_authenticated/dashboard.assistant'
@@ -59,6 +60,11 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
 const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedSuperAdminRoute = AuthenticatedSuperAdminRouteImport.update({
+  id: '/super-admin',
+  path: '/super-admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedDashboardIndexRoute =
@@ -199,6 +205,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/super-admin': typeof AuthenticatedSuperAdminRoute
   '/dashboard/analytics': typeof AuthenticatedDashboardAnalyticsRoute
   '/dashboard/assistant': typeof AuthenticatedDashboardAssistantRoute
   '/dashboard/conversations': typeof AuthenticatedDashboardConversationsRoute
@@ -226,6 +233,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/super-admin': typeof AuthenticatedSuperAdminRoute
   '/dashboard/analytics': typeof AuthenticatedDashboardAnalyticsRoute
   '/dashboard/assistant': typeof AuthenticatedDashboardAssistantRoute
   '/dashboard/conversations': typeof AuthenticatedDashboardConversationsRoute
@@ -255,6 +263,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
+  '/_authenticated/super-admin': typeof AuthenticatedSuperAdminRoute
   '/_authenticated/dashboard/analytics': typeof AuthenticatedDashboardAnalyticsRoute
   '/_authenticated/dashboard/assistant': typeof AuthenticatedDashboardAssistantRoute
   '/_authenticated/dashboard/conversations': typeof AuthenticatedDashboardConversationsRoute
@@ -285,6 +294,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/dashboard'
     | '/onboarding'
+    | '/super-admin'
     | '/dashboard/analytics'
     | '/dashboard/assistant'
     | '/dashboard/conversations'
@@ -312,6 +322,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/onboarding'
+    | '/super-admin'
     | '/dashboard/analytics'
     | '/dashboard/assistant'
     | '/dashboard/conversations'
@@ -340,6 +351,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/_authenticated/dashboard'
     | '/_authenticated/onboarding'
+    | '/_authenticated/super-admin'
     | '/_authenticated/dashboard/analytics'
     | '/_authenticated/dashboard/assistant'
     | '/_authenticated/dashboard/conversations'
@@ -408,6 +420,13 @@ declare module '@tanstack/react-router' {
       path: '/onboarding'
       fullPath: '/onboarding'
       preLoaderRoute: typeof AuthenticatedOnboardingRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/super-admin': {
+      id: '/_authenticated/super-admin'
+      path: '/super-admin'
+      fullPath: '/super-admin'
+      preLoaderRoute: typeof AuthenticatedSuperAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/dashboard/': {
@@ -638,11 +657,13 @@ const AuthenticatedDashboardRouteWithChildren =
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRouteWithChildren
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
+  AuthenticatedSuperAdminRoute: typeof AuthenticatedSuperAdminRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRouteWithChildren,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
+  AuthenticatedSuperAdminRoute: AuthenticatedSuperAdminRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
