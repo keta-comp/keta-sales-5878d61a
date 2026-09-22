@@ -314,8 +314,9 @@ function Landing() {
             </div>
           </div>
           <div className="mt-10 flex flex-col gap-2 border-t border-primary-foreground/15 pt-6 text-xs text-primary-foreground/60 sm:flex-row sm:items-center sm:justify-between">
-            <p>© 2026 NEXORA CRM. Barcha huquqlar himoyalangan.</p>
+            <p>© 2026 Nexora CRM — nexora-crm.uz. Barcha huquqlar himoyalangan.</p>
             <p>
+              Nexora CRM —{" "}
               <a href="https://keta.uz" target="_blank" rel="noreferrer" className="hover:text-primary-foreground">
                 KETA.COMP
               </a>{" "}
