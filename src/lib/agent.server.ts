@@ -321,7 +321,19 @@ function buildSystemPrompt(
   ai: AiSettingsRow | null,
   customer: { full_name: string | null; phone: string | null; location: string | null },
   prefetched: ReturnType<typeof shapeProductRow>[],
+  crmContext?: CrmAgentContext | null,
 ) {
+  const crmBlock = crmContext
+    ? [
+        "",
+        "BUSINESS DOMAIN CONTEXT (from the owner's CRM setup — reflect it in your wording):",
+        `Industry: ${crmContext.industry}`,
+        crmContext.businessDescription ? `Industry notes: ${crmContext.businessDescription}` : "",
+        `CRM terminology to use for this business: ${JSON.stringify(crmContext.terminology)}`,
+        `Sales pipeline stages: ${crmContext.pipelineStages.join(" → ")}`,
+        `Active CRM modules: ${crmContext.modules.join(", ")}`,
+      ]
+    : [];
   return [
     `You are the AI sales agent for "${business?.business_name ?? "the business"}".`,
     `Business description: ${business?.business_description ?? "-"}`,
