@@ -30,7 +30,7 @@ async function countRows(table: string, build?: (q: any) => any) {
 }
 
 function sum(values: (number | null | undefined)[]) {
-  return values.reduce((acc, v) => acc + (Number(v) || 0), 0);
+  return values.reduce<number>((acc, v) => acc + (Number(v) || 0), 0);
 }
 
 export interface PlatformOverview {
@@ -101,7 +101,7 @@ export async function buildOverview(): Promise<PlatformOverview> {
     .eq("status", "paid");
 
   const rows = paidAll ?? [];
-  const crmTurnoverTotal = sum(rows.map((r) => r.amount));
+  const crmTurnoverTotal: number = sum(rows.map((r) => r.amount));
   const crmTurnoverThisMonth = sum(
     rows.filter((r) => (r.paid_at ?? r.created_at) >= monthStart).map((r) => r.amount),
   );

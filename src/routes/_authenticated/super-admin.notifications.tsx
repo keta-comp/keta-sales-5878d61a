@@ -176,7 +176,7 @@ function NotificationsPage() {
                 <td className="px-3 py-2 text-xs">
                   {n.target_kind === "all" ? "Barchasi" : `${n.target_kind}: ${n.target_value ?? "—"}`}
                 </td>
-                <td className="px-3 py-2"><Pill value={n.active ? "active" : "cancelled"} /></td>
+                <td className="px-3 py-2"><Pill value="active" /></td>
               </tr>
             ))}
           </DataTable>

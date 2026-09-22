@@ -58,8 +58,8 @@ function OrganizationDetailPage() {
   };
 
   const changeStatus = useMutation({
-    mutationFn: (input: { status: "active" | "suspended"; reason?: string }) =>
-      statusFn({ data: { id, status: input.status, reason: input.reason } }),
+    mutationFn: (input: { status: "active" | "suspended"; reason?: string | null }) =>
+      statusFn({ data: { id, status: input.status, reason: input.reason ?? null } }),
     onSuccess: (_r, input) => {
       toast.success(input.status === "suspended" ? "Organization bloklandi" : "Organization qayta faollashtirildi");
       setConfirmSuspend(false);
@@ -255,7 +255,7 @@ function OrganizationDetailPage() {
             <Button
               variant="destructive"
               disabled={changeStatus.isPending}
-              onClick={() => changeStatus.mutate({ status: "suspended", reason: reason.trim() || undefined })}
+              onClick={() => changeStatus.mutate({ status: "suspended", reason: reason.trim() || null })}
             >
               Bloklash
             </Button>

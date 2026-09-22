@@ -66,8 +66,8 @@ export function MetricCard({
 }: {
   label: string;
   value: string | number;
-  hint?: string;
-  icon?: ReactNode;
+  hint?: string | undefined;
+  icon?: ReactNode | undefined;
 }) {
   return (
     <div className="clay-panel clay-hover p-4">
