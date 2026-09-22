@@ -33,6 +33,7 @@ import { Route as AuthenticatedDashboardCrmModuleKeyRouteImport } from './routes
 import { Route as AuthenticatedDashboardCustomersIndexRouteImport } from './routes/_authenticated/dashboard.customers.index'
 import { Route as AuthenticatedDashboardCustomersIdRouteImport } from './routes/_authenticated/dashboard.customers.$id'
 import { Route as ApiPublicInstagramWebhookRouteImport } from './routes/api/public/instagram/webhook'
+import { Route as ApiPublicTelegramDailyReportRouteImport } from './routes/api/public/telegram/daily-report'
 import { Route as ApiPublicTelegramWebhookRouteImport } from './routes/api/public/telegram/webhook'
 
 const IndexRoute = IndexRouteImport.update({
@@ -173,6 +174,12 @@ const ApiPublicInstagramWebhookRoute =
     path: '/api/public/instagram/webhook',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicTelegramDailyReportRoute =
+  ApiPublicTelegramDailyReportRouteImport.update({
+    id: '/api/public/telegram/daily-report',
+    path: '/api/public/telegram/daily-report',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicTelegramWebhookRoute =
   ApiPublicTelegramWebhookRouteImport.update({
     id: '/api/public/telegram/webhook',
@@ -203,6 +210,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/crm/$moduleKey': typeof AuthenticatedDashboardCrmModuleKeyRoute
   '/dashboard/customers/$id': typeof AuthenticatedDashboardCustomersIdRoute
   '/api/public/instagram/webhook': typeof ApiPublicInstagramWebhookRoute
+  '/api/public/telegram/daily-report': typeof ApiPublicTelegramDailyReportRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
   '/dashboard/customers/': typeof AuthenticatedDashboardCustomersIndexRoute
 }
@@ -227,6 +235,7 @@ export interface FileRoutesByTo {
   '/dashboard/crm/$moduleKey': typeof AuthenticatedDashboardCrmModuleKeyRoute
   '/dashboard/customers/$id': typeof AuthenticatedDashboardCustomersIdRoute
   '/api/public/instagram/webhook': typeof ApiPublicInstagramWebhookRoute
+  '/api/public/telegram/daily-report': typeof ApiPublicTelegramDailyReportRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
   '/dashboard/customers': typeof AuthenticatedDashboardCustomersIndexRoute
 }
@@ -255,6 +264,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard/crm/$moduleKey': typeof AuthenticatedDashboardCrmModuleKeyRoute
   '/_authenticated/dashboard/customers/$id': typeof AuthenticatedDashboardCustomersIdRoute
   '/api/public/instagram/webhook': typeof ApiPublicInstagramWebhookRoute
+  '/api/public/telegram/daily-report': typeof ApiPublicTelegramDailyReportRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
   '/_authenticated/dashboard/customers/': typeof AuthenticatedDashboardCustomersIndexRoute
 }
@@ -283,6 +293,7 @@ export interface FileRouteTypes {
     | '/dashboard/crm/$moduleKey'
     | '/dashboard/customers/$id'
     | '/api/public/instagram/webhook'
+    | '/api/public/telegram/daily-report'
     | '/api/public/telegram/webhook'
     | '/dashboard/customers/'
   fileRoutesByTo: FileRoutesByTo
@@ -307,6 +318,7 @@ export interface FileRouteTypes {
     | '/dashboard/crm/$moduleKey'
     | '/dashboard/customers/$id'
     | '/api/public/instagram/webhook'
+    | '/api/public/telegram/daily-report'
     | '/api/public/telegram/webhook'
     | '/dashboard/customers'
   id:
@@ -334,6 +346,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard/crm/$moduleKey'
     | '/_authenticated/dashboard/customers/$id'
     | '/api/public/instagram/webhook'
+    | '/api/public/telegram/daily-report'
     | '/api/public/telegram/webhook'
     | '/_authenticated/dashboard/customers/'
   fileRoutesById: FileRoutesById
@@ -343,6 +356,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   ApiPublicInstagramWebhookRoute: typeof ApiPublicInstagramWebhookRoute
+  ApiPublicTelegramDailyReportRoute: typeof ApiPublicTelegramDailyReportRoute
   ApiPublicTelegramWebhookRoute: typeof ApiPublicTelegramWebhookRoute
 }
 
@@ -516,6 +530,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicInstagramWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/telegram/daily-report': {
+      id: '/api/public/telegram/daily-report'
+      path: '/api/public/telegram/daily-report'
+      fullPath: '/api/public/telegram/daily-report'
+      preLoaderRoute: typeof ApiPublicTelegramDailyReportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/telegram/webhook': {
       id: '/api/public/telegram/webhook'
       path: '/api/public/telegram/webhook'
@@ -610,6 +631,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   ApiPublicInstagramWebhookRoute: ApiPublicInstagramWebhookRoute,
+  ApiPublicTelegramDailyReportRoute: ApiPublicTelegramDailyReportRoute,
   ApiPublicTelegramWebhookRoute: ApiPublicTelegramWebhookRoute,
 }
 export const routeTree = rootRouteImport
