@@ -1,4 +1,4 @@
-name = "keta-sales"
+name = "nexora-crm"
 main = ".output/server/index.mjs"
 compatibility_date = "2026-09-01"
 compatibility_flags = ["nodejs_compat"]
@@ -12,4 +12,4 @@ binding = "ASSETS"
 #   BOT_TOKEN_ENCRYPTION_KEY
 # Oddiy (maxfiy bo'lmagan) qiymatlar esa shu yerda:
 [vars]
-PUBLIC_APP_URL = "https://keta-sales.SIZING-SUBDOMAIN.workers.dev"
+PUBLIC_APP_URL = "https://nexora-crm.SIZING-SUBDOMAIN.workers.dev"
