@@ -38,7 +38,8 @@ export const Route = createFileRoute("/auth")({
 function AuthPage() {
   const navigate = useNavigate();
   const { mode: initialMode, redirect: redirectTo } = Route.useSearch();
-  const [mode, setMode] = useState<"login" | "register">(initialMode);
+  const adminOnly = (redirectTo ?? "").startsWith("/super-admin");
+  const [mode, setMode] = useState<"login" | "register">(adminOnly ? "login" : initialMode);
   const [fullName, setFullName] = useState("");
   const [businessName, setBusinessName] = useState("");
   const [email, setEmail] = useState("");
