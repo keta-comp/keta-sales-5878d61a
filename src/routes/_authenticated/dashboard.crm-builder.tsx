@@ -46,7 +46,7 @@ function CrmBuilderPage() {
       setMessages((prev) => [...prev, { role: "assistant", content: result.reply }]);
       void queryClient.invalidateQueries({ queryKey: ["crm-config"] });
       void queryClient.invalidateQueries({ queryKey: ["crm-widgets"] });
-ec    } catch (error) {
+} catch (error) {
       setMessages((prev) => [
         ...prev,
         {
