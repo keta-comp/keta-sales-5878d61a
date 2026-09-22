@@ -132,7 +132,7 @@ async function sendConnectPrompt(
     telegramUsername: username,
   });
   await sendMessage(token, chatId, intro, {
-    inline_keyboard: [[{ text: "🔗 KETA CRM akkauntini ulash", url: linkUrl(code) }]],
+    inline_keyboard: [[{ text: "🔗 NEXORA CRM akkauntini ulash", url: linkUrl(code) }]],
   });
 }
 
@@ -144,7 +144,7 @@ const REPORT_TRIGGERS: { match: RegExp; kind: ReportKind }[] = [
 ];
 
 const HELP_TEXT = [
-  "ℹ️ <b>KETA CRM bot buyruqlari</b>",
+  "ℹ️ <b>NEXORA CRM bot buyruqlari</b>",
   "",
   "/today — bugungi hisobot",
   "/yesterday — kechagi hisobot",
@@ -154,7 +154,7 @@ const HELP_TEXT = [
   "/settings — sozlamalar",
   "/help — yordam",
   "",
-  "Asosiy CRM ish joyi KETA CRM veb platformasida.",
+  "Asosiy CRM ish joyi NEXORA CRM veb platformasida.",
 ].join("\n");
 
 export async function sendReport(
@@ -195,7 +195,7 @@ function settingsText(link: TelegramLinkRow): string {
     `Muhim lead: ${onOff(link.notify_lead)}`,
     `Ombor qoldig‘i: ${onOff(link.notify_low_stock)}`,
     "",
-    "Sozlamalarni KETA CRM → Sozlamalar → Telegram bo‘limida o‘zgartirishingiz mumkin.",
+    "Sozlamalarni NEXORA CRM → Sozlamalar → Telegram bo‘limida o‘zgartirishingiz mumkin.",
   ].join("\n");
 }
 
@@ -213,8 +213,8 @@ export async function handleTelegramText(input: {
 
   if (!link) {
     const intro = /^\/start\b/.test(normalized)
-      ? "👋 KETA CRM'ga xush kelibsiz.\n\nTelegram akkauntingizni KETA CRM bilan ulang va biznesingiz hisobotlarini Telegram orqali oling."
-      : "Avval KETA CRM akkauntingizni ulang.";
+      ? "👋 NEXORA CRM'ga xush kelibsiz.\n\nTelegram akkauntingizni NEXORA CRM bilan ulang va biznesingiz hisobotlarini Telegram orqali oling."
+      : "Avval NEXORA CRM akkauntingizni ulang.";
     await sendConnectPrompt(token, chatId, telegramUserId, username, intro);
     return;
   }
@@ -276,7 +276,7 @@ export async function handleTelegramCallback(input: {
   await telegramCall(token, "answerCallbackQuery", { callback_query_id: callbackId }).catch(() => {});
   const link = await findLink(telegramUserId);
   if (!link) {
-    await sendMessage(token, chatId, "Avval KETA CRM akkauntingizni ulang.");
+    await sendMessage(token, chatId, "Avval NEXORA CRM akkauntingizni ulang.");
     return;
   }
   const match = /^excel:(today|yesterday|week|month)$/.exec(data);

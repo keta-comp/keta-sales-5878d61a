@@ -44,9 +44,9 @@ const LEAD_SCORE_LABELS: Record<LeadScore, string> = {
 export const Route = createFileRoute("/_authenticated/dashboard/leads")({
   head: () => ({
     meta: [
-      { title: "Lidlar — KETA CRM" },
+      { title: "Lidlar — NEXORA CRM" },
       { name: "description", content: "AI tomonidan yaratilgan Telegram savdo lidlarini baholang, biriktiring va yakunlang." },
-      { property: "og:title", content: "Lidlar — KETA CRM" },
+      { property: "og:title", content: "Lidlar — NEXORA CRM" },
       { property: "og:description", content: "Operatorga biriktirish imkoniyati bilan AI baholagan Telegram savdo lidlari." },
     ],
   }),

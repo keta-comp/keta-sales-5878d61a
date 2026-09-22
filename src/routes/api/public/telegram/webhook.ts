@@ -20,7 +20,7 @@ type TelegramUpdate = {
 };
 
 /**
- * KETA CRM report bot webhook. Answers Telegram in milliseconds and does the
+ * NEXORA CRM report bot webhook. Answers Telegram in milliseconds and does the
  * report work in the background. No AI sales chat here — Telegram is only a
  * reporting/notification channel.
  */

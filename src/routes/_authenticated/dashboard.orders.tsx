@@ -38,9 +38,9 @@ const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
 export const Route = createFileRoute("/_authenticated/dashboard/orders")({
   head: () => ({
     meta: [
-      { title: "Buyurtmalar — KETA CRM" },
+      { title: "Buyurtmalar — NEXORA CRM" },
       { name: "description", content: "AI agenti Telegramda yakunlagan buyurtmalarni kuzating va bajaring." },
-      { property: "og:title", content: "Buyurtmalar — KETA CRM" },
+      { property: "og:title", content: "Buyurtmalar — NEXORA CRM" },
       { property: "og:description", content: "Avtomatik ombor zaxirasi bilan buyurtmalarni bajarish." },
     ],
   }),

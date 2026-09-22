@@ -10,9 +10,9 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { recordFailedLogin, recordLogin, recordRegistration } from "@/lib/session.functions";
 
-const TITLE = "Kabinaga kirish — KETA CRM";
+const TITLE = "Kabinaga kirish — NEXORA CRM";
 const DESCRIPTION =
-  "KETA CRM kabinasiga kiring yoki bepul ro‘yxatdan o‘tib biznesingiz uchun CRM tizimini sozlang.";
+  "NEXORA CRM kabinasiga kiring yoki bepul ro‘yxatdan o‘tib biznesingiz uchun CRM tizimini sozlang.";
 
 export const Route = createFileRoute("/auth")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -136,7 +136,7 @@ function AuthPage() {
                   id="business-name"
                   value={businessName}
                   onChange={(event) => setBusinessName(event.target.value)}
-                  placeholder="Masalan: Keta klinikasi"
+                  placeholder="Masalan: Nexora klinikasi"
                 />
               </div>
             </>

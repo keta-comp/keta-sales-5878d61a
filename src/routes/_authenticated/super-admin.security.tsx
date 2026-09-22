@@ -9,9 +9,9 @@ import { getSecurityOverview } from "@/lib/super-admin.functions";
 export const Route = createFileRoute("/_authenticated/super-admin/security")({
   head: () => ({
     meta: [
-      { title: "Xavfsizlik — KETA CRM Control Center" },
+      { title: "Xavfsizlik — NEXORA CRM Control Center" },
       { name: "description", content: "Kirishlar, muvaffaqiyatsiz urinishlar va admin amallari bo‘yicha xavfsizlik ko‘rinishi." },
-      { property: "og:title", content: "Xavfsizlik — KETA CRM Control Center" },
+      { property: "og:title", content: "Xavfsizlik — NEXORA CRM Control Center" },
       { property: "og:description", content: "Kirish tarixi va shubhali faollik." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

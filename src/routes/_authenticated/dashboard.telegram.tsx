@@ -24,12 +24,12 @@ export const Route = createFileRoute("/_authenticated/dashboard/telegram")({
   validateSearch: searchSchema,
   head: () => ({
     meta: [
-      { title: "Telegram integratsiyasi — KETA CRM" },
+      { title: "Telegram integratsiyasi — NEXORA CRM" },
       {
         name: "description",
-        content: "KETA CRM hisobingizni Telegram bilan ulang va biznes hisobotlarini Telegram orqali oling.",
+        content: "NEXORA CRM hisobingizni Telegram bilan ulang va biznes hisobotlarini Telegram orqali oling.",
       },
-      { property: "og:title", content: "Telegram integratsiyasi — KETA CRM" },
+      { property: "og:title", content: "Telegram integratsiyasi — NEXORA CRM" },
       { property: "og:description", content: "Kunlik hisobot, Excel fayl va muhim bildirishnomalar Telegramda." },
     ],
   }),
@@ -103,7 +103,7 @@ function TelegramPage() {
           ) : request.data?.valid ? (
             <>
               <p className="text-sm text-muted-foreground">
-                {request.data.username ? `@${request.data.username}` : "Telegram akkauntingiz"} ni KETA CRM hisobingiz
+                {request.data.username ? `@${request.data.username}` : "Telegram akkauntingiz"} ni NEXORA CRM hisobingiz
                 bilan ulashga ruxsat berasizmi?
               </p>
               <div className="flex flex-wrap gap-3">
@@ -142,7 +142,7 @@ function TelegramPage() {
           <h2 className="text-lg font-semibold">⚪️ Ulanmagan</h2>
           <p className="text-sm text-muted-foreground">
             Telegram botni oching, <span className="font-medium">/start</span> yuboring va{" "}
-            <span className="font-medium">“🔗 KETA CRM akkauntini ulash”</span> tugmasini bosing. Bot sizni shu sahifaga
+            <span className="font-medium">“🔗 NEXORA CRM akkauntini ulash”</span> tugmasini bosing. Bot sizni shu sahifaga
             qaytaradi. Parolingiz hech qachon Telegramda so‘ralmaydi.
           </p>
         </div>

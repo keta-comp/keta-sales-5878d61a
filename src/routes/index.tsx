@@ -32,9 +32,9 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchPlatformStats, formatCount } from "@/lib/public-stats";
 
-const TITLE = "KETA CRM — Qoraqalpog‘iston bizneslari uchun zamonaviy CRM";
+const TITLE = "NEXORA CRM — Qoraqalpog‘iston bizneslari uchun zamonaviy CRM";
 const DESCRIPTION =
-  "KETA CRM — Qoraqalpog‘iston bizneslari uchun mijozlar, savdo, murojaatlar va jamoani boshqarish platformasi. Keta.uz tomonidan ishlab chiqilgan.";
+  "NEXORA CRM — Qoraqalpog‘iston bizneslari uchun mijozlar, savdo, murojaatlar va jamoani boshqarish platformasi. KETA.COMP tomonidan ishlab chiqilgan.";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -165,7 +165,7 @@ function Landing() {
         <div className="clay-metal relative grid place-items-center overflow-hidden p-10">
           <img
             src={logoAsset.url}
-            alt="KETA CRM metallik logotipi"
+            alt="NEXORA CRM metallik logotipi"
             className="w-full max-w-sm object-contain drop-shadow-2xl"
           />
           <div className="mt-6 text-center">
@@ -200,7 +200,7 @@ function Landing() {
         <div className="clay-panel p-6 sm:p-8">
           <h2 className="font-display text-2xl font-semibold text-foreground">Real statistika</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Barcha raqamlar KETA CRM bazasidan real vaqtda olinadi.
+            Barcha raqamlar NEXORA CRM bazasidan real vaqtda olinadi.
           </p>
           {stats.isError ? (
             <p className="mt-6 text-sm text-muted-foreground">
@@ -234,10 +234,10 @@ function Landing() {
               <KarakalpakFlag /> Qoraqalpog‘istonda yaratilgan
             </span>
             <h2 className="mt-5 font-display text-2xl font-semibold text-foreground sm:text-3xl">
-              KETA CRM — Qoraqalpog‘iston bizneslari uchun
+              NEXORA CRM — Qoraqalpog‘iston bizneslari uchun
             </h2>
             <p className="mt-4 text-base text-muted-foreground">
-              KETA CRM — Qoraqalpog‘istondagi bizneslar uchun yaratilgan zamonaviy CRM platformasi.
+              NEXORA CRM — Qoraqalpog‘istondagi bizneslar uchun yaratilgan zamonaviy CRM platformasi.
               Bizning maqsadimiz — mahalliy bizneslarga mijozlar, savdo, jamoa va kundalik jarayonlarni
               texnologiya orqali samarali boshqarishga yordam berish.
             </p>
@@ -248,7 +248,7 @@ function Landing() {
                 rel="noreferrer"
                 className="underline decoration-border underline-offset-4 hover:decoration-foreground"
               >
-                Keta.uz
+                KETA.COMP
               </a>{" "}
               tomonidan ishlab chiqilgan
             </p>
@@ -314,10 +314,11 @@ function Landing() {
             </div>
           </div>
           <div className="mt-10 flex flex-col gap-2 border-t border-primary-foreground/15 pt-6 text-xs text-primary-foreground/60 sm:flex-row sm:items-center sm:justify-between">
-            <p>© 2026 KETA CRM. Barcha huquqlar himoyalangan.</p>
+            <p>© 2026 Nexora CRM — nexora-crm.uz. Barcha huquqlar himoyalangan.</p>
             <p>
+              Nexora CRM —{" "}
               <a href="https://keta.uz" target="_blank" rel="noreferrer" className="hover:text-primary-foreground">
-                Keta.uz
+                KETA.COMP
               </a>{" "}
               tomonidan ishlab chiqilgan.
             </p>

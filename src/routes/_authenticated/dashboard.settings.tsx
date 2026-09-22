@@ -15,9 +15,9 @@ import { getSettings, saveAiSettings, saveBusinessSettings } from "@/lib/setting
 export const Route = createFileRoute("/_authenticated/dashboard/settings")({
   head: () => ({
     meta: [
-      { title: "Sozlamalar — KETA CRM" },
+      { title: "Sozlamalar — NEXORA CRM" },
       { name: "description", content: "Telegram botni, biznes bilimlarini va AI savdo xatti-harakatini sozlang." },
-      { property: "og:title", content: "Sozlamalar — KETA CRM" },
+      { property: "og:title", content: "Sozlamalar — NEXORA CRM" },
       { property: "og:description", content: "Telegram, biznes va AI agent sozlamalari." },
     ],
   }),

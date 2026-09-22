@@ -22,9 +22,9 @@ import { deleteTask, listTasks, setTaskStatus } from "@/lib/tasks.functions";
 export const Route = createFileRoute("/_authenticated/dashboard/tasks")({
   head: () => ({
     meta: [
-      { title: "Vazifalar — KETA CRM" },
+      { title: "Vazifalar — NEXORA CRM" },
       { name: "description", content: "Jamoa vazifalari, muddatlari va bajarilish holati." },
-      { property: "og:title", content: "Vazifalar — KETA CRM" },
+      { property: "og:title", content: "Vazifalar — NEXORA CRM" },
       { property: "og:description", content: "Hech bir ish e’tibordan chetda qolmasin." },
     ],
   }),

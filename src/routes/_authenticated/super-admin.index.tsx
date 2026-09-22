@@ -10,10 +10,10 @@ import { getPlatformOverview } from "@/lib/super-admin.functions";
 export const Route = createFileRoute("/_authenticated/super-admin/")({
   head: () => ({
     meta: [
-      { title: "Control Center — KETA CRM" },
-      { name: "description", content: "KETA CRM platformasining umumiy ko‘rsatkichlari: organizationlar, foydalanuvchilar, AI ishlatilishi." },
-      { property: "og:title", content: "Control Center — KETA CRM" },
-      { property: "og:description", content: "KETA CRM platforma darajasidagi real ko‘rsatkichlar." },
+      { title: "Control Center — NEXORA CRM" },
+      { name: "description", content: "NEXORA CRM platformasining umumiy ko‘rsatkichlari: organizationlar, foydalanuvchilar, AI ishlatilishi." },
+      { property: "og:title", content: "Control Center — NEXORA CRM" },
+      { property: "og:description", content: "NEXORA CRM platforma darajasidagi real ko‘rsatkichlar." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -35,7 +35,7 @@ function OverviewPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="KETA CRM Control Center"
+        title="NEXORA CRM Control Center"
         description="Platforma darajasidagi barcha ko‘rsatkichlar — faqat haqiqiy bazadagi ma’lumot."
       />
 

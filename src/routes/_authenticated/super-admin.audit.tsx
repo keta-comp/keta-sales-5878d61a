@@ -12,9 +12,9 @@ import { getAuditLogs } from "@/lib/super-admin.functions";
 export const Route = createFileRoute("/_authenticated/super-admin/audit")({
   head: () => ({
     meta: [
-      { title: "Audit jurnali — KETA CRM Control Center" },
+      { title: "Audit jurnali — NEXORA CRM Control Center" },
       { name: "description", content: "Platformadagi barcha muhim amallar jurnali: kirishlar, bloklashlar, sozlama o‘zgarishlari." },
-      { property: "og:title", content: "Audit jurnali — KETA CRM Control Center" },
+      { property: "og:title", content: "Audit jurnali — NEXORA CRM Control Center" },
       { property: "og:description", content: "Kim, qachon va nima qilgani bo‘yicha to‘liq jurnal." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

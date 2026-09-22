@@ -13,9 +13,9 @@ import { stockState } from "@/lib/types";
 export const Route = createFileRoute("/_authenticated/dashboard/inventory")({
   head: () => ({
     meta: [
-      { title: "Ombor — KETA CRM" },
+      { title: "Ombor — NEXORA CRM" },
       { name: "description", content: "Haqiqiy zaxira darajalari, bandlar va to'liq harakatlar tarixi." },
-      { property: "og:title", content: "Ombor — KETA CRM" },
+      { property: "og:title", content: "Ombor — NEXORA CRM" },
       { property: "og:description", content: "AI orqali Telegram savdosi uchun jonli zaxira nazorati." },
     ],
   }),

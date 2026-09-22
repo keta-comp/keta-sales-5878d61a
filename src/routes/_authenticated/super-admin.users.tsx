@@ -38,9 +38,9 @@ import {
 export const Route = createFileRoute("/_authenticated/super-admin/users")({
   head: () => ({
     meta: [
-      { title: "Foydalanuvchilar — KETA CRM Control Center" },
-      { name: "description", content: "KETA CRM platformasidagi barcha foydalanuvchilar, rollari va holati." },
-      { property: "og:title", content: "Foydalanuvchilar — KETA CRM Control Center" },
+      { title: "Foydalanuvchilar — NEXORA CRM Control Center" },
+      { name: "description", content: "NEXORA CRM platformasidagi barcha foydalanuvchilar, rollari va holati." },
+      { property: "og:title", content: "Foydalanuvchilar — NEXORA CRM Control Center" },
       { property: "og:description", content: "Barcha foydalanuvchilar: organization, rol, holat, faollik." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

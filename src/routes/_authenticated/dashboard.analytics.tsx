@@ -26,12 +26,12 @@ import { formatMoney } from "@/lib/types";
 export const Route = createFileRoute("/_authenticated/dashboard/analytics")({
   head: () => ({
     meta: [
-      { title: "Hisobotlar — KETA CRM" },
+      { title: "Hisobotlar — NEXORA CRM" },
       {
         name: "description",
         content: "Tushum, buyurtmalar, konversiya, manbalar va operatorlar bo‘yicha real hisobotlar.",
       },
-      { property: "og:title", content: "Hisobotlar — KETA CRM" },
+      { property: "og:title", content: "Hisobotlar — NEXORA CRM" },
       { property: "og:description", content: "Davrni tanlang va hisobotni Excelga yuklab oling." },
     ],
   }),

@@ -25,9 +25,9 @@ import { getOrganization, setOrganizationPlan, setOrganizationStatus } from "@/l
 export const Route = createFileRoute("/_authenticated/super-admin/organizations/$id")({
   head: () => ({
     meta: [
-      { title: "Organization profili — KETA CRM Control Center" },
+      { title: "Organization profili — NEXORA CRM Control Center" },
       { name: "description", content: "Bitta biznesning platforma darajasidagi profili: jamoa, CRM, faollik va AI ishlatilishi." },
-      { property: "og:title", content: "Organization profili — KETA CRM Control Center" },
+      { property: "og:title", content: "Organization profili — NEXORA CRM Control Center" },
       { property: "og:description", content: "Biznes profili, jamoa va faollik tarixi." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

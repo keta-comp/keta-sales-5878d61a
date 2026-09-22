@@ -11,9 +11,9 @@ import { getAiUsage } from "@/lib/super-admin.functions";
 export const Route = createFileRoute("/_authenticated/super-admin/ai-usage")({
   head: () => ({
     meta: [
-      { title: "AI ishlatilishi — KETA CRM Control Center" },
+      { title: "AI ishlatilishi — NEXORA CRM Control Center" },
       { name: "description", content: "Platformada AI so‘rovlari: organization, foydalanuvchi va funksiya bo‘yicha." },
-      { property: "og:title", content: "AI ishlatilishi — KETA CRM Control Center" },
+      { property: "og:title", content: "AI ishlatilishi — NEXORA CRM Control Center" },
       { property: "og:description", content: "AI so‘rovlari statistikasi va tokenlar." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

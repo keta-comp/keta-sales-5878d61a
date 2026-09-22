@@ -16,12 +16,12 @@ import { formatMoney } from "@/lib/types";
 export const Route = createFileRoute("/_authenticated/dashboard/customers/$id")({
   head: () => ({
     meta: [
-      { title: "Mijoz profili — KETA CRM" },
+      { title: "Mijoz profili — NEXORA CRM" },
       {
         name: "description",
         content: "Mijozning murojaatlari, buyurtmalari, to‘lovlari, vazifalari va aloqa tarixi.",
       },
-      { property: "og:title", content: "Mijoz profili — KETA CRM" },
+      { property: "og:title", content: "Mijoz profili — NEXORA CRM" },
       { property: "og:description", content: "Bitta ekranda mijoz haqida hamma narsa." },
     ],
   }),

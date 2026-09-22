@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { aiCrmBuilder } from "@/lib/crm-config.functions";
 
 export const Route = createFileRoute("/_authenticated/dashboard/crm-builder")({
-  head: () => ({ meta: [{ title: "AI bilan CRMni sozlash — KETA CRM" }] }),
+  head: () => ({ meta: [{ title: "AI bilan CRMni sozlash — NEXORA CRM" }] }),
   component: CrmBuilderPage,
 });
 
