@@ -59,11 +59,16 @@ function AuthPage() {
           },
         });
         if (error) throw error;
+        void recordRegistration().catch(() => undefined);
         navigate({ to: "/dashboard" });
         return;
       }
       const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) throw error;
+      if (error) {
+        void recordFailedLogin({ data: { email } }).catch(() => undefined);
+        throw error;
+      }
+      void recordLogin().catch(() => undefined);
       navigate({ to: "/dashboard" });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Kirishda xatolik yuz berdi");
