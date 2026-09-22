@@ -12,16 +12,20 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard.index'
 import { Route as AuthenticatedDashboardAnalyticsRouteImport } from './routes/_authenticated/dashboard.analytics'
 import { Route as AuthenticatedDashboardConversationsRouteImport } from './routes/_authenticated/dashboard.conversations'
+import { Route as AuthenticatedDashboardCrmBuilderRouteImport } from './routes/_authenticated/dashboard.crm-builder'
 import { Route as AuthenticatedDashboardCustomersRouteImport } from './routes/_authenticated/dashboard.customers'
 import { Route as AuthenticatedDashboardInventoryRouteImport } from './routes/_authenticated/dashboard.inventory'
 import { Route as AuthenticatedDashboardLeadsRouteImport } from './routes/_authenticated/dashboard.leads'
 import { Route as AuthenticatedDashboardOperatorsRouteImport } from './routes/_authenticated/dashboard.operators'
 import { Route as AuthenticatedDashboardOrdersRouteImport } from './routes/_authenticated/dashboard.orders'
+import { Route as AuthenticatedDashboardPipelineRouteImport } from './routes/_authenticated/dashboard.pipeline'
 import { Route as AuthenticatedDashboardProductsRouteImport } from './routes/_authenticated/dashboard.products'
 import { Route as AuthenticatedDashboardSettingsRouteImport } from './routes/_authenticated/dashboard.settings'
+import { Route as AuthenticatedDashboardCrmModuleKeyRouteImport } from './routes/_authenticated/dashboard.crm.$moduleKey'
 import { Route as ApiPublicInstagramWebhookRouteImport } from './routes/api/public/instagram/webhook'
 import { Route as ApiPublicTelegramWebhookRouteImport } from './routes/api/public/telegram/webhook'
 
@@ -37,6 +41,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedDashboardIndexRoute =
@@ -55,6 +64,12 @@ const AuthenticatedDashboardConversationsRoute =
   AuthenticatedDashboardConversationsRouteImport.update({
     id: '/conversations',
     path: '/conversations',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
+const AuthenticatedDashboardCrmBuilderRoute =
+  AuthenticatedDashboardCrmBuilderRouteImport.update({
+    id: '/crm-builder',
+    path: '/crm-builder',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
 const AuthenticatedDashboardCustomersRoute =
@@ -87,6 +102,12 @@ const AuthenticatedDashboardOrdersRoute =
     path: '/orders',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
+const AuthenticatedDashboardPipelineRoute =
+  AuthenticatedDashboardPipelineRouteImport.update({
+    id: '/pipeline',
+    path: '/pipeline',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
 const AuthenticatedDashboardProductsRoute =
   AuthenticatedDashboardProductsRouteImport.update({
     id: '/products',
@@ -97,6 +118,12 @@ const AuthenticatedDashboardSettingsRoute =
   AuthenticatedDashboardSettingsRouteImport.update({
     id: '/settings',
     path: '/settings',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
+const AuthenticatedDashboardCrmModuleKeyRoute =
+  AuthenticatedDashboardCrmModuleKeyRouteImport.update({
+    id: '/crm/$moduleKey',
+    path: '/crm/$moduleKey',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
 const ApiPublicInstagramWebhookRoute =
@@ -115,31 +142,39 @@ const ApiPublicTelegramWebhookRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof AuthenticatedDashboardRouteWithChildren
+  '/onboarding': typeof AuthenticatedOnboardingRoute
   '/dashboard/analytics': typeof AuthenticatedDashboardAnalyticsRoute
   '/dashboard/conversations': typeof AuthenticatedDashboardConversationsRoute
+  '/dashboard/crm-builder': typeof AuthenticatedDashboardCrmBuilderRoute
   '/dashboard/customers': typeof AuthenticatedDashboardCustomersRoute
   '/dashboard/inventory': typeof AuthenticatedDashboardInventoryRoute
   '/dashboard/leads': typeof AuthenticatedDashboardLeadsRoute
   '/dashboard/operators': typeof AuthenticatedDashboardOperatorsRoute
   '/dashboard/orders': typeof AuthenticatedDashboardOrdersRoute
+  '/dashboard/pipeline': typeof AuthenticatedDashboardPipelineRoute
   '/dashboard/products': typeof AuthenticatedDashboardProductsRoute
   '/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
+  '/dashboard/crm/$moduleKey': typeof AuthenticatedDashboardCrmModuleKeyRoute
   '/api/public/instagram/webhook': typeof ApiPublicInstagramWebhookRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/onboarding': typeof AuthenticatedOnboardingRoute
   '/dashboard/analytics': typeof AuthenticatedDashboardAnalyticsRoute
   '/dashboard/conversations': typeof AuthenticatedDashboardConversationsRoute
+  '/dashboard/crm-builder': typeof AuthenticatedDashboardCrmBuilderRoute
   '/dashboard/customers': typeof AuthenticatedDashboardCustomersRoute
   '/dashboard/inventory': typeof AuthenticatedDashboardInventoryRoute
   '/dashboard/leads': typeof AuthenticatedDashboardLeadsRoute
   '/dashboard/operators': typeof AuthenticatedDashboardOperatorsRoute
   '/dashboard/orders': typeof AuthenticatedDashboardOrdersRoute
+  '/dashboard/pipeline': typeof AuthenticatedDashboardPipelineRoute
   '/dashboard/products': typeof AuthenticatedDashboardProductsRoute
   '/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
+  '/dashboard/crm/$moduleKey': typeof AuthenticatedDashboardCrmModuleKeyRoute
   '/api/public/instagram/webhook': typeof ApiPublicInstagramWebhookRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
 }
@@ -148,16 +183,20 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRouteWithChildren
+  '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
   '/_authenticated/dashboard/analytics': typeof AuthenticatedDashboardAnalyticsRoute
   '/_authenticated/dashboard/conversations': typeof AuthenticatedDashboardConversationsRoute
+  '/_authenticated/dashboard/crm-builder': typeof AuthenticatedDashboardCrmBuilderRoute
   '/_authenticated/dashboard/customers': typeof AuthenticatedDashboardCustomersRoute
   '/_authenticated/dashboard/inventory': typeof AuthenticatedDashboardInventoryRoute
   '/_authenticated/dashboard/leads': typeof AuthenticatedDashboardLeadsRoute
   '/_authenticated/dashboard/operators': typeof AuthenticatedDashboardOperatorsRoute
   '/_authenticated/dashboard/orders': typeof AuthenticatedDashboardOrdersRoute
+  '/_authenticated/dashboard/pipeline': typeof AuthenticatedDashboardPipelineRoute
   '/_authenticated/dashboard/products': typeof AuthenticatedDashboardProductsRoute
   '/_authenticated/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
+  '/_authenticated/dashboard/crm/$moduleKey': typeof AuthenticatedDashboardCrmModuleKeyRoute
   '/api/public/instagram/webhook': typeof ApiPublicInstagramWebhookRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
 }
@@ -166,31 +205,39 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/dashboard'
+    | '/onboarding'
     | '/dashboard/analytics'
     | '/dashboard/conversations'
+    | '/dashboard/crm-builder'
     | '/dashboard/customers'
     | '/dashboard/inventory'
     | '/dashboard/leads'
     | '/dashboard/operators'
     | '/dashboard/orders'
+    | '/dashboard/pipeline'
     | '/dashboard/products'
     | '/dashboard/settings'
     | '/dashboard/'
+    | '/dashboard/crm/$moduleKey'
     | '/api/public/instagram/webhook'
     | '/api/public/telegram/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/onboarding'
     | '/dashboard/analytics'
     | '/dashboard/conversations'
+    | '/dashboard/crm-builder'
     | '/dashboard/customers'
     | '/dashboard/inventory'
     | '/dashboard/leads'
     | '/dashboard/operators'
     | '/dashboard/orders'
+    | '/dashboard/pipeline'
     | '/dashboard/products'
     | '/dashboard/settings'
     | '/dashboard'
+    | '/dashboard/crm/$moduleKey'
     | '/api/public/instagram/webhook'
     | '/api/public/telegram/webhook'
   id:
@@ -198,16 +245,20 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/_authenticated/dashboard'
+    | '/_authenticated/onboarding'
     | '/_authenticated/dashboard/analytics'
     | '/_authenticated/dashboard/conversations'
+    | '/_authenticated/dashboard/crm-builder'
     | '/_authenticated/dashboard/customers'
     | '/_authenticated/dashboard/inventory'
     | '/_authenticated/dashboard/leads'
     | '/_authenticated/dashboard/operators'
     | '/_authenticated/dashboard/orders'
+    | '/_authenticated/dashboard/pipeline'
     | '/_authenticated/dashboard/products'
     | '/_authenticated/dashboard/settings'
     | '/_authenticated/dashboard/'
+    | '/_authenticated/dashboard/crm/$moduleKey'
     | '/api/public/instagram/webhook'
     | '/api/public/telegram/webhook'
   fileRoutesById: FileRoutesById
@@ -242,6 +293,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/onboarding': {
+      id: '/_authenticated/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof AuthenticatedOnboardingRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/dashboard/': {
       id: '/_authenticated/dashboard/'
       path: '/'
@@ -261,6 +319,13 @@ declare module '@tanstack/react-router' {
       path: '/conversations'
       fullPath: '/dashboard/conversations'
       preLoaderRoute: typeof AuthenticatedDashboardConversationsRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
+    '/_authenticated/dashboard/crm-builder': {
+      id: '/_authenticated/dashboard/crm-builder'
+      path: '/crm-builder'
+      fullPath: '/dashboard/crm-builder'
+      preLoaderRoute: typeof AuthenticatedDashboardCrmBuilderRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
     '/_authenticated/dashboard/customers': {
@@ -298,6 +363,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardOrdersRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
+    '/_authenticated/dashboard/pipeline': {
+      id: '/_authenticated/dashboard/pipeline'
+      path: '/pipeline'
+      fullPath: '/dashboard/pipeline'
+      preLoaderRoute: typeof AuthenticatedDashboardPipelineRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
     '/_authenticated/dashboard/products': {
       id: '/_authenticated/dashboard/products'
       path: '/products'
@@ -310,6 +382,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/dashboard/settings'
       preLoaderRoute: typeof AuthenticatedDashboardSettingsRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
+    '/_authenticated/dashboard/crm/$moduleKey': {
+      id: '/_authenticated/dashboard/crm/$moduleKey'
+      path: '/crm/$moduleKey'
+      fullPath: '/dashboard/crm/$moduleKey'
+      preLoaderRoute: typeof AuthenticatedDashboardCrmModuleKeyRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
     '/api/public/instagram/webhook': {
@@ -332,14 +411,17 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedDashboardRouteChildren {
   AuthenticatedDashboardAnalyticsRoute: typeof AuthenticatedDashboardAnalyticsRoute
   AuthenticatedDashboardConversationsRoute: typeof AuthenticatedDashboardConversationsRoute
+  AuthenticatedDashboardCrmBuilderRoute: typeof AuthenticatedDashboardCrmBuilderRoute
   AuthenticatedDashboardCustomersRoute: typeof AuthenticatedDashboardCustomersRoute
   AuthenticatedDashboardInventoryRoute: typeof AuthenticatedDashboardInventoryRoute
   AuthenticatedDashboardLeadsRoute: typeof AuthenticatedDashboardLeadsRoute
   AuthenticatedDashboardOperatorsRoute: typeof AuthenticatedDashboardOperatorsRoute
   AuthenticatedDashboardOrdersRoute: typeof AuthenticatedDashboardOrdersRoute
+  AuthenticatedDashboardPipelineRoute: typeof AuthenticatedDashboardPipelineRoute
   AuthenticatedDashboardProductsRoute: typeof AuthenticatedDashboardProductsRoute
   AuthenticatedDashboardSettingsRoute: typeof AuthenticatedDashboardSettingsRoute
   AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
+  AuthenticatedDashboardCrmModuleKeyRoute: typeof AuthenticatedDashboardCrmModuleKeyRoute
 }
 
 const AuthenticatedDashboardRouteChildren: AuthenticatedDashboardRouteChildren =
@@ -347,14 +429,19 @@ const AuthenticatedDashboardRouteChildren: AuthenticatedDashboardRouteChildren =
     AuthenticatedDashboardAnalyticsRoute: AuthenticatedDashboardAnalyticsRoute,
     AuthenticatedDashboardConversationsRoute:
       AuthenticatedDashboardConversationsRoute,
+    AuthenticatedDashboardCrmBuilderRoute:
+      AuthenticatedDashboardCrmBuilderRoute,
     AuthenticatedDashboardCustomersRoute: AuthenticatedDashboardCustomersRoute,
     AuthenticatedDashboardInventoryRoute: AuthenticatedDashboardInventoryRoute,
     AuthenticatedDashboardLeadsRoute: AuthenticatedDashboardLeadsRoute,
     AuthenticatedDashboardOperatorsRoute: AuthenticatedDashboardOperatorsRoute,
     AuthenticatedDashboardOrdersRoute: AuthenticatedDashboardOrdersRoute,
+    AuthenticatedDashboardPipelineRoute: AuthenticatedDashboardPipelineRoute,
     AuthenticatedDashboardProductsRoute: AuthenticatedDashboardProductsRoute,
     AuthenticatedDashboardSettingsRoute: AuthenticatedDashboardSettingsRoute,
     AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,
+    AuthenticatedDashboardCrmModuleKeyRoute:
+      AuthenticatedDashboardCrmModuleKeyRoute,
   }
 
 const AuthenticatedDashboardRouteWithChildren =
@@ -364,10 +451,12 @@ const AuthenticatedDashboardRouteWithChildren =
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRouteWithChildren
+  AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRouteWithChildren,
+  AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

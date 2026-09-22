@@ -1,46 +1,101 @@
 import { useState } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import {
+  Activity,
   BarChart3,
+  Book,
   Boxes,
+  Building,
+  Calendar,
+  Car,
+  Check,
+  Eye,
+  Handshake,
+  Home,
   LayoutDashboard,
+  LayoutGrid,
+  Layers,
   LogOut,
   Menu,
   MessagesSquare,
   Package,
   Settings,
   ShoppingCart,
+  Sparkles,
+  Stethoscope,
   Target,
   UserRound,
   Users,
+  Wrench,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 
 import logoAsset from "@/assets/keta-logo.png.asset.json";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { getMyCrmConfig } from "@/lib/crm-config.functions";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 
-const NAV = [
-  { to: "/dashboard", label: "Umumiy ko'rinish", icon: LayoutDashboard },
-  { to: "/dashboard/leads", label: "Murojaatlar", icon: Target },
-  { to: "/dashboard/customers", label: "Mijozlar", icon: Users },
-  { to: "/dashboard/conversations", label: "Suhbatlar", icon: MessagesSquare },
-  { to: "/dashboard/orders", label: "Buyurtmalar", icon: ShoppingCart },
-  { to: "/dashboard/inventory", label: "Ombor", icon: Boxes },
-  { to: "/dashboard/products", label: "Mahsulotlar", icon: Package },
+const ICONS: Record<string, LucideIcon> = {
+  target: Target,
+  users: Users,
+  messages: MessagesSquare,
+  cart: ShoppingCart,
+  package: Package,
+  boxes: Boxes,
+  calendar: Calendar,
+  book: Book,
+  layers: Layers,
+  user: UserRound,
+  check: Check,
+  car: Car,
+  wrench: Wrench,
+  stethoscope: Stethoscope,
+  activity: Activity,
+  home: Home,
+  eye: Eye,
+  handshake: Handshake,
+  building: Building,
+};
+
+const STATIC_TAIL: { to: string; label: string; icon: LucideIcon }[] = [
   { to: "/dashboard/operators", label: "Operatorlar", icon: UserRound },
   { to: "/dashboard/analytics", label: "Savdo tahlili", icon: BarChart3 },
+  { to: "/dashboard/crm-builder", label: "AI CRM sozlash", icon: Sparkles },
   { to: "/dashboard/settings", label: "Sozlamalar", icon: Settings },
-] as const;
+];
+
+type NavItem = { to: string; label: string; icon: LucideIcon };
+
+function buildNav(crm: Awaited<ReturnType<typeof getMyCrmConfig>> | undefined): NavItem[] {
+  const items: NavItem[] = [{ to: "/dashboard", label: "Umumiy ko‘rinish", icon: LayoutDashboard }];
+  const hasPipeline = crm?.config?.modules.some((m) => m.pipeline && !m.link);
+  if (crm?.config?.pipelineStages.length && hasPipeline) {
+    items.push({ to: "/dashboard/pipeline", label: "Pipeline", icon: LayoutGrid });
+  }
+  for (const module of crm?.config?.modules ?? []) {
+    const to = module.link ?? `/dashboard/crm/${module.key}`;
+    items.push({ to, label: module.label, icon: ICONS[module.icon ?? ""] ?? LayoutGrid });
+  }
+  items.push(...STATIC_TAIL);
+  return items;
+}
 
 function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const fetchConfig = useServerFn(getMyCrmConfig);
+  const { data: crm } = useQuery({ queryKey: ["crm-config"], queryFn: () => fetchConfig() });
+  const nav = buildNav(crm);
+
   return (
     <nav className="flex flex-col gap-1">
-      {NAV.map((item) => {
-        const active = item.to === "/dashboard" ? pathname === "/dashboard" : pathname.startsWith(item.to);
+      {nav.map((item) => {
+        const active =
+          item.to === "/dashboard" ? pathname === "/dashboard" : pathname.startsWith(item.to);
         const Icon = item.icon;
         return (
           <Link
@@ -85,10 +140,10 @@ export function DashboardShell({
   const brand = (
     <div className="flex items-center gap-2 px-3 py-4">
       <span className="clay-raised grid size-10 place-items-center overflow-hidden rounded-2xl bg-card">
-        <img src={logoAsset.url} alt="Keta AI logotipi" className="size-8 object-contain" />
+        <img src={logoAsset.url} alt="Keta Sales logotipi" className="size-8 object-contain" />
       </span>
       <div className="leading-tight">
-        <p className="font-display text-sm font-semibold">SalesPilot AI</p>
+        <p className="font-display text-sm font-semibold">Keta Sales</p>
         <p className="text-xs text-muted-foreground">AI savdo bo‘limi</p>
       </div>
     </div>
@@ -121,7 +176,7 @@ export function DashboardShell({
                 <NavLinks onNavigate={() => setOpen(false)} />
               </SheetContent>
             </Sheet>
-            <span className="font-display text-sm font-semibold lg:hidden">SalesPilot AI</span>
+            <span className="font-display text-sm font-semibold lg:hidden">Keta Sales</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="hidden text-xs text-muted-foreground sm:inline">{email}</span>

@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 
-const TITLE = "SalesPilot AI — Telegram uchun AI savdo agenti va CRM";
+const TITLE = "Keta Sales — Telegram uchun AI savdo agenti va CRM";
 const DESCRIPTION =
   "Telegramdagi mijozlar bilan suhbatlashadigan, omborni real vaqtda tekshiradigan, buyurtmalarni yopadigan va qaynoq murojaatlarni operatorlarga uzatadigan AI savdo agenti — to‘liq CRM paneli bilan.";
 
@@ -37,6 +37,9 @@ const FEATURES = [
 
 function Index() {
   const navigate = useNavigate();
+  const [mode, setMode] = useState<"login" | "register">("login");
+  const [fullName, setFullName] = useState("");
+  const [businessName, setBusinessName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -51,6 +54,19 @@ function Index() {
     event.preventDefault();
     setBusy(true);
     try {
+      if (mode === "register") {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { full_name: fullName.trim(), business_name: businessName.trim() || undefined },
+          },
+        });
+        if (error) throw error;
+        // Yangi foydalanuvchi CRM onboarding wizard'ga yo'naladi.
+        navigate({ to: "/dashboard" });
+        return;
+      }
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
       navigate({ to: "/dashboard" });
@@ -68,7 +84,7 @@ function Index() {
         <div>
           <img
             src={logoAsset.url}
-            alt="Keta AI savdo agenti logotipi"
+            alt="Keta Sales savdo agenti logotipi"
             className="mb-6 size-16 object-contain"
             width={64}
             height={64}
@@ -93,44 +109,90 @@ function Index() {
         </div>
 
         <div className="clay-panel h-fit p-6 sm:p-7 lg:sticky lg:top-10">
-          <h2 className="font-display text-xl font-semibold text-foreground">Admin kirishi</h2>
+          <h2 className="font-display text-xl font-semibold text-foreground">
+            {mode === "login" ? "Kabinaga kirish" : "Ro‘yxatdan o‘tish"}
+          </h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            CRM, ombor va AI agent boshqaruviga kiring.
+            {mode === "login"
+              ? "CRM, ombor va AI agent boshqaruviga kiring."
+              : "Biznesingizni kiriting — CRM sizga moslab tayyorlanadi."}
           </p>
 
+          <div className="mt-4 grid grid-cols-2 gap-1 rounded-2xl bg-muted p-1 text-sm font-medium">
+            <button
+              type="button"
+              onClick={() => setMode("login")}
+              className={mode === "login" ? "clay-raised rounded-xl py-2" : "rounded-xl py-2 text-muted-foreground"}
+            >
+              Kirish
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode("register")}
+              className={mode === "register" ? "clay-raised rounded-xl py-2" : "rounded-xl py-2 text-muted-foreground"}
+            >
+              Ro‘yxatdan o‘tish
+            </button>
+          </div>
+
           <div className="mt-5">
-              <form onSubmit={submit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    autoComplete="email"
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                    placeholder="you@company.com"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password">Parol</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    autoComplete="current-password"
-                    value={password}
-                    onChange={(event) => setPassword(event.target.value)}
-                    minLength={6}
-                    required
-                  />
-                </div>
-                <Button type="submit" className="w-full" disabled={busy}>
-                  {busy ? "Yuklanmoqda…" : "Kirish"}
-                </Button>
-              </form>
-            <p className="mt-4 text-xs text-muted-foreground">
-              Tizim faqat administrator hisobi uchun. Yangi hisob yaratish o‘chirilgan.
-            </p>
+            <form onSubmit={submit} className="space-y-4">
+              {mode === "register" && (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="full-name">Ismingiz</Label>
+                    <Input
+                      id="full-name"
+                      value={fullName}
+                      onChange={(event) => setFullName(event.target.value)}
+                      placeholder="Masalan: Nursultan"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="business-name">Biznes nomi</Label>
+                    <Input
+                      id="business-name"
+                      value={businessName}
+                      onChange={(event) => setBusinessName(event.target.value)}
+                      placeholder="Masalan: Keta klinikasi"
+                    />
+                  </div>
+                </>
+              )}
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  placeholder="you@company.com"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Parol</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  autoComplete={mode === "login" ? "current-password" : "new-password"}
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  minLength={6}
+                  required
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={busy}>
+                {busy ? "Yuklanmoqda…" : mode === "login" ? "Kirish" : "Ro‘yxatdan o‘tish va CRM sozlash"}
+              </Button>
+            </form>
+            {mode === "register" && (
+              <p className="mt-4 text-xs text-muted-foreground">
+                Ro‘yxatdan o‘tgach, biznes sohangizni tanlaysiz — AI sizga mos CRM yaratadi.
+              </p>
+            )}
           </div>
         </div>
       </div>

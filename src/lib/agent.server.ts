@@ -4,6 +4,7 @@ import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { gatewayErrorMessage, resolveAiRuntime } from "./ai-gateway.server";
 import { getActiveBot } from "./bots.server";
+import { getCrmAgentContext, type CrmAgentContext } from "./crm-config.server";
 import { createTimer, runBackground, withTimeout, type Timings } from "./perf.server";
 import { sendTelegramMessage } from "./telegram.server";
 
@@ -321,7 +322,18 @@ function buildSystemPrompt(
   ai: AiSettingsRow | null,
   customer: { full_name: string | null; phone: string | null; location: string | null },
   prefetched: ReturnType<typeof shapeProductRow>[],
+  crmContext?: CrmAgentContext | null,
 ) {
+  const crmBlock = crmContext
+    ? [
+        "BUSINESS DOMAIN CONTEXT (from the owner's CRM setup — reflect it in your wording):",
+        `Industry: ${crmContext.industry}`,
+        crmContext.description ? `Industry notes: ${crmContext.description}` : "",
+        `CRM terminology to use for this business: ${JSON.stringify(crmContext.terminology)}`,
+        `Sales pipeline stages: ${crmContext.pipelineStages.join(" → ")}`,
+        `Active CRM modules: ${crmContext.moduleLabels.join(", ")}`,
+      ]
+    : [];
   return [
     `You are the AI sales agent for "${business?.business_name ?? "the business"}".`,
     `Business description: ${business?.business_description ?? "-"}`,
@@ -331,7 +343,7 @@ function buildSystemPrompt(
     `Return policy: ${business?.return_policy ?? "-"}`,
     `Currency: ${business?.currency ?? "UZS"}`,
     `Maximum discount you may mention: ${ai?.max_discount_percent ?? 0}%`,
-    "",
+    ...crmBlock,
     `Tone of voice: ${ai?.tone_of_voice ?? "professional"}`,
     `Sales strategy: ${ai?.sales_strategy ?? ""}`,
     `Language: ${ai?.language_instruction ?? "Reply in the customer's language."}`,
@@ -755,6 +767,7 @@ export async function runSalesAgent(params: {
   const model = ai?.model || runtime.defaultModel;
 
   try {
+    const crmContext = await getCrmAgentContext(params.businessId).catch(() => null);
     const llmStart = Date.now();
     const smallTalk = isSmallTalk(params.latestText);
     const result = await withTimeout(
@@ -769,6 +782,7 @@ export async function runSalesAgent(params: {
             location: customer?.location ?? null,
           },
           prefetched,
+          crmContext,
         ),
         messages: history.map((m) => ({
           role: m.role === "customer" ? ("user" as const) : ("assistant" as const),

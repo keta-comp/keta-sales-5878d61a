@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import {
   Activity,
   Flame,
+  LayoutGrid,
   MessagesSquare,
   ShoppingCart,
   Target,
@@ -18,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { getOverview } from "@/lib/stats.functions";
 import { listLeads } from "@/lib/crm.functions";
+import { getMyCrmConfig, getWidgetStats } from "@/lib/crm-config.functions";
 import { listOrders } from "@/lib/orders.functions";
 import { formatMoney } from "@/lib/types";
 
@@ -38,9 +40,18 @@ function Overview() {
   const fetchLeads = useServerFn(listLeads);
   const fetchOrders = useServerFn(listOrders);
 
+  const fetchConfig = useServerFn(getMyCrmConfig);
+  const fetchWidgets = useServerFn(getWidgetStats);
+
   const overview = useQuery({ queryKey: ["overview"], queryFn: () => fetchOverview() });
   const leads = useQuery({ queryKey: ["leads", "recent"], queryFn: () => fetchLeads({ data: {} }) });
   const orders = useQuery({ queryKey: ["orders", "recent"], queryFn: () => fetchOrders({ data: {} }) });
+  const crmConfig = useQuery({ queryKey: ["crm-config"], queryFn: () => fetchConfig() });
+  const widgetStats = useQuery({
+    queryKey: ["crm-widgets"],
+    queryFn: () => fetchWidgets(),
+    enabled: !!crmConfig.data?.hasConfig,
+  });
 
   useEffect(() => {
     const channel = supabase
@@ -88,6 +99,24 @@ function Overview() {
         <StatCard label="Murojaat → buyurtma" value={`${data.conversionRate}%`} tone="info" icon={<TrendingUp className="size-4" />} />
         <StatCard label="O‘rtacha AI javobi" value={`${data.avgResponseSeconds}s`} icon={<Activity className="size-4" />} hint="Oxirgi 24 soat" />
       </div>
+
+      {crmConfig.data?.config?.dashboardWidgets?.length ? (
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {crmConfig.data.config.dashboardWidgets.map((widget) => {
+            const value = widgetStats.data?.widgets?.[widget.key];
+            const isMoney = widget.kind === "legacy_today_revenue" || widget.kind === "field_sum";
+            return (
+              <StatCard
+                key={widget.key}
+                label={widget.label}
+                value={isMoney ? formatMoney(value ?? 0, currency) : (value ?? 0)}
+                tone={widget.kind.startsWith("legacy") ? "default" : "info"}
+                icon={<LayoutGrid className="size-4" />}
+              />
+            );
+          })}
+        </div>
+      ) : null}
 
       <div className="grid gap-6 xl:grid-cols-2">
         <section className="clay-panel p-5">
