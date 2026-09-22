@@ -3,7 +3,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
 
-import logoAsset from "@/assets/keta-logo.png.asset.json";
+import logoAsset from "@/assets/keta-crm-logo.png.asset.json";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/onboarding")({
   head: () => ({
-    meta: [{ title: "CRMni sozlash — Keta Sales" }],
+    meta: [{ title: "CRMni sozlash — KETA CRM" }],
   }),
   component: Onboarding,
 });
@@ -86,10 +86,10 @@ function Onboarding() {
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
         <div className="flex items-center gap-3">
           <span className="clay-raised grid size-12 place-items-center overflow-hidden rounded-2xl bg-card">
-            <img src={logoAsset.url} alt="Keta Sales logotipi" className="size-9 object-contain" />
+            <img src={logoAsset.url} alt="KETA CRM logotipi" className="size-9 object-contain" />
           </span>
           <div>
-            <p className="font-display text-lg font-semibold">Keta Sales</p>
+            <p className="font-display text-lg font-semibold">KETA CRM</p>
             <p className="text-sm text-muted-foreground">O‘z CRMingizni sozlang</p>
           </div>
         </div>

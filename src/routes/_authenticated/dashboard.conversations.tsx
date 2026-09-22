@@ -21,9 +21,9 @@ import {
 export const Route = createFileRoute("/_authenticated/dashboard/conversations")({
   head: () => ({
     meta: [
-      { title: "Suhbatlar — SalesPilot AI" },
+      { title: "Suhbatlar — KETA CRM" },
       { name: "description", content: "Jonli Telegram inbox: AI savdo suhbatlarini o'qing va operator sifatida ularni o'z qo'lingizga oling." },
-      { property: "og:title", content: "Suhbatlar — SalesPilot AI" },
+      { property: "og:title", content: "Suhbatlar — KETA CRM" },
       { property: "og:description", content: "Jonli AI va inson operator Telegram savdo inboxi." },
     ],
   }),

@@ -20,9 +20,9 @@ import { formatMoney } from "@/lib/types";
 export const Route = createFileRoute("/_authenticated/dashboard/analytics")({
   head: () => ({
     meta: [
-      { title: "Savdo tahlili — SalesPilot AI" },
+      { title: "Savdo tahlili — KETA CRM" },
       { name: "description", content: "30 kunlik daromad, lidlar konversiyasi va eng ko'p sotilgan mahsulotlar." },
-      { property: "og:title", content: "Savdo tahlili — SalesPilot AI" },
+      { property: "og:title", content: "Savdo tahlili — KETA CRM" },
       { property: "og:description", content: "AI savdo agentingiz uchun daromad va konversiya tahlili." },
     ],
   }),

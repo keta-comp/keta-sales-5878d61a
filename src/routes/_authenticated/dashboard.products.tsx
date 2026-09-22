@@ -23,9 +23,9 @@ import { formatMoney, stockState } from "@/lib/types";
 export const Route = createFileRoute("/_authenticated/dashboard/products")({
   head: () => ({
     meta: [
-      { title: "Mahsulotlar — SalesPilot AI" },
+      { title: "Mahsulotlar — KETA CRM" },
       { name: "description", content: "AI savdo agentingiz taklif beradigan jonli mahsulotlar katalogi." },
-      { property: "og:title", content: "Mahsulotlar — SalesPilot AI" },
+      { property: "og:title", content: "Mahsulotlar — KETA CRM" },
       { property: "og:description", content: "AI savdo agentini boshqaradigan katalog va narxlar." },
     ],
   }),

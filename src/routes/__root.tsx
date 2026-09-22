@@ -79,16 +79,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "SalesPilot AI — Telegram uchun AI savdo agenti" },
+      { title: "KETA CRM — Qoraqalpog‘iston bizneslari uchun zamonaviy CRM" },
       {
         name: "description",
         content:
-          "Telegram orqali real ombor asosida savdo qiladigan AI agent: CRM, murojaatlar, buyurtmalar va operatorga uzatish.",
+          "KETA CRM — Qoraqalpog‘iston bizneslari uchun mijozlar, savdo, murojaatlar va jamoani boshqarish platformasi. Keta.uz tomonidan ishlab chiqilgan.",
       },
-      { property: "og:title", content: "SalesPilot AI — Telegram uchun AI savdo agenti" },
+      { property: "og:title", content: "KETA CRM — Qoraqalpog‘iston bizneslari uchun zamonaviy CRM" },
       {
         property: "og:description",
-        content: "AI asosidagi savdo bo‘limi: Telegram agent, jonli ombor, CRM va tahlil.",
+        content: "Mijozlar, savdo, murojaatlar va jamoani bitta platformada boshqaring.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

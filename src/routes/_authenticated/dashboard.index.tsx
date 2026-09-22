@@ -26,9 +26,9 @@ import { formatMoney } from "@/lib/types";
 export const Route = createFileRoute("/_authenticated/dashboard/")({
   head: () => ({
     meta: [
-      { title: "Savdo ko‘rinishi — SalesPilot AI" },
+      { title: "Savdo ko‘rinishi — KETA CRM" },
       { name: "description", content: "AI savdo natijalari real vaqtda: murojaatlar, buyurtmalar, tushum va operatorga uzatishlar." },
-      { property: "og:title", content: "Savdo ko‘rinishi — SalesPilot AI" },
+      { property: "og:title", content: "Savdo ko‘rinishi — KETA CRM" },
       { property: "og:description", content: "Telegram do‘koningiz uchun jonli AI savdo natijalari." },
     ],
   }),

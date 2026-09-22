@@ -16,9 +16,9 @@ import { formatMoney } from "@/lib/types";
 export const Route = createFileRoute("/_authenticated/dashboard/operators")({
   head: () => ({
     meta: [
-      { title: "Operatorlar — SalesPilot AI" },
+      { title: "Operatorlar — KETA CRM" },
       { name: "description", content: "Inson savdo operatorlarini boshqaring va ularning konversiya natijalarini kuzating." },
-      { property: "og:title", content: "Operatorlar — SalesPilot AI" },
+      { property: "og:title", content: "Operatorlar — KETA CRM" },
       { property: "og:description", content: "AI savdo jamoangiz uchun operatorlar ro'yxati va natijalari." },
     ],
   }),

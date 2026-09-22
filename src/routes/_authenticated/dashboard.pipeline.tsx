@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getMyCrmConfig, listCrmRecords, saveCrmRecord } from "@/lib/crm-config.functions";
 
 export const Route = createFileRoute("/_authenticated/dashboard/pipeline")({
-  head: () => ({ meta: [{ title: "Pipeline — Keta Sales" }] }),
+  head: () => ({ meta: [{ title: "Pipeline — KETA CRM" }] }),
   component: PipelinePage,
 });
 
