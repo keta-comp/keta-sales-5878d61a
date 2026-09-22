@@ -19,6 +19,7 @@ import { Route as AuthenticatedDashboardAnalyticsRouteImport } from './routes/_a
 import { Route as AuthenticatedDashboardAssistantRouteImport } from './routes/_authenticated/dashboard.assistant'
 import { Route as AuthenticatedDashboardConversationsRouteImport } from './routes/_authenticated/dashboard.conversations'
 import { Route as AuthenticatedDashboardCrmBuilderRouteImport } from './routes/_authenticated/dashboard.crm-builder'
+import { Route as AuthenticatedDashboardCustomersRouteImport } from './routes/_authenticated/dashboard.customers'
 import { Route as AuthenticatedDashboardInventoryRouteImport } from './routes/_authenticated/dashboard.inventory'
 import { Route as AuthenticatedDashboardLeadsRouteImport } from './routes/_authenticated/dashboard.leads'
 import { Route as AuthenticatedDashboardOperatorsRouteImport } from './routes/_authenticated/dashboard.operators'
@@ -29,6 +30,8 @@ import { Route as AuthenticatedDashboardProductsRouteImport } from './routes/_au
 import { Route as AuthenticatedDashboardSettingsRouteImport } from './routes/_authenticated/dashboard.settings'
 import { Route as AuthenticatedDashboardTasksRouteImport } from './routes/_authenticated/dashboard.tasks'
 import { Route as AuthenticatedDashboardCrmModuleKeyRouteImport } from './routes/_authenticated/dashboard.crm.$moduleKey'
+import { Route as AuthenticatedDashboardCustomersIndexRouteImport } from './routes/_authenticated/dashboard.customers.index'
+import { Route as AuthenticatedDashboardCustomersIdRouteImport } from './routes/_authenticated/dashboard.customers.$id'
 import { Route as ApiPublicInstagramWebhookRouteImport } from './routes/api/public/instagram/webhook'
 import { Route as ApiPublicTelegramWebhookRouteImport } from './routes/api/public/telegram/webhook'
 
@@ -84,6 +87,12 @@ const AuthenticatedDashboardCrmBuilderRoute =
   AuthenticatedDashboardCrmBuilderRouteImport.update({
     id: '/crm-builder',
     path: '/crm-builder',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
+const AuthenticatedDashboardCustomersRoute =
+  AuthenticatedDashboardCustomersRouteImport.update({
+    id: '/customers',
+    path: '/customers',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
 const AuthenticatedDashboardInventoryRoute =
@@ -146,6 +155,18 @@ const AuthenticatedDashboardCrmModuleKeyRoute =
     path: '/crm/$moduleKey',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
+const AuthenticatedDashboardCustomersIndexRoute =
+  AuthenticatedDashboardCustomersIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedDashboardCustomersRoute,
+  } as any)
+const AuthenticatedDashboardCustomersIdRoute =
+  AuthenticatedDashboardCustomersIdRouteImport.update({
+    id: '/$id',
+    path: '/$id',
+    getParentRoute: () => AuthenticatedDashboardCustomersRoute,
+  } as any)
 const ApiPublicInstagramWebhookRoute =
   ApiPublicInstagramWebhookRouteImport.update({
     id: '/api/public/instagram/webhook',
@@ -168,6 +189,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/assistant': typeof AuthenticatedDashboardAssistantRoute
   '/dashboard/conversations': typeof AuthenticatedDashboardConversationsRoute
   '/dashboard/crm-builder': typeof AuthenticatedDashboardCrmBuilderRoute
+  '/dashboard/customers': typeof AuthenticatedDashboardCustomersRouteWithChildren
   '/dashboard/inventory': typeof AuthenticatedDashboardInventoryRoute
   '/dashboard/leads': typeof AuthenticatedDashboardLeadsRoute
   '/dashboard/operators': typeof AuthenticatedDashboardOperatorsRoute
@@ -179,8 +201,10 @@ export interface FileRoutesByFullPath {
   '/dashboard/tasks': typeof AuthenticatedDashboardTasksRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/dashboard/crm/$moduleKey': typeof AuthenticatedDashboardCrmModuleKeyRoute
+  '/dashboard/customers/$id': typeof AuthenticatedDashboardCustomersIdRoute
   '/api/public/instagram/webhook': typeof ApiPublicInstagramWebhookRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
+  '/dashboard/customers/': typeof AuthenticatedDashboardCustomersIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -201,8 +225,10 @@ export interface FileRoutesByTo {
   '/dashboard/tasks': typeof AuthenticatedDashboardTasksRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
   '/dashboard/crm/$moduleKey': typeof AuthenticatedDashboardCrmModuleKeyRoute
+  '/dashboard/customers/$id': typeof AuthenticatedDashboardCustomersIdRoute
   '/api/public/instagram/webhook': typeof ApiPublicInstagramWebhookRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
+  '/dashboard/customers': typeof AuthenticatedDashboardCustomersIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -215,6 +241,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard/assistant': typeof AuthenticatedDashboardAssistantRoute
   '/_authenticated/dashboard/conversations': typeof AuthenticatedDashboardConversationsRoute
   '/_authenticated/dashboard/crm-builder': typeof AuthenticatedDashboardCrmBuilderRoute
+  '/_authenticated/dashboard/customers': typeof AuthenticatedDashboardCustomersRouteWithChildren
   '/_authenticated/dashboard/inventory': typeof AuthenticatedDashboardInventoryRoute
   '/_authenticated/dashboard/leads': typeof AuthenticatedDashboardLeadsRoute
   '/_authenticated/dashboard/operators': typeof AuthenticatedDashboardOperatorsRoute
@@ -226,8 +253,10 @@ export interface FileRoutesById {
   '/_authenticated/dashboard/tasks': typeof AuthenticatedDashboardTasksRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/_authenticated/dashboard/crm/$moduleKey': typeof AuthenticatedDashboardCrmModuleKeyRoute
+  '/_authenticated/dashboard/customers/$id': typeof AuthenticatedDashboardCustomersIdRoute
   '/api/public/instagram/webhook': typeof ApiPublicInstagramWebhookRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
+  '/_authenticated/dashboard/customers/': typeof AuthenticatedDashboardCustomersIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -240,6 +269,7 @@ export interface FileRouteTypes {
     | '/dashboard/assistant'
     | '/dashboard/conversations'
     | '/dashboard/crm-builder'
+    | '/dashboard/customers'
     | '/dashboard/inventory'
     | '/dashboard/leads'
     | '/dashboard/operators'
@@ -251,8 +281,10 @@ export interface FileRouteTypes {
     | '/dashboard/tasks'
     | '/dashboard/'
     | '/dashboard/crm/$moduleKey'
+    | '/dashboard/customers/$id'
     | '/api/public/instagram/webhook'
     | '/api/public/telegram/webhook'
+    | '/dashboard/customers/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -273,8 +305,10 @@ export interface FileRouteTypes {
     | '/dashboard/tasks'
     | '/dashboard'
     | '/dashboard/crm/$moduleKey'
+    | '/dashboard/customers/$id'
     | '/api/public/instagram/webhook'
     | '/api/public/telegram/webhook'
+    | '/dashboard/customers'
   id:
     | '__root__'
     | '/'
@@ -286,6 +320,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard/assistant'
     | '/_authenticated/dashboard/conversations'
     | '/_authenticated/dashboard/crm-builder'
+    | '/_authenticated/dashboard/customers'
     | '/_authenticated/dashboard/inventory'
     | '/_authenticated/dashboard/leads'
     | '/_authenticated/dashboard/operators'
@@ -297,8 +332,10 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard/tasks'
     | '/_authenticated/dashboard/'
     | '/_authenticated/dashboard/crm/$moduleKey'
+    | '/_authenticated/dashboard/customers/$id'
     | '/api/public/instagram/webhook'
     | '/api/public/telegram/webhook'
+    | '/_authenticated/dashboard/customers/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -381,6 +418,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardCrmBuilderRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
+    '/_authenticated/dashboard/customers': {
+      id: '/_authenticated/dashboard/customers'
+      path: '/customers'
+      fullPath: '/dashboard/customers'
+      preLoaderRoute: typeof AuthenticatedDashboardCustomersRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
     '/_authenticated/dashboard/inventory': {
       id: '/_authenticated/dashboard/inventory'
       path: '/inventory'
@@ -451,6 +495,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardCrmModuleKeyRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
+    '/_authenticated/dashboard/customers/': {
+      id: '/_authenticated/dashboard/customers/'
+      path: '/'
+      fullPath: '/dashboard/customers/'
+      preLoaderRoute: typeof AuthenticatedDashboardCustomersIndexRouteImport
+      parentRoute: typeof AuthenticatedDashboardCustomersRoute
+    }
+    '/_authenticated/dashboard/customers/$id': {
+      id: '/_authenticated/dashboard/customers/$id'
+      path: '/$id'
+      fullPath: '/dashboard/customers/$id'
+      preLoaderRoute: typeof AuthenticatedDashboardCustomersIdRouteImport
+      parentRoute: typeof AuthenticatedDashboardCustomersRoute
+    }
     '/api/public/instagram/webhook': {
       id: '/api/public/instagram/webhook'
       path: '/api/public/instagram/webhook'
@@ -468,11 +526,30 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedDashboardCustomersRouteChildren {
+  AuthenticatedDashboardCustomersIdRoute: typeof AuthenticatedDashboardCustomersIdRoute
+  AuthenticatedDashboardCustomersIndexRoute: typeof AuthenticatedDashboardCustomersIndexRoute
+}
+
+const AuthenticatedDashboardCustomersRouteChildren: AuthenticatedDashboardCustomersRouteChildren =
+  {
+    AuthenticatedDashboardCustomersIdRoute:
+      AuthenticatedDashboardCustomersIdRoute,
+    AuthenticatedDashboardCustomersIndexRoute:
+      AuthenticatedDashboardCustomersIndexRoute,
+  }
+
+const AuthenticatedDashboardCustomersRouteWithChildren =
+  AuthenticatedDashboardCustomersRoute._addFileChildren(
+    AuthenticatedDashboardCustomersRouteChildren,
+  )
+
 interface AuthenticatedDashboardRouteChildren {
   AuthenticatedDashboardAnalyticsRoute: typeof AuthenticatedDashboardAnalyticsRoute
   AuthenticatedDashboardAssistantRoute: typeof AuthenticatedDashboardAssistantRoute
   AuthenticatedDashboardConversationsRoute: typeof AuthenticatedDashboardConversationsRoute
   AuthenticatedDashboardCrmBuilderRoute: typeof AuthenticatedDashboardCrmBuilderRoute
+  AuthenticatedDashboardCustomersRoute: typeof AuthenticatedDashboardCustomersRouteWithChildren
   AuthenticatedDashboardInventoryRoute: typeof AuthenticatedDashboardInventoryRoute
   AuthenticatedDashboardLeadsRoute: typeof AuthenticatedDashboardLeadsRoute
   AuthenticatedDashboardOperatorsRoute: typeof AuthenticatedDashboardOperatorsRoute
@@ -494,6 +571,8 @@ const AuthenticatedDashboardRouteChildren: AuthenticatedDashboardRouteChildren =
       AuthenticatedDashboardConversationsRoute,
     AuthenticatedDashboardCrmBuilderRoute:
       AuthenticatedDashboardCrmBuilderRoute,
+    AuthenticatedDashboardCustomersRoute:
+      AuthenticatedDashboardCustomersRouteWithChildren,
     AuthenticatedDashboardInventoryRoute: AuthenticatedDashboardInventoryRoute,
     AuthenticatedDashboardLeadsRoute: AuthenticatedDashboardLeadsRoute,
     AuthenticatedDashboardOperatorsRoute: AuthenticatedDashboardOperatorsRoute,
