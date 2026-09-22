@@ -281,6 +281,85 @@ export type Database = {
           },
         ]
       }
+      crm_configs: {
+        Row: {
+          business_description: string | null
+          business_id: string
+          config: Json
+          created_at: string
+          id: string
+          industry: string
+          updated_at: string
+        }
+        Insert: {
+          business_description?: string | null
+          business_id: string
+          config?: Json
+          created_at?: string
+          id?: string
+          industry: string
+          updated_at?: string
+        }
+        Update: {
+          business_description?: string | null
+          business_id?: string
+          config?: Json
+          created_at?: string
+          id?: string
+          industry?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_configs_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: true
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_records: {
+        Row: {
+          business_id: string
+          created_at: string
+          data: Json
+          id: string
+          module_key: string
+          stage: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          data?: Json
+          id?: string
+          module_key: string
+          stage?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          data?: Json
+          id?: string
+          module_key?: string
+          stage?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_records_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           business_id: string
