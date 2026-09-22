@@ -33,7 +33,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 
-import logoAsset from "@/assets/keta-logo.png.asset.json";
+import logoAsset from "@/assets/keta-crm-logo.png.asset.json";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { getMyCrmConfig } from "@/lib/crm-config.functions";
@@ -140,11 +140,11 @@ export function DashboardShell({
   const brand = (
     <div className="flex items-center gap-2 px-3 py-4">
       <span className="clay-raised grid size-10 place-items-center overflow-hidden rounded-2xl bg-card">
-        <img src={logoAsset.url} alt="Keta Sales logotipi" className="size-8 object-contain" />
+        <img src={logoAsset.url} alt="KETA CRM logotipi" className="size-8 object-contain" />
       </span>
       <div className="leading-tight">
-        <p className="font-display text-sm font-semibold">Keta Sales</p>
-        <p className="text-xs text-muted-foreground">AI savdo bo‘limi</p>
+        <p className="font-display text-sm font-semibold">KETA CRM</p>
+        <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Qoraqalpog‘iston uchun</p>
       </div>
     </div>
   );
@@ -176,7 +176,7 @@ export function DashboardShell({
                 <NavLinks onNavigate={() => setOpen(false)} />
               </SheetContent>
             </Sheet>
-            <span className="font-display text-sm font-semibold lg:hidden">Keta Sales</span>
+            <span className="font-display text-sm font-semibold lg:hidden">KETA CRM</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="hidden text-xs text-muted-foreground sm:inline">{email}</span>

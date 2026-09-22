@@ -1,17 +1,40 @@
-import { useEffect, useState } from "react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { BarChart3, Bot, Boxes, MessagesSquare, Sparkles, Users } from "lucide-react";
-import { toast } from "sonner";
+import { useState } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import {
+  ArrowRight,
+  BarChart3,
+  Boxes,
+  Building2,
+  Check,
+  Mail,
+  MessagesSquare,
+  Menu,
+  Phone,
+  ShoppingCart,
+  Users,
+  UsersRound,
+  X,
+} from "lucide-react";
 
-import logoAsset from "@/assets/keta-logo.png.asset.json";
+import logoAsset from "@/assets/keta-crm-logo.png.asset.json";
+import {
+  BRAND_NAME,
+  BRAND_TAGLINE,
+  BrandMark,
+  CONTACT_EMAIL,
+  CONTACT_EMAIL_HREF,
+  CONTACT_PHONE,
+  CONTACT_PHONE_HREF,
+  KarakalpakFlag,
+} from "@/components/app/brand";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { supabase } from "@/integrations/supabase/client";
+import { Skeleton } from "@/components/ui/skeleton";
+import { fetchPlatformStats, formatCount } from "@/lib/public-stats";
 
-const TITLE = "Keta Sales — Telegram uchun AI savdo agenti va CRM";
+const TITLE = "KETA CRM — Qoraqalpog‘iston bizneslari uchun zamonaviy CRM";
 const DESCRIPTION =
-  "Telegramdagi mijozlar bilan suhbatlashadigan, omborni real vaqtda tekshiradigan, buyurtmalarni yopadigan va qaynoq murojaatlarni operatorlarga uzatadigan AI savdo agenti — to‘liq CRM paneli bilan.";
+  "KETA CRM — Qoraqalpog‘iston bizneslari uchun mijozlar, savdo, murojaatlar va jamoani boshqarish platformasi. Keta.uz tomonidan ishlab chiqilgan.";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -24,178 +47,283 @@ export const Route = createFileRoute("/")({
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  component: Index,
+  component: Landing,
 });
 
-const FEATURES = [
-  { icon: Bot, title: "AI savdo agenti", body: "Telegramda 24/7 javob beradi, mijozni saralaydi va savdoni yopadi." },
-  { icon: Boxes, title: "Real ombor", body: "Har bir taklif e’lon qilinishdan oldin haqiqiy qoldiq bilan tekshiriladi." },
-  { icon: MessagesSquare, title: "Operatorga uzatish", body: "Qaynoq yoki qotib qolgan suhbatlar darhol operator guruhiga yuboriladi." },
-  { icon: Users, title: "Ichki CRM", body: "Mijozlar, murojaatlar, baholash va buyurtma tarixi bir joyda." },
-  { icon: BarChart3, title: "Savdo tahlili", body: "Tushum, konversiya va operator natijalari real vaqtda." },
+const NAV = [
+  { href: "#about", label: "Biz haqimizda" },
+  { href: "#features", label: "Afzalliklar" },
+  { href: "#stats", label: "Statistika" },
+  { href: "#contact", label: "Aloqa" },
 ];
 
-function Index() {
-  const navigate = useNavigate();
-  const [mode, setMode] = useState<"login" | "register">("login");
-  const [fullName, setFullName] = useState("");
-  const [businessName, setBusinessName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [busy, setBusy] = useState(false);
+const FEATURES = [
+  { icon: Users, title: "Mijozlar", body: "Barcha mijozlaringizni bitta joyda boshqaring." },
+  { icon: BarChart3, title: "Savdo", body: "Murojaatlarni nazorat qiling va savdoni oshiring." },
+  { icon: Boxes, title: "Ombor", body: "Mahsulotlar va qoldiqlarni boshqaring." },
+  { icon: MessagesSquare, title: "Murojaatlar", body: "Mijozlar murojaatlarini tartibga soling." },
+  { icon: UsersRound, title: "Jamoa", body: "Operatorlar va vazifalarni boshqaring." },
+  { icon: ShoppingCart, title: "Statistika", body: "Biznesingiz natijalarini kuzatib boring." },
+];
 
-  useEffect(() => {
-    void supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/dashboard" });
-    });
-  }, [navigate]);
+function Landing() {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const stats = useQuery({ queryKey: ["platform-stats"], queryFn: fetchPlatformStats });
 
-  const submit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    setBusy(true);
-    try {
-      if (mode === "register") {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: { full_name: fullName.trim(), business_name: businessName.trim() || undefined },
-          },
-        });
-        if (error) throw error;
-        // Yangi foydalanuvchi CRM onboarding wizard'ga yo'naladi.
-        navigate({ to: "/dashboard" });
-        return;
-      }
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) throw error;
-      navigate({ to: "/dashboard" });
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Kirishda xatolik yuz berdi");
-    } finally {
-      setBusy(false);
-    }
-  };
+  const statItems = [
+    { key: "users", label: "Real foydalanuvchilar", icon: Users, value: stats.data?.users },
+    { key: "businesses", label: "Ro‘yxatdan o‘tgan bizneslar", icon: Building2, value: stats.data?.businesses },
+    { key: "crms", label: "Yaratilgan CRMlar", icon: BarChart3, value: stats.data?.crms },
+  ].filter((item) => stats.isLoading || (item.value ?? 0) > 0);
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-[420px] bg-[radial-gradient(60%_100%_at_50%_0%,var(--color-primary)/18%,transparent)]" />
-      <div className="relative mx-auto grid w-full max-w-6xl gap-12 px-4 py-14 lg:grid-cols-[1.1fr_0.9fr] lg:py-20">
+    <div className="min-h-screen">
+      {/* Navbar */}
+      <header className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur-xl">
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 py-3">
+          <BrandMark />
+          <nav className="hidden items-center gap-7 text-sm font-medium text-muted-foreground md:flex">
+            {NAV.map((item) => (
+              <a key={item.href} href={item.href} className="transition-colors hover:text-foreground">
+                {item.label}
+              </a>
+            ))}
+          </nav>
+          <div className="flex items-center gap-2">
+            <KarakalpakFlag className="hidden sm:block" />
+            <Button asChild size="sm" className="hidden rounded-full px-5 sm:inline-flex">
+              <Link to="/auth" search={{ mode: "login" }}>
+                Kabinaga kirish <ArrowRight className="ml-1 size-4" />
+              </Link>
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="md:hidden"
+              aria-label="Menyu"
+              onClick={() => setMenuOpen((value) => !value)}
+            >
+              {menuOpen ? <X className="size-4" /> : <Menu className="size-4" />}
+            </Button>
+          </div>
+        </div>
+        {menuOpen && (
+          <div className="border-t border-border/60 bg-background px-4 py-4 md:hidden">
+            <nav className="flex flex-col gap-3 text-sm font-medium">
+              {NAV.map((item) => (
+                <a key={item.href} href={item.href} onClick={() => setMenuOpen(false)}>
+                  {item.label}
+                </a>
+              ))}
+            </nav>
+            <Button asChild className="mt-4 w-full rounded-full">
+              <Link to="/auth" search={{ mode: "login" }}>
+                Kabinaga kirish
+              </Link>
+            </Button>
+          </div>
+        )}
+      </header>
+
+      {/* Hero */}
+      <section className="mx-auto grid w-full max-w-6xl items-center gap-12 px-4 py-14 lg:grid-cols-[1.05fr_0.95fr] lg:py-24">
         <div>
+          <span className="clay-raised inline-flex items-center gap-2 rounded-full bg-card px-4 py-2 text-xs font-medium text-muted-foreground">
+            <KarakalpakFlag /> Qoraqalpog‘iston bizneslari uchun
+          </span>
+          <h1 className="mt-6 font-display text-4xl font-bold leading-[1.05] text-foreground sm:text-5xl lg:text-6xl">
+            Biznesingiz uchun
+            <br />
+            zamonaviy <span className="text-metal">CRM</span>
+          </h1>
+          <p className="mt-5 max-w-xl text-base text-muted-foreground sm:text-lg">
+            Mijozlar, murojaatlar, savdo va jamoangizni bitta platformada boshqaring. Har qanday soha
+            uchun moslashadigan zamonaviy CRM.
+          </p>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Button asChild size="lg" className="rounded-full px-7">
+              <Link to="/auth" search={{ mode: "register" }}>
+                Bepul boshlash <ArrowRight className="ml-1 size-4" />
+              </Link>
+            </Button>
+            <Button asChild size="lg" variant="outline" className="rounded-full bg-card px-7">
+              <a href="#about">Biz haqimizda</a>
+            </Button>
+          </div>
+          <ul className="mt-8 flex flex-wrap gap-x-6 gap-y-3 text-sm text-muted-foreground">
+            {["Tez ro‘yxatdan o‘tish", "Karta talab qilinmaydi", "Har qanday soha uchun mos"].map((item) => (
+              <li key={item} className="flex items-center gap-2">
+                <span className="grid size-5 place-items-center rounded-full bg-primary text-primary-foreground">
+                  <Check className="size-3" />
+                </span>
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="clay-metal relative grid place-items-center overflow-hidden p-10">
           <img
             src={logoAsset.url}
-            alt="Keta Sales savdo agenti logotipi"
-            className="mb-6 size-16 object-contain"
-            width={64}
-            height={64}
+            alt="KETA CRM metallik logotipi"
+            className="w-full max-w-sm object-contain drop-shadow-2xl"
           />
-          <div className="clay-raised inline-flex items-center gap-2 rounded-full bg-card px-4 py-2 text-xs text-muted-foreground">
-            <Sparkles className="size-3.5 text-primary" /> Jonli AI savdo bo‘limi
-          </div>
-          <h1 className="mt-5 font-display text-4xl font-semibold leading-tight text-foreground sm:text-5xl">
-            Telegram mijozlaringizni AI savdo agenti sotadi.
-          </h1>
-          <p className="mt-4 max-w-xl text-base text-muted-foreground">{DESCRIPTION}</p>
-
-          <div className="mt-10 grid gap-3 sm:grid-cols-2">
-            {FEATURES.map((feature) => (
-              <div key={feature.title} className="clay-panel clay-hover p-5">
-                <span className="clay-inset grid size-11 place-items-center"><feature.icon className="size-5 text-primary" /></span>
-                <p className="mt-3 text-sm font-semibold text-foreground">{feature.title}</p>
-                <p className="mt-1 text-sm text-muted-foreground">{feature.body}</p>
-              </div>
-            ))}
+          <div className="mt-6 text-center">
+            <p className="font-display text-2xl font-bold tracking-tight text-foreground">{BRAND_NAME}</p>
+            <p className="mt-1 text-[11px] uppercase tracking-[0.3em] text-muted-foreground">
+              {BRAND_TAGLINE}
+            </p>
           </div>
         </div>
+      </section>
 
-        <div className="clay-panel h-fit p-6 sm:p-7 lg:sticky lg:top-10">
-          <h2 className="font-display text-xl font-semibold text-foreground">
-            {mode === "login" ? "Kabinaga kirish" : "Ro‘yxatdan o‘tish"}
-          </h2>
+      {/* Features */}
+      <section id="features" className="mx-auto w-full max-w-6xl px-4 py-12">
+        <h2 className="font-display text-2xl font-semibold text-foreground sm:text-3xl">
+          Bir platformada barcha jarayonlar
+        </h2>
+        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {FEATURES.map((feature) => (
+            <div key={feature.title} className="clay-panel clay-hover p-6">
+              <span className="clay-inset grid size-12 place-items-center">
+                <feature.icon className="size-5 text-foreground" />
+              </span>
+              <p className="mt-4 font-display text-base font-semibold text-foreground">{feature.title}</p>
+              <p className="mt-1.5 text-sm text-muted-foreground">{feature.body}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Statistics — real database */}
+      <section id="stats" className="mx-auto w-full max-w-6xl px-4 py-12">
+        <div className="clay-panel p-6 sm:p-8">
+          <h2 className="font-display text-2xl font-semibold text-foreground">Real statistika</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            {mode === "login"
-              ? "CRM, ombor va AI agent boshqaruviga kiring."
-              : "Biznesingizni kiriting — CRM sizga moslab tayyorlanadi."}
+            Barcha raqamlar KETA CRM bazasidan real vaqtda olinadi.
           </p>
+          {stats.isError ? (
+            <p className="mt-6 text-sm text-muted-foreground">
+              Statistikani hozir yuklab bo‘lmadi. Birozdan so‘ng qayta urinib ko‘ring.
+            </p>
+          ) : (
+            <div className="mt-6 grid gap-4 sm:grid-cols-3">
+              {statItems.map((item) => (
+                <div key={item.key} className="clay-inset p-5">
+                  <item.icon className="size-5 text-muted-foreground" />
+                  {stats.isLoading ? (
+                    <Skeleton className="mt-3 h-9 w-24" />
+                  ) : (
+                    <p className="mt-3 font-display text-3xl font-bold text-foreground">
+                      {formatCount(item.value ?? 0)}
+                    </p>
+                  )}
+                  <p className="mt-1 text-sm text-muted-foreground">{item.label}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
 
-          <div className="mt-4 grid grid-cols-2 gap-1 rounded-2xl bg-muted p-1 text-sm font-medium">
-            <button
-              type="button"
-              onClick={() => setMode("login")}
-              className={mode === "login" ? "clay-raised rounded-xl py-2" : "rounded-xl py-2 text-muted-foreground"}
-            >
-              Kirish
-            </button>
-            <button
-              type="button"
-              onClick={() => setMode("register")}
-              className={mode === "register" ? "clay-raised rounded-xl py-2" : "rounded-xl py-2 text-muted-foreground"}
-            >
-              Ro‘yxatdan o‘tish
-            </button>
+      {/* About */}
+      <section id="about" className="mx-auto w-full max-w-6xl px-4 py-12">
+        <div className="grid gap-8 lg:grid-cols-2 lg:items-center">
+          <div>
+            <span className="clay-raised inline-flex items-center gap-2 rounded-full bg-card px-4 py-2 text-xs font-medium text-muted-foreground">
+              <KarakalpakFlag /> Qoraqalpog‘istonda yaratilgan
+            </span>
+            <h2 className="mt-5 font-display text-2xl font-semibold text-foreground sm:text-3xl">
+              KETA CRM — Qoraqalpog‘iston bizneslari uchun
+            </h2>
+            <p className="mt-4 text-base text-muted-foreground">
+              KETA CRM — Qoraqalpog‘istondagi bizneslar uchun yaratilgan zamonaviy CRM platformasi.
+              Bizning maqsadimiz — mahalliy bizneslarga mijozlar, savdo, jamoa va kundalik jarayonlarni
+              texnologiya orqali samarali boshqarishga yordam berish.
+            </p>
+            <p className="mt-4 text-sm font-medium text-foreground">
+              <a
+                href="https://keta.uz"
+                target="_blank"
+                rel="noreferrer"
+                className="underline decoration-border underline-offset-4 hover:decoration-foreground"
+              >
+                Keta.uz
+              </a>{" "}
+              tomonidan ishlab chiqilgan
+            </p>
+            <Button asChild className="mt-7 rounded-full px-6">
+              <Link to="/auth" search={{ mode: "register" }}>
+                Bepul boshlash <ArrowRight className="ml-1 size-4" />
+              </Link>
+            </Button>
           </div>
-
-          <div className="mt-5">
-            <form onSubmit={submit} className="space-y-4">
-              {mode === "register" && (
-                <>
-                  <div className="space-y-2">
-                    <Label htmlFor="full-name">Ismingiz</Label>
-                    <Input
-                      id="full-name"
-                      value={fullName}
-                      onChange={(event) => setFullName(event.target.value)}
-                      placeholder="Masalan: Nursultan"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="business-name">Biznes nomi</Label>
-                    <Input
-                      id="business-name"
-                      value={businessName}
-                      onChange={(event) => setBusinessName(event.target.value)}
-                      placeholder="Masalan: Keta klinikasi"
-                    />
-                  </div>
-                </>
-              )}
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  autoComplete="email"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  placeholder="you@company.com"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Parol</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  autoComplete={mode === "login" ? "current-password" : "new-password"}
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  minLength={6}
-                  required
-                />
-              </div>
-              <Button type="submit" className="w-full" disabled={busy}>
-                {busy ? "Yuklanmoqda…" : mode === "login" ? "Kirish" : "Ro‘yxatdan o‘tish va CRM sozlash"}
-              </Button>
-            </form>
-            {mode === "register" && (
-              <p className="mt-4 text-xs text-muted-foreground">
-                Ro‘yxatdan o‘tgach, biznes sohangizni tanlaysiz — AI sizga mos CRM yaratadi.
-              </p>
-            )}
+          <div className="clay-panel p-6 sm:p-8">
+            <ul className="space-y-5 text-sm">
+              {[
+                "Mahalliy bizneslar uchun yaratilgan",
+                "Doimiy qo‘llab-quvvatlash",
+                "Har qanday soha uchun moslashadi",
+              ].map((item) => (
+                <li key={item} className="flex items-start gap-3">
+                  <span className="clay-inset grid size-9 shrink-0 place-items-center">
+                    <Check className="size-4 text-foreground" />
+                  </span>
+                  <span className="pt-2 text-foreground">{item}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-7 border-t border-border pt-5 text-sm italic text-muted-foreground">
+              “Qoraqalpog‘iston uchun. Katta imkoniyatlar.”
+            </p>
           </div>
         </div>
-      </div>
+      </section>
+
+      {/* Footer */}
+      <footer id="contact" className="mt-10 bg-primary text-primary-foreground">
+        <div className="mx-auto w-full max-w-6xl px-4 py-12">
+          <div className="grid gap-8 md:grid-cols-[1.2fr_1fr_1fr]">
+            <BrandMark invert />
+            <div>
+              <p className="text-sm font-semibold">Sahifalar</p>
+              <ul className="mt-3 space-y-2 text-sm text-primary-foreground/70">
+                {NAV.map((item) => (
+                  <li key={item.href}>
+                    <a href={item.href} className="hover:text-primary-foreground">
+                      {item.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <p className="text-sm font-semibold">Aloqa</p>
+              <ul className="mt-3 space-y-2 text-sm text-primary-foreground/70">
+                <li>
+                  <a href={CONTACT_PHONE_HREF} className="flex items-center gap-2 hover:text-primary-foreground">
+                    <Phone className="size-4" /> {CONTACT_PHONE}
+                  </a>
+                </li>
+                <li>
+                  <a href={CONTACT_EMAIL_HREF} className="flex items-center gap-2 hover:text-primary-foreground">
+                    <Mail className="size-4" /> {CONTACT_EMAIL}
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div className="mt-10 flex flex-col gap-2 border-t border-primary-foreground/15 pt-6 text-xs text-primary-foreground/60 sm:flex-row sm:items-center sm:justify-between">
+            <p>© 2026 KETA CRM. Barcha huquqlar himoyalangan.</p>
+            <p>
+              <a href="https://keta.uz" target="_blank" rel="noreferrer" className="hover:text-primary-foreground">
+                Keta.uz
+              </a>{" "}
+              tomonidan ishlab chiqilgan.
+            </p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

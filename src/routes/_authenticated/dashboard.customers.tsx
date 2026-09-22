@@ -16,9 +16,9 @@ import { formatMoney } from "@/lib/types";
 export const Route = createFileRoute("/_authenticated/dashboard/customers")({
   head: () => ({
     meta: [
-      { title: "Mijozlar — SalesPilot AI" },
+      { title: "Mijozlar — KETA CRM" },
       { name: "description", content: "Xarid, buyurtma va suhbat tarixi bilan Telegram mijozlar bazasi." },
-      { property: "og:title", content: "Mijozlar — SalesPilot AI" },
+      { property: "og:title", content: "Mijozlar — KETA CRM" },
       { property: "og:description", content: "Haqiqiy Telegram savdo suhbatlari asosida yaratilgan mijozlar CRM." },
     ],
   }),

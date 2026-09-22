@@ -1110,6 +1110,7 @@ export type Database = {
         Returns: boolean
       }
       is_business_member: { Args: { _business_id: string }; Returns: boolean }
+      platform_stats: { Args: never; Returns: Json }
       revert_order_stock: {
         Args: { _actor?: string; _order_id: string }
         Returns: undefined

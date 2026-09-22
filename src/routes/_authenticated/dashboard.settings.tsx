@@ -15,9 +15,9 @@ import { getSettings, saveAiSettings, saveBusinessSettings } from "@/lib/setting
 export const Route = createFileRoute("/_authenticated/dashboard/settings")({
   head: () => ({
     meta: [
-      { title: "Sozlamalar — SalesPilot AI" },
+      { title: "Sozlamalar — KETA CRM" },
       { name: "description", content: "Telegram botni, biznes bilimlarini va AI savdo xatti-harakatini sozlang." },
-      { property: "og:title", content: "Sozlamalar — SalesPilot AI" },
+      { property: "og:title", content: "Sozlamalar — KETA CRM" },
       { property: "og:description", content: "Telegram, biznes va AI agent sozlamalari." },
     ],
   }),
