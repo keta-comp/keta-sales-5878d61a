@@ -1,90 +1,93 @@
-# Loyihani Lovable'dan mustaqil ishga tushirish
+# NEXORA CRM — mustaqil serverda ishga tushirish
 
-Bu qo'llanma loyihani to'liq o'z infratuzilmangizga ko'chiradi:
-**o'z Supabase bazangiz + o'z Gemini AI kalitingiz + Cloudflare Workers hosting.**
+Baza allaqachon **sizning Supabase loyihangizga** (`pertsgqadpoaewihezhs`)
+o'rnatildi: 33 jadval, xavfsizlik qoidalari (RLS), funksiyalar, triggerlar va
+realtime sozlamalari tayyor. Quyida qolgan bosqichlar.
 
 ---
 
-## 1. O'z Supabase loyihangizni yarating
+## 1. Supabase sozlamalari (brauzerdan, 2 daqiqa)
 
-1. [supabase.com](https://supabase.com) → **New project** (bepul reja kifoya).
-2. Loyiha yaratilgach, **Project Settings → API** dan quyidagilarni oling:
-   - `Project URL` → `SUPABASE_URL` va `VITE_SUPABASE_URL`
-   - `publishable` kalit → `SUPABASE_PUBLISHABLE_KEY` va `VITE_SUPABASE_PUBLISHABLE_KEY`
-   - `secret` (service_role) kalit → `SUPABASE_SERVICE_ROLE_KEY` (faqat serverda!)
+1. **Authentication → Sign In / Providers → Email**
+   - "Allow new users to sign up" = **ON** (ko'p foydalanuvchili CRM)
+   - "Confirm email" = **OFF** (ro'yxatdan o'tgach darhol kirsin)
+2. **Project Settings → API keys** → `secret (service_role)` kalitini oling —
+   u faqat serverda ishlatiladi, hech qachon frontendga qo'yilmaydi.
 
-## 2. Baza tuzilmasini o'rnating
+## 2. Muhit o'zgaruvchilari
 
-Kompyuteringizda:
+`.env.example` faylidan `.env` yarating — Supabase manzili va ochiq kaliti
+allaqachon to'ldirilgan. Qo'shishingiz kerak bo'lgani:
 
-```bash
-npm i -g supabase
-supabase login
-supabase link --project-ref SIZING_PROJECT_REF
-supabase db push
-```
+- `SUPABASE_SERVICE_ROLE_KEY` — 1-bosqichda olgan secret kalit
+- `GEMINI_API_KEY` — https://aistudio.google.com/apikey (bepul)
+- `TELEGRAM_BOT_TOKEN` — BotFather'dan
+- `PUBLIC_APP_URL` — saytning haqiqiy manzili (masalan `https://nexora-crm.uz`)
 
-`supabase/migrations/` dagi 5 ta migratsiya barcha jadvallar, xavfsizlik
-qoidalari (RLS) va funksiyalarni yaratadi.
-
-**Ro'yxatdan o'tishni yoping** (bitta admin hisob saqlanadi):
-**Authentication → Sign In / Providers → "Allow new users to sign up" = OFF**
-
-## 3. Ma'lumotlarni ko'chiring
-
-Lovable'da: **Cloud → Advanced settings → Export data** — eksport tayyor
-bo'lgach yuklab oling va yangi bazaga tiklang (Supabase SQL Editor orqali
-`INSERT` qiling yoki `psql` bilan restauratsiya qiling).
-
-Keyin admin hisobingizni yarating: **Authentication → Users → Add user**
-(hozirgi email/parol bilan, "Auto Confirm User" ni yoqing).
-
-## 4. Gemini AI kalitini oling
-
-[aistudio.google.com/apikey](https://aistudio.google.com/apikey) → **Create API key** (bepul kvota bor).
-Kod avtomatik ravishda `GEMINI_API_KEY` bo'lsa Google bilan to'g'ridan-to'g'ri
-ishlaydi — Lovable'siz.
-
-## 5. Cloudflare Workers'ga joylang
+## 3. Cloudflare Workers'ga joylash
 
 ```bash
 npm i -g wrangler
 wrangler login
 
-# Sirli qiymatlar:
+wrangler secret put SUPABASE_SERVICE_ROLE_KEY
 wrangler secret put GEMINI_API_KEY
 wrangler secret put TELEGRAM_BOT_TOKEN
-wrangler secret put SUPABASE_SERVICE_ROLE_KEY
-wrangler secret put BOT_TOKEN_ENCRYPTION_KEY
+wrangler secret put LOVABLE_CRON_SECRET
 
-# wrangler.toml dagi PUBLIC_APP_URL va [vars] ni o'z domeningizga o'zgartiring,
-# .env.example asosida .env yarating, so'ng:
 npm install
 npm run build
 wrangler deploy
 ```
 
-## 6. Telegram webhook'ni yangilang
+`wrangler.toml` ichidagi `[vars]` da Supabase manzili, ochiq kaliti va
+`PUBLIC_APP_URL` turadi — domeningiz boshqacha bo'lsa shu yerda o'zgartiring.
 
-Sayt ochilgach, bir marta so'rov yuboring (yoki terminaldan):
+## 4. Super Admin hisobini yaratish
+
+1. Saytga kirib odatdagidek ro'yxatdan o'ting (masalan
+   `nursultansayyora@gmail.com`).
+2. Supabase → **SQL Editor** da bir marta bajaring:
+
+```sql
+insert into public.platform_admins (user_id, email)
+select id, email from auth.users where email = 'nursultansayyora@gmail.com'
+on conflict do nothing;
+```
+
+Shundan keyin `/super-admin` bo'limi shu hisobga ochiladi.
+
+## 5. Telegram webhook
 
 ```
-https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/setWebhook?url=https://SIZING-DOMEN/api/public/telegram/webhook
+https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/setWebhook?url=https://SIZNING-DOMEN/api/public/telegram/webhook
 ```
 
-Yoki saytning server logikasidan foydalaning — `PUBLIC_APP_URL` to'g'ri
-bo'lsa, `ensureSingleBotWebhook()` buni avtomatik qiladi.
+`PUBLIC_APP_URL` to'g'ri bo'lsa tizim buni o'zi ham sozlaydi.
+
+## 6. Kunlik hisobot jadvali (ixtiyoriy)
+
+Supabase → SQL Editor:
+
+```sql
+select cron.schedule('nexora-daily-report', '*/15 * * * *', $$
+  select net.http_post(
+    url := 'https://SIZNING-DOMEN/api/public/telegram/daily-report',
+    headers := '{"x-cron-secret":"SIZNING_CRON_SECRET"}'::jsonb
+  );
+$$);
+```
 
 ---
 
 ## Tekshirish ro'yxati
 
-- [ ] Sayt o'z domeningizda ochiladi va admin login ishlaydi
-- [ ] Dashboard'da ko'chirilgan mijozlar/buyurtmalar ko'rinadi
-- [ ] Telegram bot xabarga 1–3 soniyada javob beradi
-- [ ] Operator javoblari dashboard'dan Telegram'ga boradi
+- [ ] Sayt o'z domeningizda ochiladi, ro'yxatdan o'tish va kirish ishlaydi
+- [ ] Yangi hisob uchun onboarding (soha tanlash) ishlaydi
+- [ ] `/super-admin` faqat platform_admins ro'yxatidagi hisobga ochiladi
+- [ ] Telegram bot /start ga javob beradi va hisobot yuboradi
 
-## Qayta Lovable'ga bog'liq bo'lgan narsa qoldimi?
+## Lovable'ga bog'liqlik qoldimi?
 
-Yo'q. `GEMINI_API_KEY` berilgach AI Lovable'siz ishlaydi; baza, login,
-fayllar — hammasi sizning Supabase/Cloudflare hisobingizda.
+Yo'q. `GEMINI_API_KEY` berilgach AI to'g'ridan-to'g'ri Google bilan ishlaydi;
+baza, login, fayllar — hammasi sizning Supabase va Cloudflare hisobingizda.
