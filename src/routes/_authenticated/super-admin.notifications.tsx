@@ -21,14 +21,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ErrorState, LoadingState, PageHeader } from "@/components/app/primitives";
 import { DataTable, NoData, Panel, Pill, fmtDate } from "@/components/app/super-admin-ui";
 import { getFeatureFlags, listSystemNotifications, sendSystemNotification } from "@/lib/super-admin.functions";
+import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/super-admin/notifications")({
   head: () => ({
     meta: [
-      { title: "E’lonlar — NEXORA CRM Control Center" },
-      { name: "description", content: "Platforma e’lonlari: texnik ishlar, ogohlantirish va yangilik xabarlari." },
-      { property: "og:title", content: "E’lonlar — NEXORA CRM Control Center" },
-      { property: "og:description", content: "Organizationlarga platforma e’lonlarini yuborish." },
+      { title: t("E’lonlar — NEXORA CRM Control Center") },
+      { name: "description", content: t("Platforma e’lonlari: texnik ishlar, ogohlantirish va yangilik xabarlari.") },
+      { property: "og:title", content: t("E’lonlar — NEXORA CRM Control Center") },
+      { property: "og:description", content: t("Organizationlarga platforma e’lonlarini yuborish.") },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -69,45 +70,45 @@ function NotificationsPage() {
         },
       }),
     onSuccess: () => {
-      toast.success("E’lon yuborildi");
+      toast.success(t("E’lon yuborildi"));
       setTitle("");
       setBody("");
       setTargetValue("");
       setConfirm(false);
       void queryClient.invalidateQueries({ queryKey: ["super-admin-notifications"] });
     },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Yuborilmadi"),
+    onError: (e) => toast.error(e instanceof Error ? e.message : t("Yuborilmadi")),
   });
 
   const canSend = title.trim().length >= 2 && body.trim().length >= 2 && (targetKind === "all" || !!targetValue);
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Platforma e’lonlari" description="Barcha yoki tanlangan bizneslarga xabar yuborish." />
+      <PageHeader title={t("Platforma e’lonlari")} description={t("Barcha yoki tanlangan bizneslarga xabar yuborish.")} />
 
-      <Panel title="Yangi e’lon">
+      <Panel title={t("Yangi e’lon")}>
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="title">Sarlavha</Label>
-            <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Texnik ishlar" />
+            <Label htmlFor="title">{t("Sarlavha")}</Label>
+            <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("Texnik ishlar")} />
           </div>
           <div className="space-y-2">
-            <Label>Turi</Label>
+            <Label>{t("Turi")}</Label>
             <Select value={kind} onValueChange={(v) => setKind(v as typeof kind)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="info">Ma’lumot</SelectItem>
-                <SelectItem value="warning">Ogohlantirish</SelectItem>
-                <SelectItem value="maintenance">Texnik ishlar</SelectItem>
+                <SelectItem value="info">{t("Ma’lumot")}</SelectItem>
+                <SelectItem value="warning">{t("Ogohlantirish")}</SelectItem>
+                <SelectItem value="maintenance">{t("Texnik ishlar")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-2 lg:col-span-2">
-            <Label htmlFor="body">Matn</Label>
+            <Label htmlFor="body">{t("Matn")}</Label>
             <Textarea id="body" rows={4} value={body} onChange={(e) => setBody(e.target.value)} />
           </div>
           <div className="space-y-2">
-            <Label>Kimga</Label>
+            <Label>{t("Kimga")}</Label>
             <Select
               value={targetKind}
               onValueChange={(v) => {
@@ -117,26 +118,26 @@ function NotificationsPage() {
             >
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Barcha organizationlar</SelectItem>
-                <SelectItem value="organization">Tanlangan organization</SelectItem>
-                <SelectItem value="plan">Plan bo‘yicha</SelectItem>
-                <SelectItem value="industry">Soha bo‘yicha</SelectItem>
+                <SelectItem value="all">{t("Barcha organizationlar")}</SelectItem>
+                <SelectItem value="organization">{t("Tanlangan organization")}</SelectItem>
+                <SelectItem value="plan">{t("Plan bo‘yicha")}</SelectItem>
+                <SelectItem value="industry">{t("Soha bo‘yicha")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
           {targetKind !== "all" ? (
             <div className="space-y-2">
-              <Label>Maqsad</Label>
+              <Label>{t("Maqsad")}</Label>
               {targetKind === "plan" ? (
                 <Select value={targetValue} onValueChange={setTargetValue}>
-                  <SelectTrigger><SelectValue placeholder="Plan tanlang" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder={t("Plan tanlang")} /></SelectTrigger>
                   <SelectContent>
                     {PLANS.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
                   </SelectContent>
                 </Select>
               ) : targetKind === "organization" ? (
                 <Select value={targetValue} onValueChange={setTargetValue}>
-                  <SelectTrigger><SelectValue placeholder="Organization tanlang" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder={t("Organization tanlang")} /></SelectTrigger>
                   <SelectContent>
                     {(targets.data?.businesses ?? []).map((b) => (
                       <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
@@ -144,25 +145,25 @@ function NotificationsPage() {
                   </SelectContent>
                 </Select>
               ) : (
-                <Input value={targetValue} onChange={(e) => setTargetValue(e.target.value)} placeholder="Soha nomi" />
+                <Input value={targetValue} onChange={(e) => setTargetValue(e.target.value)} placeholder={t("Soha nomi")} />
               )}
             </div>
           ) : null}
         </div>
         <div className="mt-4">
           <Button size="sm" disabled={!canSend} onClick={() => setConfirm(true)}>
-            <Send className="size-4" /> Yuborish
+            <Send className="size-4" /> {t("Yuborish")}
           </Button>
         </div>
       </Panel>
 
-      <Panel title="Yuborilgan e’lonlar">
+      <Panel title={t("Yuborilgan e’lonlar")}>
         {isPending ? (
           <LoadingState />
         ) : error ? (
           <ErrorState error={error} onRetry={() => void refetch()} />
         ) : (data ?? []).length === 0 ? (
-          <NoData label="Hali e’lon yuborilmagan" />
+          <NoData label={t("Hali e’lon yuborilmagan")} />
         ) : (
           <DataTable columns={["Vaqt", "Sarlavha", "Turi", "Kimga", "Holat"]}>
             {(data ?? []).map((n) => (
@@ -174,7 +175,7 @@ function NotificationsPage() {
                 </td>
                 <td className="px-3 py-2">{n.kind}</td>
                 <td className="px-3 py-2 text-xs">
-                  {n.target_kind === "all" ? "Barchasi" : `${n.target_kind}: ${n.target_value ?? "—"}`}
+                  {n.target_kind === "all" ? t("Barchasi") : `${n.target_kind}: ${n.target_value ?? "—"}`}
                 </td>
                 <td className="px-3 py-2"><Pill value="active" /></td>
               </tr>
@@ -186,14 +187,14 @@ function NotificationsPage() {
       <Dialog open={confirm} onOpenChange={setConfirm}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>E’lonni yuborishni tasdiqlaysizmi?</DialogTitle>
+            <DialogTitle>{t("E’lonni yuborishni tasdiqlaysizmi?")}</DialogTitle>
             <DialogDescription>
-              {targetKind === "all" ? "Barcha organizationlar" : "Tanlangan maqsad"} bu xabarni ko‘radi.
+              {targetKind === "all" ? t("Barcha organizationlar") : t("Tanlangan maqsad")} {t("bu xabarni ko‘radi.")}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirm(false)}>Bekor qilish</Button>
-            <Button disabled={send.isPending} onClick={() => send.mutate()}>Yuborish</Button>
+            <Button variant="outline" onClick={() => setConfirm(false)}>{t("Bekor qilish")}</Button>
+            <Button disabled={send.isPending} onClick={() => send.mutate()}>{t("Yuborish")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

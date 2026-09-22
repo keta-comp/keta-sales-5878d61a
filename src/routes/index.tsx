@@ -31,6 +31,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchPlatformStats, formatCount } from "@/lib/public-stats";
+import { t } from "@/lib/i18n";
+import { LanguageSwitcher } from "@/components/app/LanguageSwitcher";
 
 const TITLE = "NEXORA CRM — Qoraqalpog‘iston bizneslari uchun zamonaviy CRM";
 const DESCRIPTION =
@@ -85,22 +87,23 @@ function Landing() {
           <nav className="hidden items-center gap-7 text-sm font-medium text-muted-foreground md:flex">
             {NAV.map((item) => (
               <a key={item.href} href={item.href} className="transition-colors hover:text-foreground">
-                {item.label}
+                {t(item.label)}
               </a>
             ))}
           </nav>
           <div className="flex items-center gap-2">
+            <LanguageSwitcher />
             <KarakalpakFlag className="hidden sm:block" />
             <Button asChild size="sm" className="hidden rounded-full px-5 sm:inline-flex">
               <Link to="/auth" search={{ mode: "login", redirect: undefined }}>
-                Kabinaga kirish <ArrowRight className="ml-1 size-4" />
+                {t("Kabinaga kirish")}{" "}<ArrowRight className="ml-1 size-4" />
               </Link>
             </Button>
             <Button
               variant="outline"
               size="icon"
               className="md:hidden"
-              aria-label="Menyu"
+              aria-label={t("Menyu")}
               onClick={() => setMenuOpen((value) => !value)}
             >
               {menuOpen ? <X className="size-4" /> : <Menu className="size-4" />}
@@ -112,13 +115,13 @@ function Landing() {
             <nav className="flex flex-col gap-3 text-sm font-medium">
               {NAV.map((item) => (
                 <a key={item.href} href={item.href} onClick={() => setMenuOpen(false)}>
-                  {item.label}
+                  {t(item.label)}
                 </a>
               ))}
             </nav>
             <Button asChild className="mt-4 w-full rounded-full">
               <Link to="/auth" search={{ mode: "login", redirect: undefined }}>
-                Kabinaga kirish
+                {t("Kabinaga kirish")}
               </Link>
             </Button>
           </div>
@@ -129,25 +132,24 @@ function Landing() {
       <section className="mx-auto grid w-full max-w-6xl items-center gap-12 px-4 py-14 lg:grid-cols-[1.05fr_0.95fr] lg:py-24">
         <div>
           <span className="clay-raised inline-flex items-center gap-2 rounded-full bg-card px-4 py-2 text-xs font-medium text-muted-foreground">
-            <KarakalpakFlag /> Qoraqalpog‘iston bizneslari uchun
+            <KarakalpakFlag /> {t("Qoraqalpog‘iston bizneslari uchun")}
           </span>
           <h1 className="mt-6 font-display text-4xl font-bold leading-[1.05] text-foreground sm:text-5xl lg:text-6xl">
-            Biznesingiz uchun
+            {t("Biznesingiz uchun")}
             <br />
             zamonaviy <span className="text-metal">CRM</span>
           </h1>
           <p className="mt-5 max-w-xl text-base text-muted-foreground sm:text-lg">
-            Mijozlar, murojaatlar, savdo va jamoangizni bitta platformada boshqaring. Har qanday soha
-            uchun moslashadigan zamonaviy CRM.
+            {t("Mijozlar, murojaatlar, savdo va jamoangizni bitta platformada boshqaring. Har qanday soha\n            uchun moslashadigan zamonaviy CRM.")}
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Button asChild size="lg" className="rounded-full px-7">
               <Link to="/auth" search={{ mode: "register", redirect: undefined }}>
-                Bepul boshlash <ArrowRight className="ml-1 size-4" />
+                {t("Bepul boshlash")}{" "}<ArrowRight className="ml-1 size-4" />
               </Link>
             </Button>
             <Button asChild size="lg" variant="outline" className="rounded-full bg-card px-7">
-              <a href="#about">Biz haqimizda</a>
+              <a href="#about">{t("Biz haqimizda")}</a>
             </Button>
           </div>
           <ul className="mt-8 flex flex-wrap gap-x-6 gap-y-3 text-sm text-muted-foreground">
@@ -165,7 +167,7 @@ function Landing() {
         <div className="clay-metal relative grid place-items-center overflow-hidden p-10">
           <img
             src={logoAsset.url}
-            alt="NEXORA CRM metallik logotipi"
+            alt={t("NEXORA CRM metallik logotipi")}
             className="w-full max-w-sm object-contain drop-shadow-2xl"
           />
           <div className="mt-6 text-center">
@@ -180,7 +182,7 @@ function Landing() {
       {/* Features */}
       <section id="features" className="mx-auto w-full max-w-6xl px-4 py-12">
         <h2 className="font-display text-2xl font-semibold text-foreground sm:text-3xl">
-          Bir platformada barcha jarayonlar
+          {t("Bir platformada barcha jarayonlar")}
         </h2>
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {FEATURES.map((feature) => (
@@ -198,13 +200,13 @@ function Landing() {
       {/* Statistics — real database */}
       <section id="stats" className="mx-auto w-full max-w-6xl px-4 py-12">
         <div className="clay-panel p-6 sm:p-8">
-          <h2 className="font-display text-2xl font-semibold text-foreground">Real statistika</h2>
+          <h2 className="font-display text-2xl font-semibold text-foreground">{t("Real statistika")}</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Barcha raqamlar NEXORA CRM bazasidan real vaqtda olinadi.
+            {t("Barcha raqamlar NEXORA CRM bazasidan real vaqtda olinadi.")}
           </p>
           {stats.isError ? (
             <p className="mt-6 text-sm text-muted-foreground">
-              Statistikani hozir yuklab bo‘lmadi. Birozdan so‘ng qayta urinib ko‘ring.
+              {t("Statistikani hozir yuklab bo‘lmadi. Birozdan so‘ng qayta urinib ko‘ring.")}
             </p>
           ) : (
             <div className="mt-6 grid gap-4 sm:grid-cols-3">
@@ -218,7 +220,7 @@ function Landing() {
                       {formatCount(item.value ?? 0)}
                     </p>
                   )}
-                  <p className="mt-1 text-sm text-muted-foreground">{item.label}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">{t(item.label)}</p>
                 </div>
               ))}
             </div>
@@ -231,15 +233,13 @@ function Landing() {
         <div className="grid gap-8 lg:grid-cols-2 lg:items-center">
           <div>
             <span className="clay-raised inline-flex items-center gap-2 rounded-full bg-card px-4 py-2 text-xs font-medium text-muted-foreground">
-              <KarakalpakFlag /> Qoraqalpog‘istonda yaratilgan
+              <KarakalpakFlag /> {t("Qoraqalpog‘istonda yaratilgan")}
             </span>
             <h2 className="mt-5 font-display text-2xl font-semibold text-foreground sm:text-3xl">
-              NEXORA CRM — Qoraqalpog‘iston bizneslari uchun
+              {t("NEXORA CRM — Qoraqalpog‘iston bizneslari uchun")}
             </h2>
             <p className="mt-4 text-base text-muted-foreground">
-              NEXORA CRM — Qoraqalpog‘istondagi bizneslar uchun yaratilgan zamonaviy CRM platformasi.
-              Bizning maqsadimiz — mahalliy bizneslarga mijozlar, savdo, jamoa va kundalik jarayonlarni
-              texnologiya orqali samarali boshqarishga yordam berish.
+              {t("NEXORA CRM — Qoraqalpog‘istondagi bizneslar uchun yaratilgan zamonaviy CRM platformasi.\n              Bizning maqsadimiz — mahalliy bizneslarga mijozlar, savdo, jamoa va kundalik jarayonlarni\n              texnologiya orqali samarali boshqarishga yordam berish.")}
             </p>
             <p className="mt-4 text-sm font-medium text-foreground">
               <a
@@ -250,11 +250,11 @@ function Landing() {
               >
                 KETA.COMP
               </a>{" "}
-              tomonidan ishlab chiqilgan
+              {t("tomonidan ishlab chiqilgan")}
             </p>
             <Button asChild className="mt-7 rounded-full px-6">
               <Link to="/auth" search={{ mode: "register", redirect: undefined }}>
-                Bepul boshlash <ArrowRight className="ml-1 size-4" />
+                {t("Bepul boshlash")}{" "}<ArrowRight className="ml-1 size-4" />
               </Link>
             </Button>
           </div>
@@ -274,7 +274,7 @@ function Landing() {
               ))}
             </ul>
             <p className="mt-7 border-t border-border pt-5 text-sm italic text-muted-foreground">
-              “Qoraqalpog‘iston uchun. Katta imkoniyatlar.”
+              {t("“Qoraqalpog‘iston uchun. Katta imkoniyatlar.”")}
             </p>
           </div>
         </div>
@@ -286,19 +286,19 @@ function Landing() {
           <div className="grid gap-8 md:grid-cols-[1.2fr_1fr_1fr]">
             <BrandMark invert />
             <div>
-              <p className="text-sm font-semibold">Sahifalar</p>
+              <p className="text-sm font-semibold">{t("Sahifalar")}</p>
               <ul className="mt-3 space-y-2 text-sm text-primary-foreground/70">
                 {NAV.map((item) => (
                   <li key={item.href}>
                     <a href={item.href} className="hover:text-primary-foreground">
-                      {item.label}
+                      {t(item.label)}
                     </a>
                   </li>
                 ))}
               </ul>
             </div>
             <div>
-              <p className="text-sm font-semibold">Aloqa</p>
+              <p className="text-sm font-semibold">{t("Aloqa")}</p>
               <ul className="mt-3 space-y-2 text-sm text-primary-foreground/70">
                 <li>
                   <a href={CONTACT_PHONE_HREF} className="flex items-center gap-2 hover:text-primary-foreground">
@@ -314,13 +314,13 @@ function Landing() {
             </div>
           </div>
           <div className="mt-10 flex flex-col gap-2 border-t border-primary-foreground/15 pt-6 text-xs text-primary-foreground/60 sm:flex-row sm:items-center sm:justify-between">
-            <p>© 2026 Nexora CRM — nexora-crm.uz. Barcha huquqlar himoyalangan.</p>
+            <p>{t("© 2026 Nexora CRM — nexora-crm.uz. Barcha huquqlar himoyalangan.")}</p>
             <p>
-              Nexora CRM —{" "}
+              {t("Nexora CRM —")}{" "}
               <a href="https://keta.uz" target="_blank" rel="noreferrer" className="hover:text-primary-foreground">
                 KETA.COMP
               </a>{" "}
-              tomonidan ishlab chiqilgan.
+              {t("tomonidan ishlab chiqilgan.")}
             </p>
           </div>
         </div>

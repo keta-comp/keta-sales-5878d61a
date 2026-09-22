@@ -13,22 +13,24 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { LanguageProvider } from "@/lib/i18n";
+import { t } from "@/lib/i18n";
 
 function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="text-7xl font-bold text-foreground">404</h1>
-        <h2 className="mt-4 text-xl font-semibold text-foreground">Sahifa topilmadi</h2>
+        <h2 className="mt-4 text-xl font-semibold text-foreground">{t("Sahifa topilmadi")}</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          Siz izlagan sahifa mavjud emas yoki ko‘chirilgan.
+          {t("Siz izlagan sahifa mavjud emas yoki ko‘chirilgan.")}
         </p>
         <div className="mt-6">
           <Link
             to="/"
             className="inline-flex items-center justify-center rounded-2xl bg-primary px-5 py-2.5 shadow-clay-sm text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
-            Bosh sahifaga
+            {t("Bosh sahifaga")}
           </Link>
         </div>
       </div>
@@ -47,10 +49,10 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          Sahifa yuklanmadi
+          {t("Sahifa yuklanmadi")}
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Bizning tomonda xatolik yuz berdi. Sahifani yangilab ko‘ring yoki bosh sahifaga qayting.
+          {t("Bizning tomonda xatolik yuz berdi. Sahifani yangilab ko‘ring yoki bosh sahifaga qayting.")}
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
@@ -60,13 +62,13 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
             }}
             className="inline-flex items-center justify-center rounded-2xl bg-primary px-5 py-2.5 shadow-clay-sm text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
-            Qayta urinish
+            {t("Qayta urinish")}
           </button>
           <a
             href="/"
             className="inline-flex items-center justify-center rounded-2xl border border-input bg-card px-5 py-2.5 shadow-clay-sm text-sm font-medium text-foreground transition-colors hover:bg-accent"
           >
-            Bosh sahifaga
+            {t("Bosh sahifaga")}
           </a>
         </div>
       </div>
@@ -78,21 +80,21 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "NEXORA CRM — Qoraqalpog‘iston bizneslari uchun zamonaviy CRM" },
+      { name: "viewport", content: t("width=device-width, initial-scale=1") },
+      { title: t("NEXORA CRM — Qoraqalpog‘iston bizneslari uchun zamonaviy CRM") },
       {
         name: "description",
         content:
-          "NEXORA CRM — Qoraqalpog‘iston bizneslari uchun mijozlar, savdo, murojaatlar va jamoani boshqarish platformasi. KETA.COMP tomonidan ishlab chiqilgan.",
+          t("NEXORA CRM — Qoraqalpog‘iston bizneslari uchun mijozlar, savdo, murojaatlar va jamoani boshqarish platformasi. KETA.COMP tomonidan ishlab chiqilgan."),
       },
-      { property: "og:title", content: "NEXORA CRM — Qoraqalpog‘iston bizneslari uchun zamonaviy CRM" },
+      { property: "og:title", content: t("NEXORA CRM — Qoraqalpog‘iston bizneslari uchun zamonaviy CRM") },
       {
         property: "og:description",
-        content: "Mijozlar, savdo, murojaatlar va jamoani bitta platformada boshqaring.",
+        content: t("Mijozlar, savdo, murojaatlar va jamoani bitta platformada boshqaring."),
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:site", content: t("@Lovable") },
     ],
     links: [
       {
@@ -143,8 +145,10 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      <LanguageProvider>
+        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+        <Outlet />
+      </LanguageProvider>
       <Toaster />
     </QueryClientProvider>
   );

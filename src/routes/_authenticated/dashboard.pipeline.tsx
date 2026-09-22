@@ -8,9 +8,10 @@ import { ErrorState, LoadingState, PageHeader } from "@/components/app/primitive
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { getMyCrmConfig, listCrmRecords, saveCrmRecord } from "@/lib/crm-config.functions";
+import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/dashboard/pipeline")({
-  head: () => ({ meta: [{ title: "Pipeline — NEXORA CRM" }] }),
+  head: () => ({ meta: [{ title: t("Pipeline — NEXORA CRM") }] }),
   component: PipelinePage,
 });
 
@@ -88,18 +89,18 @@ function PipelinePage() {
     <>
       <PageHeader
         title="Pipeline"
-        description="Murojaat va buyurtmalarning bosqichma-bosqich harakati."
+        description={t("Murojaat va buyurtmalarning bosqichma-bosqich harakati.")}
       />
       {stages.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Pipeline bosqichlari sozlanmagan.</p>
+        <p className="text-sm text-muted-foreground">{t("Pipeline bosqichlari sozlanmagan.")}</p>
       ) : (
         <div className="flex gap-3 overflow-x-auto pb-2">
           {stages.map((stage) => {
             const cards = rows.filter((r) => (r.stage ?? "") === stage);
             return (
-              <div key={stage} className="flex w-64 shrink-0 flex-col gap-2">
+              <div key={t(stage)} className="flex w-64 shrink-0 flex-col gap-2">
                 <div className="flex items-center justify-between px-1">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{stage}</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t(stage)}</p>
                   <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
                     {cards.length}
                   </span>
@@ -117,7 +118,7 @@ function PipelinePage() {
                             size="icon"
                             className="size-7"
                             disabled={idx <= 0}
-                            aria-label="Orqaga surish"
+                            aria-label={t("Orqaga surish")}
                             onClick={() => void move(row, -1)}
                           >
                             <ArrowLeft className="size-3.5" />
@@ -127,7 +128,7 @@ function PipelinePage() {
                             size="icon"
                             className="size-7"
                             disabled={idx >= stages.length - 1}
-                            aria-label="Oldinga surish"
+                            aria-label={t("Oldinga surish")}
                             onClick={() => void move(row, 1)}
                           >
                             <ArrowRight className="size-3.5" />
@@ -137,7 +138,7 @@ function PipelinePage() {
                     );
                   })}
                   {cards.length === 0 && (
-                    <p className="px-2 py-4 text-center text-xs text-muted-foreground">Bo‘sh</p>
+                    <p className="px-2 py-4 text-center text-xs text-muted-foreground">{t("Bo‘sh")}</p>
                   )}
                 </div>
               </div>

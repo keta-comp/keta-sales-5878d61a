@@ -8,9 +8,10 @@ import { PageHeader } from "@/components/app/primitives";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { aiCrmBuilder } from "@/lib/crm-config.functions";
+import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/dashboard/crm-builder")({
-  head: () => ({ meta: [{ title: "AI bilan CRMni sozlash — NEXORA CRM" }] }),
+  head: () => ({ meta: [{ title: t("AI bilan CRMni sozlash — NEXORA CRM") }] }),
   component: CrmBuilderPage,
 });
 
@@ -65,8 +66,8 @@ function CrmBuilderPage() {
   return (
     <>
       <PageHeader
-        title="AI bilan CRMni sozlash"
-        description="Oddiy o‘zbek tilida yozing — modullar, maydonlar va pipeline shu zahoti moslashadi."
+        title={t("AI bilan CRMni sozlash")}
+        description={t("Oddiy o‘zbek tilida yozing — modullar, maydonlar va pipeline shu zahoti moslashadi.")}
       />
 
       <section className="clay-panel flex min-h-[420px] flex-col p-4">
@@ -86,7 +87,7 @@ function CrmBuilderPage() {
           ))}
           {busy && (
             <div className="mr-auto rounded-2xl bg-muted px-4 py-2.5 text-sm text-muted-foreground">
-              CRM yangilanmoqda…
+              {t("CRM yangilanmoqda…")}
             </div>
           )}
         </div>
@@ -112,19 +113,19 @@ function CrmBuilderPage() {
           }}
         >
           <Input
-            placeholder="Masalan: 'Yangi maydon qo‘sh — manzil'"
+            placeholder={t("Masalan: 'Yangi maydon qo‘sh — manzil'")}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             disabled={busy}
           />
-          <Button type="submit" size="icon" disabled={busy || !input.trim()} aria-label="Yuborish">
+          <Button type="submit" size="icon" disabled={busy || !input.trim()} aria-label={t("Yuborish")}>
             <Send className="size-4" />
           </Button>
         </form>
         <p className="mt-2 text-xs text-muted-foreground">
-          Konfiguratsiya joriy CRMga darhol qo‘llanadi.{" "}
+          {t("Konfiguratsiya joriy CRMga darhol qo‘llanadi.")}{" "}
           <Link to="/dashboard/pipeline" className="text-primary hover:underline">
-            Pipelineni ko‘rish
+            {t("Pipelineni ko‘rish")}
           </Link>
         </p>
       </section>

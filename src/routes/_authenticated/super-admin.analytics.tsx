@@ -12,14 +12,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ErrorState, LoadingState, PageHeader } from "@/components/app/primitives";
 import { MetricCard, NoData, Panel, downloadBase64Xlsx, fmtNumber } from "@/components/app/super-admin-ui";
 import { exportPlatformExcel, getSaasAnalytics } from "@/lib/super-admin.functions";
+import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/super-admin/analytics")({
   head: () => ({
     meta: [
-      { title: "Analitika — NEXORA CRM Control Center" },
-      { name: "description", content: "Platforma o‘sishi: yangi organizationlar, foydalanuvchilar, faollik va churn." },
-      { property: "og:title", content: "Analitika — NEXORA CRM Control Center" },
-      { property: "og:description", content: "Platforma o‘sishi va faollik ko‘rsatkichlari." },
+      { title: t("Analitika — NEXORA CRM Control Center") },
+      { name: "description", content: t("Platforma o‘sishi: yangi organizationlar, foydalanuvchilar, faollik va churn.") },
+      { property: "og:title", content: t("Analitika — NEXORA CRM Control Center") },
+      { property: "og:description", content: t("Platforma o‘sishi va faollik ko‘rsatkichlari.") },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -68,15 +69,15 @@ function AnalyticsPage() {
       const file = await exportFn({ data: { kind: "analytics", from: range.from, to: range.to } });
       downloadBase64Xlsx(file.base64, file.filename);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Eksport qilinmadi");
+      toast.error(e instanceof Error ? e.message : t("Eksport qilinmadi"));
     }
   };
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Analitika"
-        description="Faqat bazadagi haqiqiy ma’lumot. Yetarli ma’lumot bo‘lmasa ko‘rsatkich yashiriladi."
+        title={t("Analitika")}
+        description={t("Faqat bazadagi haqiqiy ma’lumot. Yetarli ma’lumot bo‘lmasa ko‘rsatkich yashiriladi.")}
         actions={
           <Button variant="outline" size="sm" onClick={() => void exportExcel()}>
             <Download className="size-4" /> Excel
@@ -89,12 +90,12 @@ function AnalyticsPage() {
           <Select value={preset} onValueChange={setPreset}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="today">Bugun</SelectItem>
-              <SelectItem value="7">Oxirgi 7 kun</SelectItem>
-              <SelectItem value="30">Oxirgi 30 kun</SelectItem>
-              <SelectItem value="90">Oxirgi 90 kun</SelectItem>
-              <SelectItem value="year">Bu yil</SelectItem>
-              <SelectItem value="custom">Boshqa davr</SelectItem>
+              <SelectItem value="today">{t("Bugun")}</SelectItem>
+              <SelectItem value="7">{t("Oxirgi 7 kun")}</SelectItem>
+              <SelectItem value="30">{t("Oxirgi 30 kun")}</SelectItem>
+              <SelectItem value="90">{t("Oxirgi 90 kun")}</SelectItem>
+              <SelectItem value="year">{t("Bu yil")}</SelectItem>
+              <SelectItem value="custom">{t("Boshqa davr")}</SelectItem>
             </SelectContent>
           </Select>
           {preset === "custom" ? (
@@ -115,27 +116,27 @@ function AnalyticsPage() {
       ) : (
         <>
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <MetricCard label="Yangi organization" value={fmtNumber(data.newOrganizations)} />
-            <MetricCard label="Yangi foydalanuvchi" value={fmtNumber(data.newUsers)} />
-            <MetricCard label="Faol organization" value={fmtNumber(data.activeOrganizations)} />
-            <MetricCard label="Faol foydalanuvchi" value={fmtNumber(data.activeUsers)} />
-            <MetricCard label="Bugun faol organization" value={fmtNumber(data.dailyActiveOrganizations)} />
-            <MetricCard label="Davrda faol organization" value={fmtNumber(data.monthlyActiveOrganizations)} />
+            <MetricCard label={t("Yangi organization")} value={fmtNumber(data.newOrganizations)} />
+            <MetricCard label={t("Yangi foydalanuvchi")} value={fmtNumber(data.newUsers)} />
+            <MetricCard label={t("Faol organization")} value={fmtNumber(data.activeOrganizations)} />
+            <MetricCard label={t("Faol foydalanuvchi")} value={fmtNumber(data.activeUsers)} />
+            <MetricCard label={t("Bugun faol organization")} value={fmtNumber(data.dailyActiveOrganizations)} />
+            <MetricCard label={t("Davrda faol organization")} value={fmtNumber(data.monthlyActiveOrganizations)} />
             <MetricCard
-              label="Ushlab qolish"
+              label={t("Ushlab qolish")}
               value={data.retention === null ? "—" : `${data.retention}%`}
-              hint={data.retention === null ? "Taqqoslash uchun yetarli ma’lumot mavjud emas" : undefined}
+              hint={data.retention === null ? t("Taqqoslash uchun yetarli ma’lumot mavjud emas") : undefined}
             />
             <MetricCard
-              label="Churn"
+              label={t("Churn")}
               value={data.churn === null ? "—" : `${data.churn}%`}
-              hint={data.churn === null ? "Taqqoslash uchun yetarli ma’lumot mavjud emas" : undefined}
+              hint={data.churn === null ? t("Taqqoslash uchun yetarli ma’lumot mavjud emas") : undefined}
             />
           </div>
 
-          <Panel title="O‘sish" description="Kun bo‘yicha yangi organization va foydalanuvchilar.">
+          <Panel title={t("O‘sish")} description={t("Kun bo‘yicha yangi organization va foydalanuvchilar.")}>
             {data.growth.length === 0 ? (
-              <NoData label="Tanlangan davrda ma’lumot yo‘q" />
+              <NoData label={t("Tanlangan davrda ma’lumot yo‘q")} />
             ) : (
               <div className="h-72">
                 <ResponsiveContainer width="100%" height="100%">
@@ -152,7 +153,7 @@ function AnalyticsPage() {
             )}
           </Panel>
 
-          <Panel title="Sohalar bo‘yicha organizationlar">
+          <Panel title={t("Sohalar bo‘yicha organizationlar")}>
             {data.industries.length === 0 ? (
               <NoData />
             ) : (

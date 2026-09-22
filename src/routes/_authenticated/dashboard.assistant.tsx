@@ -7,17 +7,18 @@ import { PageHeader } from "@/components/app/primitives";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { askBusinessAssistant } from "@/lib/workspace.functions";
+import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/dashboard/assistant")({
   head: () => ({
     meta: [
-      { title: "AI yordamchi — NEXORA CRM" },
+      { title: t("AI yordamchi — NEXORA CRM") },
       {
         name: "description",
-        content: "Biznesingiz haqida savol bering — javob faqat bazadagi real raqamlar asosida beriladi.",
+        content: t("Biznesingiz haqida savol bering — javob faqat bazadagi real raqamlar asosida beriladi."),
       },
-      { property: "og:title", content: "AI yordamchi — NEXORA CRM" },
-      { property: "og:description", content: "Savol bering, AI hisobotni o‘zi tahlil qiladi." },
+      { property: "og:title", content: t("AI yordamchi — NEXORA CRM") },
+      { property: "og:description", content: t("Savol bering, AI hisobotni o‘zi tahlil qiladi.") },
     ],
   }),
   component: AssistantPage,
@@ -60,8 +61,8 @@ function AssistantPage() {
   return (
     <>
       <PageHeader
-        title="AI yordamchi"
-        description="Savollarga faqat bazangizdagi real ma’lumotlar asosida javob beradi."
+        title={t("AI yordamchi")}
+        description={t("Savollarga faqat bazangizdagi real ma’lumotlar asosida javob beradi.")}
       />
 
       <div className="clay-panel flex min-h-[60vh] flex-col gap-4 p-5">
@@ -71,7 +72,7 @@ function AssistantPage() {
               <div className="clay-inset flex items-start gap-3 rounded-2xl p-4">
                 <Sparkles className="mt-0.5 size-4 shrink-0" />
                 <p className="text-sm text-muted-foreground">
-                  Savol yozing yoki quyidagi tayyor savollardan birini tanlang.
+                  {t("Savol yozing yoki quyidagi tayyor savollardan birini tanlang.")}
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -96,7 +97,7 @@ function AssistantPage() {
           )}
           {busy ? (
             <div className="clay-inset flex w-fit items-center gap-2 rounded-2xl px-4 py-3 text-sm text-muted-foreground">
-              <Loader2 className="size-4 animate-spin" /> Tahlil qilinmoqda…
+              <Loader2 className="size-4 animate-spin" /> {t("Tahlil qilinmoqda…")}
             </div>
           ) : null}
         </div>
@@ -111,10 +112,10 @@ function AssistantPage() {
           <Input
             value={value}
             onChange={(e) => setValue(e.target.value)}
-            placeholder="Masalan: bu hafta nechta buyurtma bo‘ldi?"
+            placeholder={t("Masalan: bu hafta nechta buyurtma bo‘ldi?")}
             maxLength={500}
           />
-          <Button type="submit" size="icon" disabled={busy} aria-label="Yuborish">
+          <Button type="submit" size="icon" disabled={busy} aria-label={t("Yuborish")}>
             <Send className="size-4" />
           </Button>
         </form>

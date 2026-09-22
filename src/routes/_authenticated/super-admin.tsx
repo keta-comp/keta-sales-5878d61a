@@ -28,6 +28,8 @@ import { LoadingState } from "@/components/app/primitives";
 import { amISuperAdmin, superAdminSearch } from "@/lib/super-admin.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { t } from "@/lib/i18n";
+import { LanguageSwitcher } from "@/components/app/LanguageSwitcher";
 
 const NAV: { to: string; label: string; icon: LucideIcon; exact?: boolean }[] = [
   { to: "/super-admin", label: "Umumiy ko‘rinish", icon: Gauge, exact: true },
@@ -55,14 +57,13 @@ function AccessDenied() {
         <ShieldCheck className="size-7 text-muted-foreground" />
       </span>
       <div>
-        <p className="font-display text-xl font-semibold">403 — Ruxsat yo‘q</p>
+        <p className="font-display text-xl font-semibold">{t("403 — Ruxsat yo‘q")}</p>
         <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-          Bu bo‘lim faqat NEXORA CRM platforma administratori uchun. Siz o‘z CRM kabinangizga
-          qaytishingiz mumkin.
+          {t("Bu bo‘lim faqat NEXORA CRM platforma administratori uchun. Siz o‘z CRM kabinangizga\n          qaytishingiz mumkin.")}
         </p>
       </div>
       <Button asChild variant="outline">
-        <Link to="/dashboard">CRM kabinaga qaytish</Link>
+        <Link to="/dashboard">{t("CRM kabinaga qaytish")}</Link>
       </Button>
     </div>
   );
@@ -89,13 +90,13 @@ function ControlSearch() {
         }}
         onFocus={() => setOpen(true)}
         onBlur={() => window.setTimeout(() => setOpen(false), 150)}
-        placeholder="Organization, foydalanuvchi, buyurtma…"
+        placeholder={t("Organization, foydalanuvchi, buyurtma…")}
         className="pl-9"
       />
       {open && term.trim().length >= 2 ? (
         <div className="clay-panel absolute z-40 mt-2 max-h-80 w-full overflow-auto p-2">
           {(data ?? []).length === 0 ? (
-            <p className="px-2 py-3 text-sm text-muted-foreground">Natija topilmadi</p>
+            <p className="px-2 py-3 text-sm text-muted-foreground">{t("Natija topilmadi")}</p>
           ) : (
             (data ?? []).map((item, index) => (
               <Link
@@ -103,7 +104,7 @@ function ControlSearch() {
                 to={item.to}
                 className="flex items-center justify-between gap-2 rounded-xl px-3 py-2 text-sm hover:bg-muted"
               >
-                <span className="truncate font-medium">{item.label}</span>
+                <span className="truncate font-medium">{t(item.label)}</span>
                 <span className="shrink-0 text-xs text-muted-foreground">{item.kind}</span>
               </Link>
             ))
@@ -134,7 +135,7 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
             )}
           >
             <Icon className="size-4" />
-            {item.label}
+            {t(item.label)}
           </Link>
         );
       })}
@@ -151,7 +152,7 @@ function SuperAdminLayout() {
     queryFn: () => check(),
   });
 
-  if (isPending) return <LoadingState label="Tekshirilmoqda…" />;
+  if (isPending) return <LoadingState label={t("Tekshirilmoqda…")} />;
   if (!allowed) return <AccessDenied />;
 
   const brand = (
@@ -161,7 +162,7 @@ function SuperAdminLayout() {
       </span>
       <div className="leading-tight">
         <p className="font-display text-sm font-semibold">NEXORA CRM</p>
-        <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Control Center</p>
+        <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">{t("Control Center")}</p>
       </div>
     </div>
   );
@@ -181,11 +182,11 @@ function SuperAdminLayout() {
         <div className="border-t border-sidebar-border py-4">
           <Button variant="ghost" size="sm" className="w-full justify-start gap-2" asChild>
             <Link to="/dashboard">
-              <LayoutGrid className="size-4" /> CRM kabina
+              <LayoutGrid className="size-4" /> {t("CRM kabina")}
             </Link>
           </Button>
           <Button variant="ghost" size="sm" className="w-full justify-start gap-2" onClick={signOut}>
-            <LogOut className="size-4" /> Chiqish
+            <LogOut className="size-4" /> {t("Chiqish")}
           </Button>
         </div>
       </aside>
@@ -194,7 +195,7 @@ function SuperAdminLayout() {
         <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-border/50 bg-background/80 px-4 py-3 backdrop-blur-xl lg:px-8">
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
-              <Button variant="outline" size="icon" className="lg:hidden" aria-label="Menyu">
+              <Button variant="outline" size="icon" className="lg:hidden" aria-label={t("Menyu")}>
                 <Menu className="size-4" />
               </Button>
             </SheetTrigger>
@@ -204,8 +205,11 @@ function SuperAdminLayout() {
             </SheetContent>
           </Sheet>
           <ControlSearch />
-          <span className="ml-auto hidden rounded-full border border-border bg-muted px-3 py-1 text-xs font-medium sm:inline">
-            Super Admin
+          <div className="ml-auto flex items-center gap-2">
+            <LanguageSwitcher />
+          </div>
+          <span className="hidden rounded-full border border-border bg-muted px-3 py-1 text-xs font-medium sm:inline">
+            {t("Super Admin")}
           </span>
         </header>
         <main className="space-y-6 px-4 py-6 lg:px-8">

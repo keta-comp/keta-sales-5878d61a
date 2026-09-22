@@ -14,6 +14,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { globalSearch } from "@/lib/workspace.functions";
+import { t } from "@/lib/i18n";
 
 export function GlobalSearch() {
   const navigate = useNavigate();
@@ -60,28 +61,28 @@ export function GlobalSearch() {
         onClick={() => setOpen(true)}
       >
         <Search className="size-4" />
-        <span className="hidden sm:inline">Qidirish…</span>
+        <span className="hidden sm:inline">{t("Qidirish…")}</span>
       </Button>
       <CommandDialog open={open} onOpenChange={setOpen}>
         <CommandInput
-          placeholder="Mijoz, murojaat, buyurtma, to‘lov yoki vazifa…"
+          placeholder={t("Mijoz, murojaat, buyurtma, to‘lov yoki vazifa…")}
           value={term}
           onValueChange={setTerm}
         />
         <CommandList>
           {debounced.trim().length < 2 ? (
-            <CommandEmpty>Kamida 2 harf yozing.</CommandEmpty>
+            <CommandEmpty>{t("Kamida 2 harf yozing.")}</CommandEmpty>
           ) : results.isFetching ? (
-            <CommandEmpty>Qidirilmoqda…</CommandEmpty>
+            <CommandEmpty>{t("Qidirilmoqda…")}</CommandEmpty>
           ) : (results.data ?? []).length === 0 ? (
-            <CommandEmpty>Hech narsa topilmadi.</CommandEmpty>
+            <CommandEmpty>{t("Hech narsa topilmadi.")}</CommandEmpty>
           ) : null}
           {[...groups.entries()].map(([type, hits]) => (
             <CommandGroup key={type} heading={type}>
               {hits.map((hit) => (
                 <CommandItem
                   key={`${hit.type}-${hit.id}`}
-                  value={`${hit.type}-${hit.id}-${hit.title}`}
+                  value={t(`${hit.type}-${hit.id}-${hit.title}`)}
                   onSelect={() => {
                     setOpen(false);
                     void navigate({ to: hit.to });

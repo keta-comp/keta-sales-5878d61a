@@ -22,17 +22,18 @@ import { Input } from "@/components/ui/input";
 import { dateRangeFromPreset, REPORT_PRESETS } from "@/lib/crm-core";
 import { exportReportExcel, getReport } from "@/lib/workspace.functions";
 import { formatMoney } from "@/lib/types";
+import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/dashboard/analytics")({
   head: () => ({
     meta: [
-      { title: "Hisobotlar — NEXORA CRM" },
+      { title: t("Hisobotlar — NEXORA CRM") },
       {
         name: "description",
-        content: "Tushum, buyurtmalar, konversiya, manbalar va operatorlar bo‘yicha real hisobotlar.",
+        content: t("Tushum, buyurtmalar, konversiya, manbalar va operatorlar bo‘yicha real hisobotlar."),
       },
-      { property: "og:title", content: "Hisobotlar — NEXORA CRM" },
-      { property: "og:description", content: "Davrni tanlang va hisobotni Excelga yuklab oling." },
+      { property: "og:title", content: t("Hisobotlar — NEXORA CRM") },
+      { property: "og:description", content: t("Davrni tanlang va hisobotni Excelga yuklab oling.") },
     ],
   }),
   component: ReportsPage,
@@ -78,7 +79,7 @@ function ReportsPage() {
       link.click();
       URL.revokeObjectURL(url);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Yuklab olish xatosi");
+      toast.error(error instanceof Error ? error.message : t("Yuklab olish xatosi"));
     } finally {
       setExporting(false);
     }
@@ -87,8 +88,8 @@ function ReportsPage() {
   return (
     <>
       <PageHeader
-        title="Hisobotlar"
-        description="Barcha raqamlar tanlangan davr uchun bazadan hisoblanadi."
+        title={t("Hisobotlar")}
+        description={t("Barcha raqamlar tanlangan davr uchun bazadan hisoblanadi.")}
         actions={
           <Button size="sm" variant="outline" className="gap-2" onClick={() => void download()} disabled={exporting}>
             {exporting ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
@@ -105,7 +106,7 @@ function ReportsPage() {
             variant={preset === item.key ? "default" : "outline"}
             onClick={() => setPreset(item.key)}
           >
-            {item.label}
+            {t(item.label)}
           </Button>
         ))}
         {preset === "custom" ? (
@@ -128,7 +129,7 @@ function ReportsPage() {
       </div>
 
       {query.isPending ? (
-        <LoadingState label="Hisobot hisoblanmoqda…" />
+        <LoadingState label={t("Hisobot hisoblanmoqda…")} />
       ) : query.error ? (
         <ErrorState error={query.error} onRetry={() => void query.refetch()} />
       ) : (
@@ -148,17 +149,17 @@ function ReportBody({ data }: { data: Awaited<ReturnType<typeof getReport>> }) {
   return (
     <>
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Tushum" value={formatMoney(data.kpis.revenue, currency)} />
-        <StatCard label="Buyurtmalar" value={data.kpis.orders} hint={`Yakunlangan: ${data.kpis.completedOrders}`} />
-        <StatCard label="Murojaatlar" value={data.kpis.leads} hint={`Yutilgan: ${data.kpis.wonLeads}`} />
-        <StatCard label="Konversiya" value={`${data.kpis.conversionRate}%`} />
-        <StatCard label="O‘rtacha buyurtma" value={formatMoney(data.kpis.averageOrderValue, currency)} />
-        <StatCard label="Yangi mijozlar" value={data.kpis.newCustomers} />
-        <StatCard label="Kutilayotgan to‘lovlar" value={formatMoney(data.kpis.pendingPayments, currency)} />
+        <StatCard label={t("Tushum")} value={formatMoney(data.kpis.revenue, currency)} />
+        <StatCard label={t("Buyurtmalar")} value={data.kpis.orders} hint={t("Yakunlangan: {v0}", { v0: data.kpis.completedOrders })} />
+        <StatCard label={t("Murojaatlar")} value={data.kpis.leads} hint={t("Yutilgan: {v0}", { v0: data.kpis.wonLeads })} />
+        <StatCard label={t("Konversiya")} value={`${data.kpis.conversionRate}%`} />
+        <StatCard label={t("O‘rtacha buyurtma")} value={formatMoney(data.kpis.averageOrderValue, currency)} />
+        <StatCard label={t("Yangi mijozlar")} value={data.kpis.newCustomers} />
+        <StatCard label={t("Kutilayotgan to‘lovlar")} value={formatMoney(data.kpis.pendingPayments, currency)} />
       </div>
 
       <section className="clay-panel p-5">
-        <h2 className="font-display text-base font-semibold">Tushum dinamikasi</h2>
+        <h2 className="font-display text-base font-semibold">{t("Tushum dinamikasi")}</h2>
         <div className="mt-4 h-64">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={days}>
@@ -174,7 +175,7 @@ function ReportBody({ data }: { data: Awaited<ReturnType<typeof getReport>> }) {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <section className="clay-panel p-5">
-          <h2 className="font-display text-base font-semibold">Kunlik murojaat va buyurtma</h2>
+          <h2 className="font-display text-base font-semibold">{t("Kunlik murojaat va buyurtma")}</h2>
           <div className="mt-4 h-56">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={days}>
@@ -190,16 +191,16 @@ function ReportBody({ data }: { data: Awaited<ReturnType<typeof getReport>> }) {
         </section>
 
         <section className="clay-panel p-5">
-          <h2 className="font-display text-base font-semibold">Manbalar</h2>
+          <h2 className="font-display text-base font-semibold">{t("Manbalar")}</h2>
           <div className="mt-3 space-y-2">
             {data.bySource.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Ma’lumot yo‘q.</p>
+              <p className="text-sm text-muted-foreground">{t("Ma’lumot yo‘q.")}</p>
             ) : (
               data.bySource.map((row) => (
                 <div key={row.name} className="clay-inset flex items-center justify-between rounded-2xl px-3 py-2 text-sm">
                   <span>{row.name}</span>
                   <span className="text-muted-foreground">
-                    {row.leads} murojaat • {row.customers} mijoz
+                    {row.leads} {t("murojaat •")}{" "}{row.customers} mijoz
                   </span>
                 </div>
               ))
@@ -208,10 +209,10 @@ function ReportBody({ data }: { data: Awaited<ReturnType<typeof getReport>> }) {
         </section>
 
         <section className="clay-panel p-5">
-          <h2 className="font-display text-base font-semibold">Operatorlar</h2>
+          <h2 className="font-display text-base font-semibold">{t("Operatorlar")}</h2>
           <div className="mt-3 space-y-2">
             {data.byOperator.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Ma’lumot yo‘q.</p>
+              <p className="text-sm text-muted-foreground">{t("Ma’lumot yo‘q.")}</p>
             ) : (
               data.byOperator.map((row) => (
                 <div key={row.name} className="clay-inset flex items-center justify-between rounded-2xl px-3 py-2 text-sm">
@@ -226,16 +227,16 @@ function ReportBody({ data }: { data: Awaited<ReturnType<typeof getReport>> }) {
         </section>
 
         <section className="clay-panel p-5">
-          <h2 className="font-display text-base font-semibold">Eng ko‘p sotilganlar</h2>
+          <h2 className="font-display text-base font-semibold">{t("Eng ko‘p sotilganlar")}</h2>
           <div className="mt-3 space-y-2">
             {data.topProducts.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Ma’lumot yo‘q.</p>
+              <p className="text-sm text-muted-foreground">{t("Ma’lumot yo‘q.")}</p>
             ) : (
               data.topProducts.map((row) => (
                 <div key={row.name} className="clay-inset flex items-center justify-between rounded-2xl px-3 py-2 text-sm">
                   <span className="truncate">{row.name}</span>
                   <span className="shrink-0 text-muted-foreground">
-                    {row.quantity} dona • {formatMoney(row.revenue, currency)}
+                    {row.quantity} {t("dona •")}{" "}{formatMoney(row.revenue, currency)}
                   </span>
                 </div>
               ))

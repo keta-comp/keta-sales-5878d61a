@@ -20,14 +20,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { crmLabel, PAYMENT_METHODS, PAYMENT_RECORD_STATUSES } from "@/lib/crm-core";
 import { deletePayment, listPayments } from "@/lib/payments.functions";
 import { formatMoney } from "@/lib/types";
+import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/dashboard/payments")({
   head: () => ({
     meta: [
-      { title: "To‘lovlar — NEXORA CRM" },
-      { name: "description", content: "Kirim-chiqim, qarzdorlik va to‘lov usullari bo‘yicha hisob." },
-      { property: "og:title", content: "To‘lovlar — NEXORA CRM" },
-      { property: "og:description", content: "To‘lovlarni qayd qiling va qarzdorlikni kuzatib boring." },
+      { title: t("To‘lovlar — NEXORA CRM") },
+      { name: "description", content: t("Kirim-chiqim, qarzdorlik va to‘lov usullari bo‘yicha hisob.") },
+      { property: "og:title", content: t("To‘lovlar — NEXORA CRM") },
+      { property: "og:description", content: t("To‘lovlarni qayd qiling va qarzdorlikni kuzatib boring.") },
     ],
   }),
   component: PaymentsPage,
@@ -63,8 +64,8 @@ function PaymentsPage() {
   return (
     <>
       <PageHeader
-        title="To‘lovlar"
-        description="Har bir to‘lov mijoz va buyurtma bilan bog‘lanadi."
+        title={t("To‘lovlar")}
+        description={t("Har bir to‘lov mijoz va buyurtma bilan bog‘lanadi.")}
         actions={
           <Button
             size="sm"
@@ -74,30 +75,30 @@ function PaymentsPage() {
               setOpen(true);
             }}
           >
-            <Plus className="size-4" /> Yangi to‘lov
+            <Plus className="size-4" /> {t("Yangi to‘lov")}
           </Button>
         }
       />
 
       <div className="grid gap-3 sm:grid-cols-3">
-        <StatCard label="To‘langan" value={formatMoney(totals.paid, currency)} />
-        <StatCard label="Kutilmoqda" value={formatMoney(totals.pending, currency)} />
-        <StatCard label="Yozuvlar" value={totals.count} />
+        <StatCard label={t("To‘langan")} value={formatMoney(totals.paid, currency)} />
+        <StatCard label={t("Kutilmoqda")} value={formatMoney(totals.pending, currency)} />
+        <StatCard label={t("Yozuvlar")} value={totals.count} />
       </div>
 
       <div className="clay-panel flex flex-wrap items-center gap-2 p-4">
         <Input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Mijoz, buyurtma yoki izoh…"
+          placeholder={t("Mijoz, buyurtma yoki izoh…")}
           className="h-9 w-full sm:w-64"
         />
         <Select value={status} onValueChange={setStatus}>
           <SelectTrigger className="h-9 w-40">
-            <SelectValue placeholder="Holat" />
+            <SelectValue placeholder={t("Holat")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Barcha holat</SelectItem>
+            <SelectItem value="all">{t("Barcha holat")}</SelectItem>
             {PAYMENT_RECORD_STATUSES.map((s) => (
               <SelectItem key={s} value={s}>
                 {crmLabel(s)}
@@ -107,10 +108,10 @@ function PaymentsPage() {
         </Select>
         <Select value={method} onValueChange={setMethod}>
           <SelectTrigger className="h-9 w-40">
-            <SelectValue placeholder="Usul" />
+            <SelectValue placeholder={t("Usul")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Barcha usul</SelectItem>
+            <SelectItem value="all">{t("Barcha usul")}</SelectItem>
             {PAYMENT_METHODS.map((m) => (
               <SelectItem key={m} value={m}>
                 {crmLabel(m)}
@@ -121,26 +122,26 @@ function PaymentsPage() {
       </div>
 
       {query.isPending ? (
-        <LoadingState label="To‘lovlar yuklanmoqda…" />
+        <LoadingState label={t("To‘lovlar yuklanmoqda…")} />
       ) : query.error ? (
         <ErrorState error={query.error} onRetry={() => void query.refetch()} />
       ) : (query.data ?? []).length === 0 ? (
         <EmptyState
-          title="To‘lov topilmadi"
-          description="Birinchi to‘lovni qo‘shib, kassani yuritishni boshlang."
+          title={t("To‘lov topilmadi")}
+          description={t("Birinchi to‘lovni qo‘shib, kassani yuritishni boshlang.")}
         />
       ) : (
         <div className="clay-panel overflow-x-auto p-2">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Mijoz</TableHead>
-                <TableHead>Buyurtma</TableHead>
-                <TableHead>Summa</TableHead>
-                <TableHead>Usul</TableHead>
-                <TableHead>Holat</TableHead>
-                <TableHead>Sana</TableHead>
-                <TableHead className="text-right">Amal</TableHead>
+                <TableHead>{t("Mijoz")}</TableHead>
+                <TableHead>{t("Buyurtma")}</TableHead>
+                <TableHead>{t("Summa")}</TableHead>
+                <TableHead>{t("Usul")}</TableHead>
+                <TableHead>{t("Holat")}</TableHead>
+                <TableHead>{t("Sana")}</TableHead>
+                <TableHead className="text-right">{t("Amal")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -165,7 +166,7 @@ function PaymentsPage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          aria-label="Tahrirlash"
+                          aria-label={t("Tahrirlash")}
                           onClick={() => {
                             setEditing(row);
                             setOpen(true);
@@ -176,15 +177,15 @@ function PaymentsPage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          aria-label="O‘chirish"
+                          aria-label={t("O‘chirish")}
                           onClick={async () => {
-                            if (!window.confirm("To‘lovni o‘chirasizmi?")) return;
+                            if (!window.confirm(t("To‘lovni o‘chirasizmi?"))) return;
                             try {
                               await remove({ data: { id: row.id } });
-                              toast.success("To‘lov o‘chirildi");
+                              toast.success(t("To‘lov o‘chirildi"));
                               void query.refetch();
                             } catch (error) {
-                              toast.error(error instanceof Error ? error.message : "Xatolik");
+                              toast.error(error instanceof Error ? error.message : t("Xatolik"));
                             }
                           }}
                         >
@@ -217,7 +218,7 @@ function PaymentsPage() {
               }
             : undefined
         }
-        label={editing ? "To‘lovni tahrirlash" : "Yangi to‘lov"}
+        label={editing ? t("To‘lovni tahrirlash") : t("Yangi to‘lov")}
       />
     </>
   );

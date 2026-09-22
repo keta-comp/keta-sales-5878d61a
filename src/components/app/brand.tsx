@@ -1,5 +1,6 @@
 import logoAsset from "@/assets/keta-crm-logo.png.asset.json";
 import { cn } from "@/lib/utils";
+import { t } from "@/lib/i18n";
 
 export const BRAND_NAME = "NEXORA CRM";
 export const BRAND_TAGLINE = "Qoraqalpog‘iston uchun";
@@ -14,7 +15,7 @@ export function KarakalpakFlag({ className }: { className?: string }) {
     <svg
       viewBox="0 0 30 20"
       role="img"
-      aria-label="Qoraqalpog‘iston bayrog‘i"
+      aria-label={t("Qoraqalpog‘iston bayrog‘i")}
       className={cn("h-3.5 w-5 rounded-[3px] shadow-sm", className)}
     >
       <rect width="30" height="20" fill="#1EB0E7" />
@@ -49,7 +50,7 @@ export function BrandMark({
     <div className={cn("flex items-center gap-2.5", className)}>
       <img
         src={logoAsset.url}
-        alt="NEXORA CRM logotipi"
+        alt={t("NEXORA CRM logotipi")}
         className={cn("object-contain", size === "sm" ? "h-7 w-9" : "h-9 w-12")}
       />
       <div className="leading-tight">

@@ -26,9 +26,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { deleteCrmRecord, getMyCrmConfig, listCrmRecords, saveCrmRecord } from "@/lib/crm-config.functions";
 import type { CrmField } from "@/lib/crm-config";
+import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/dashboard/crm/$moduleKey")({
-  head: () => ({ meta: [{ title: "CRM moduli — NEXORA CRM" }] }),
+  head: () => ({ meta: [{ title: t("CRM moduli — NEXORA CRM") }] }),
   component: CrmModulePage,
 });
 
@@ -138,7 +139,7 @@ function CrmModulePage() {
   if (config.isPending) return <LoadingState />;
   if (config.error) return <ErrorState error={config.error} onRetry={() => void config.refetch()} />;
   if (!module) {
-    return <EmptyState title="Modul topilmadi" description="Bu modul CRM konfiguratsiyasida mavjud emas." />;
+    return <EmptyState title={t("Modul topilmadi")} description={t("Bu modul CRM konfiguratsiyasida mavjud emas.")} />;
   }
 
   const fields = module.fields ?? [];
@@ -150,21 +151,21 @@ function CrmModulePage() {
   return (
     <>
       <PageHeader
-        title={module.label}
-        description={module.pipeline ? "Pipeline bosqichlari bilan kuzatiladi" : ""}
+        title={t(module.label)}
+        description={module.pipeline ? t("Pipeline bosqichlari bilan kuzatiladi") : ""}
         actions={
           <div className="flex items-center gap-2">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 className="w-44 pl-9 sm:w-60"
-                placeholder="Qidirish…"
+                placeholder={t("Qidirish…")}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
             <Button size="sm" onClick={openCreate}>
-              <Plus className="size-4" /> Yangi qo‘shish
+              <Plus className="size-4" /> {t("Yangi qo‘shish")}
             </Button>
           </div>
         }
@@ -177,8 +178,8 @@ function CrmModulePage() {
           <ErrorState error={records.error} onRetry={() => void records.refetch()} />
         ) : filtered.length === 0 ? (
           <EmptyState
-            title="Hozircha yozuv yo‘q"
-            description={`"${module.label}" bo‘limiga birinchi yozuvni qo‘shing.`}
+            title={t("Hozircha yozuv yo‘q")}
+            description={t("\"{v0}\" bo‘limiga birinchi yozuvni qo‘shing.", { v0: module.label })}
           />
         ) : (
           <div className="overflow-x-auto">
@@ -187,10 +188,10 @@ function CrmModulePage() {
                 <tr className="border-b border-border/60 text-left text-xs uppercase tracking-wide text-muted-foreground">
                   {fields.slice(0, 5).map((f) => (
                     <th key={f.key} className="px-4 py-3 font-medium">
-                      {f.label}
+                      {t(f.label)}
                     </th>
                   ))}
-                  {module.pipeline && <th className="px-4 py-3 font-medium">Bosqich</th>}
+                  {module.pipeline && <th className="px-4 py-3 font-medium">{t("Bosqich")}</th>}
                   <th className="px-4 py-3" />
                 </tr>
               </thead>
@@ -209,7 +210,7 @@ function CrmModulePage() {
                     {module.pipeline && (
                       <td className="px-4 py-3">
                         <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
-                          {row.stage ?? "—"}
+                          {t(row.stage ?? "—")}
                         </span>
                       </td>
                     )}
@@ -233,7 +234,7 @@ function CrmModulePage() {
       <Dialog open={creating || !!editing} onOpenChange={(open) => { if (!open) { setCreating(false); setEditing(null); } }}>
         <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>{editing ? `${module.label}ni tahrirlash` : `Yangi ${module.label.toLowerCase()}`}</DialogTitle>
+            <DialogTitle>{editing ? t("{v0}ni tahrirlash", { v0: module.label }) : t("Yangi {v0}", { v0: module.label.toLowerCase() })}</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col gap-4">
             {fields.map((field) => (
@@ -246,10 +247,10 @@ function CrmModulePage() {
             ))}
             {module.pipeline && (
               <div className="flex flex-col gap-2">
-                <Label>Bosqich</Label>
-                <Select value={stage} onValueChange={setStage}>
+                <Label>{t("Bosqich")}</Label>
+                <Select value={t(stage)} onValueChange={setStage}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Bosqichni tanlang" />
+                    <SelectValue placeholder={t("Bosqichni tanlang")} />
                   </SelectTrigger>
                   <SelectContent>
                     {(config.data?.config?.pipelineStages ?? []).map((s) => (
@@ -265,11 +266,11 @@ function CrmModulePage() {
           <DialogFooter className="gap-2">
             {editing && (
               <Button variant="destructive" size="sm" onClick={() => void remove()} disabled={saving}>
-                <Trash2 className="size-4" /> O‘chirish
+                <Trash2 className="size-4" /> {t("O‘chirish")}
               </Button>
             )}
             <Button onClick={() => void submit()} disabled={saving}>
-              {saving ? "Saqlanmoqda…" : "Saqlash"}
+              {saving ? t("Saqlanmoqda…") : t("Saqlash")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -289,7 +290,7 @@ function FieldInput({
 }) {
   const label = (
     <Label>
-      {field.label}
+      {t(field.label)}
       {field.required && <span className="text-destructive"> *</span>}
     </Label>
   );
@@ -299,7 +300,7 @@ function FieldInput({
         {label}
         <Select value={value} onValueChange={onChange}>
           <SelectTrigger>
-            <SelectValue placeholder="Tanlang" />
+            <SelectValue placeholder={t("Tanlang")} />
           </SelectTrigger>
           <SelectContent>
             {(field.options ?? []).map((option) => (

@@ -34,14 +34,15 @@ import {
   setUserRole,
   setUserStatus,
 } from "@/lib/super-admin.functions";
+import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/super-admin/users")({
   head: () => ({
     meta: [
-      { title: "Foydalanuvchilar — NEXORA CRM Control Center" },
-      { name: "description", content: "NEXORA CRM platformasidagi barcha foydalanuvchilar, rollari va holati." },
-      { property: "og:title", content: "Foydalanuvchilar — NEXORA CRM Control Center" },
-      { property: "og:description", content: "Barcha foydalanuvchilar: organization, rol, holat, faollik." },
+      { title: t("Foydalanuvchilar — NEXORA CRM Control Center") },
+      { name: "description", content: t("NEXORA CRM platformasidagi barcha foydalanuvchilar, rollari va holati.") },
+      { property: "og:title", content: t("Foydalanuvchilar — NEXORA CRM Control Center") },
+      { property: "og:description", content: t("Barcha foydalanuvchilar: organization, rol, holat, faollik.") },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -71,34 +72,34 @@ function UserDialog({ userId, onClose }: { userId: string; onClose: () => void }
   const changeStatus = useMutation({
     mutationFn: (status: "active" | "suspended") => statusFn({ data: { id: userId, status } }),
     onSuccess: () => {
-      toast.success("Holat yangilandi");
+      toast.success(t("Holat yangilandi"));
       invalidate();
     },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Amal bajarilmadi"),
+    onError: (e) => toast.error(e instanceof Error ? e.message : t("Amal bajarilmadi")),
   });
 
   const changeRole = useMutation({
     mutationFn: (role: (typeof ROLES)[number]) => roleFn({ data: { id: userId, role } }),
     onSuccess: () => {
-      toast.success("Rol yangilandi");
+      toast.success(t("Rol yangilandi"));
       invalidate();
     },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Amal bajarilmadi"),
+    onError: (e) => toast.error(e instanceof Error ? e.message : t("Amal bajarilmadi")),
   });
 
   const sendReset = useMutation({
     mutationFn: () => resetFn({ data: { id: userId } }),
-    onSuccess: () => toast.success("Parolni tiklash havolasi emailga yuborildi"),
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Yuborilmadi"),
+    onSuccess: () => toast.success(t("Parolni tiklash havolasi emailga yuborildi")),
+    onError: (e) => toast.error(e instanceof Error ? e.message : t("Yuborilmadi")),
   });
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Foydalanuvchi profili</DialogTitle>
+          <DialogTitle>{t("Foydalanuvchi profili")}</DialogTitle>
           <DialogDescription>
-            Parol va maxfiy kalitlar hech qachon ko‘rsatilmaydi — faqat tiklash havolasi yuboriladi.
+            {t("Parol va maxfiy kalitlar hech qachon ko‘rsatilmaydi — faqat tiklash havolasi yuboriladi.")}
           </DialogDescription>
         </DialogHeader>
 
@@ -111,16 +112,16 @@ function UserDialog({ userId, onClose }: { userId: string; onClose: () => void }
         ) : (
           <div className="space-y-5">
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Ism" value={data.profile.name ?? "—"} />
-              <Field label="Email" value={data.profile.email ?? "—"} />
-              <Field label="Telefon" value={data.profile.phone ?? "—"} />
-              <Field label="Holat" value={<Pill value={data.profile.status} />} />
-              <Field label="Ro‘yxatdan o‘tgan" value={fmtDate(data.profile.createdAt)} />
-              <Field label="Oxirgi faollik" value={fmtDate(data.profile.lastActiveAt)} />
-              <Field label="AI so‘rovlari" value={fmtNumber(data.usage.aiRequests)} />
+              <Field label={t("Ism")} value={data.profile.name ?? "—"} />
+              <Field label={t("Email")} value={data.profile.email ?? "—"} />
+              <Field label={t("Telefon")} value={data.profile.phone ?? "—"} />
+              <Field label={t("Holat")} value={<Pill value={data.profile.status} />} />
+              <Field label={t("Ro‘yxatdan o‘tgan")} value={fmtDate(data.profile.createdAt)} />
+              <Field label={t("Oxirgi faollik")} value={fmtDate(data.profile.lastActiveAt)} />
+              <Field label={t("AI so‘rovlari")} value={fmtNumber(data.usage.aiRequests)} />
               <Field
-                label="Platforma roli"
-                value={data.profile.isSuperAdmin ? "Super Admin" : data.memberships[0]?.role ?? "—"}
+                label={t("Platforma roli")}
+                value={data.profile.isSuperAdmin ? t("Super Admin") : data.memberships[0]?.role ?? "—"}
               />
             </div>
 
@@ -153,14 +154,14 @@ function UserDialog({ userId, onClose }: { userId: string; onClose: () => void }
                 </SelectContent>
               </Select>
               {data.profile.status === "suspended" ? (
-                <Button size="sm" onClick={() => changeStatus.mutate("active")}>Qayta faollashtirish</Button>
+                <Button size="sm" onClick={() => changeStatus.mutate("active")}>{t("Qayta faollashtirish")}</Button>
               ) : (
                 <Button size="sm" variant="destructive" disabled={data.profile.isSuperAdmin} onClick={() => changeStatus.mutate("suspended")}>
-                  Bloklash
+                  {t("Bloklash")}
                 </Button>
               )}
               <Button size="sm" variant="outline" onClick={() => sendReset.mutate()}>
-                <KeyRound className="size-4" /> Parolni tiklash havolasi
+                <KeyRound className="size-4" /> {t("Parolni tiklash havolasi")}
               </Button>
             </div>
 
@@ -201,15 +202,15 @@ function UsersPage() {
       const file = await exportFn({ data: { kind: "users" } });
       downloadBase64Xlsx(file.base64, file.filename);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Eksport qilinmadi");
+      toast.error(e instanceof Error ? e.message : t("Eksport qilinmadi"));
     }
   };
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Foydalanuvchilar"
-        description="Platformadagi barcha hisoblar. Parol va maxfiy kalitlar ko‘rsatilmaydi."
+        title={t("Foydalanuvchilar")}
+        description={t("Platformadagi barcha hisoblar. Parol va maxfiy kalitlar ko‘rsatilmaydi.")}
         actions={
           <Button variant="outline" size="sm" onClick={() => void exportExcel()}>
             <Download className="size-4" /> Excel
@@ -219,21 +220,21 @@ function UsersPage() {
 
       <Panel>
         <div className="grid gap-3 sm:grid-cols-3">
-          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Ism, email, organization" />
+          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t("Ism, email, organization")} />
           <Select value={status} onValueChange={setStatus}>
-            <SelectTrigger><SelectValue placeholder="Holat" /></SelectTrigger>
+            <SelectTrigger><SelectValue placeholder={t("Holat")} /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Barcha holatlar</SelectItem>
-              <SelectItem value="active">Faol</SelectItem>
-              <SelectItem value="suspended">Bloklangan</SelectItem>
-              <SelectItem value="pending">Kutilmoqda</SelectItem>
+              <SelectItem value="all">{t("Barcha holatlar")}</SelectItem>
+              <SelectItem value="active">{t("Faol")}</SelectItem>
+              <SelectItem value="suspended">{t("Bloklangan")}</SelectItem>
+              <SelectItem value="pending">{t("Kutilmoqda")}</SelectItem>
             </SelectContent>
           </Select>
           <Select value={role} onValueChange={setRole}>
-            <SelectTrigger><SelectValue placeholder="Rol" /></SelectTrigger>
+            <SelectTrigger><SelectValue placeholder={t("Rol")} /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Barcha rollar</SelectItem>
-              <SelectItem value="super_admin">Super Admin</SelectItem>
+              <SelectItem value="all">{t("Barcha rollar")}</SelectItem>
+              <SelectItem value="super_admin">{t("Super Admin")}</SelectItem>
               {ROLES.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
             </SelectContent>
           </Select>
@@ -246,7 +247,7 @@ function UsersPage() {
         ) : error ? (
           <ErrorState error={error} onRetry={() => void refetch()} />
         ) : (data ?? []).length === 0 ? (
-          <NoData label="Foydalanuvchi topilmadi" />
+          <NoData label={t("Foydalanuvchi topilmadi")} />
         ) : (
           <DataTable columns={["Ism", "Email", "Organization", "Rol", "Soha", "Holat", "Yaratilgan", "Oxirgi faollik"]}>
             {(data ?? []).map((u) => (
@@ -254,7 +255,7 @@ function UsersPage() {
                 <td className="px-3 py-2 font-medium">{u.name ?? "—"}</td>
                 <td className="px-3 py-2">{u.email ?? "—"}</td>
                 <td className="px-3 py-2">{u.organization ?? "—"}</td>
-                <td className="px-3 py-2">{u.role === "super_admin" ? "Super Admin" : u.role}</td>
+                <td className="px-3 py-2">{u.role === "super_admin" ? t("Super Admin") : u.role}</td>
                 <td className="px-3 py-2">{u.industry ?? "—"}</td>
                 <td className="px-3 py-2"><Pill value={u.status} /></td>
                 <td className="px-3 py-2 text-xs">{fmtDate(u.createdAt)}</td>

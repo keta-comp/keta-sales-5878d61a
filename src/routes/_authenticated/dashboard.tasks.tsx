@@ -18,14 +18,15 @@ import {
 } from "@/components/ui/select";
 import { crmLabel, TASK_PRIORITIES, TASK_STATUSES } from "@/lib/crm-core";
 import { deleteTask, listTasks, setTaskStatus } from "@/lib/tasks.functions";
+import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/dashboard/tasks")({
   head: () => ({
     meta: [
-      { title: "Vazifalar — NEXORA CRM" },
-      { name: "description", content: "Jamoa vazifalari, muddatlari va bajarilish holati." },
-      { property: "og:title", content: "Vazifalar — NEXORA CRM" },
-      { property: "og:description", content: "Hech bir ish e’tibordan chetda qolmasin." },
+      { title: t("Vazifalar — NEXORA CRM") },
+      { name: "description", content: t("Jamoa vazifalari, muddatlari va bajarilish holati.") },
+      { property: "og:title", content: t("Vazifalar — NEXORA CRM") },
+      { property: "og:description", content: t("Hech bir ish e’tibordan chetda qolmasin.") },
     ],
   }),
   component: TasksPage,
@@ -54,8 +55,8 @@ function TasksPage() {
   return (
     <>
       <PageHeader
-        title="Vazifalar"
-        description="Qo‘ng‘iroq qilish, uchrashuv, kuzatuv — hammasi bir joyda."
+        title={t("Vazifalar")}
+        description={t("Qo‘ng‘iroq qilish, uchrashuv, kuzatuv — hammasi bir joyda.")}
         actions={
           <Button
             size="sm"
@@ -65,7 +66,7 @@ function TasksPage() {
               setOpen(true);
             }}
           >
-            <Plus className="size-4" /> Yangi vazifa
+            <Plus className="size-4" /> {t("Yangi vazifa")}
           </Button>
         }
       />
@@ -74,15 +75,15 @@ function TasksPage() {
         <Input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Vazifa nomi…"
+          placeholder={t("Vazifa nomi…")}
           className="h-9 w-full sm:w-64"
         />
         <Select value={status} onValueChange={setStatus}>
           <SelectTrigger className="h-9 w-40">
-            <SelectValue placeholder="Holat" />
+            <SelectValue placeholder={t("Holat")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Barcha holat</SelectItem>
+            <SelectItem value="all">{t("Barcha holat")}</SelectItem>
             {TASK_STATUSES.map((s) => (
               <SelectItem key={s} value={s}>
                 {crmLabel(s)}
@@ -92,10 +93,10 @@ function TasksPage() {
         </Select>
         <Select value={priority} onValueChange={setPriority}>
           <SelectTrigger className="h-9 w-40">
-            <SelectValue placeholder="Muhimlik" />
+            <SelectValue placeholder={t("Muhimlik")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Barcha muhimlik</SelectItem>
+            <SelectItem value="all">{t("Barcha muhimlik")}</SelectItem>
             {TASK_PRIORITIES.map((p) => (
               <SelectItem key={p} value={p}>
                 {crmLabel(p)}
@@ -106,11 +107,11 @@ function TasksPage() {
       </div>
 
       {query.isPending ? (
-        <LoadingState label="Vazifalar yuklanmoqda…" />
+        <LoadingState label={t("Vazifalar yuklanmoqda…")} />
       ) : query.error ? (
         <ErrorState error={query.error} onRetry={() => void query.refetch()} />
       ) : (query.data ?? []).length === 0 ? (
-        <EmptyState title="Vazifa yo‘q" description="Yangi vazifa qo‘shib, ishni rejalashtiring." />
+        <EmptyState title={t("Vazifa yo‘q")} description={t("Yangi vazifa qo‘shib, ishni rejalashtiring.")} />
       ) : (
         <div className="space-y-2">
           {(query.data ?? []).map((task) => {
@@ -126,7 +127,7 @@ function TasksPage() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  aria-label="Bajarildi"
+                  aria-label={t("Bajarildi")}
                   className={task.status === "completed" ? "text-foreground" : "text-muted-foreground"}
                   onClick={async () => {
                     try {
@@ -138,7 +139,7 @@ function TasksPage() {
                       });
                       void query.refetch();
                     } catch (error) {
-                      toast.error(error instanceof Error ? error.message : "Xatolik");
+                      toast.error(error instanceof Error ? error.message : t("Xatolik"));
                     }
                   }}
                 >
@@ -171,7 +172,7 @@ function TasksPage() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    aria-label="Tahrirlash"
+                    aria-label={t("Tahrirlash")}
                     onClick={() => {
                       setEditing(task);
                       setOpen(true);
@@ -182,15 +183,15 @@ function TasksPage() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    aria-label="O‘chirish"
+                    aria-label={t("O‘chirish")}
                     onClick={async () => {
-                      if (!window.confirm("Vazifani o‘chirasizmi?")) return;
+                      if (!window.confirm(t("Vazifani o‘chirasizmi?"))) return;
                       try {
                         await remove({ data: { id: task.id } });
-                        toast.success("Vazifa o‘chirildi");
+                        toast.success(t("Vazifa o‘chirildi"));
                         void query.refetch();
                       } catch (error) {
-                        toast.error(error instanceof Error ? error.message : "Xatolik");
+                        toast.error(error instanceof Error ? error.message : t("Xatolik"));
                       }
                     }}
                   >
@@ -221,7 +222,7 @@ function TasksPage() {
               }
             : undefined
         }
-        label={editing ? "Vazifani tahrirlash" : "Yangi vazifa"}
+        label={editing ? t("Vazifani tahrirlash") : t("Yangi vazifa")}
       />
     </>
   );

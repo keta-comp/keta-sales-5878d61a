@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { recordFailedLogin, recordLogin, recordRegistration } from "@/lib/session.functions";
+import { t } from "@/lib/i18n";
+import { LanguageSwitcher } from "@/components/app/LanguageSwitcher";
 
 const TITLE = "Kabinaga kirish — NEXORA CRM";
 const DESCRIPTION =
@@ -77,7 +79,7 @@ function AuthPage() {
       void recordLogin().catch(() => undefined);
       navigate({ to: redirectTo ?? "/dashboard" });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Kirishda xatolik yuz berdi");
+      toast.error(error instanceof Error ? error.message : t("Kirishda xatolik yuz berdi"));
     } finally {
       setBusy(false);
     }
@@ -85,17 +87,20 @@ function AuthPage() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center px-4 py-12">
+      <div className="mb-6 flex justify-end">
+        <LanguageSwitcher showLabel />
+      </div>
       <Link to="/" className="mb-8">
         <BrandMark />
       </Link>
 
       <div className="clay-panel w-full max-w-md p-6 sm:p-8">
         <h1 className="font-display text-2xl font-semibold text-foreground">
-          {adminOnly ? "Boshqaruv markaziga kirish" : mode === "login" ? "Kabinaga kirish" : "Bepul boshlash"}
+          {adminOnly ? t("Boshqaruv markaziga kirish") : mode === "login" ? "Kabinaga kirish" : "Bepul boshlash"}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
           {adminOnly
-            ? "Bu bo‘lim faqat platforma administratorlari uchun."
+            ? t("Bu bo‘lim faqat platforma administratorlari uchun.")
             : mode === "login"
               ? "Mijozlar, savdo va jamoangizni boshqarishni davom ettiring."
               : "Hisob yarating — keyin sohangizni tanlab CRMni sozlaymiz."}
@@ -108,7 +113,7 @@ function AuthPage() {
               onClick={() => setMode("login")}
               className={mode === "login" ? "clay-raised bg-card py-2" : "rounded-xl py-2 text-muted-foreground"}
             >
-              Kirish
+              {t("Kirish")}
             </button>
             <button
               type="button"
@@ -117,7 +122,7 @@ function AuthPage() {
                 mode === "register" ? "clay-raised bg-card py-2" : "rounded-xl py-2 text-muted-foreground"
               }
             >
-              Ro‘yxatdan o‘tish
+              {t("Ro‘yxatdan o‘tish")}
             </button>
           </div>
         )}
@@ -127,40 +132,40 @@ function AuthPage() {
           {mode === "register" && (
             <>
               <div className="space-y-2">
-                <Label htmlFor="full-name">Ismingiz</Label>
+                <Label htmlFor="full-name">{t("Ismingiz")}</Label>
                 <Input
                   id="full-name"
                   value={fullName}
                   onChange={(event) => setFullName(event.target.value)}
-                  placeholder="Masalan: Nursultan"
+                  placeholder={t("Masalan: Nursultan")}
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="business-name">Biznes nomi</Label>
+                <Label htmlFor="business-name">{t("Biznes nomi")}</Label>
                 <Input
                   id="business-name"
                   value={businessName}
                   onChange={(event) => setBusinessName(event.target.value)}
-                  placeholder="Masalan: Nexora klinikasi"
+                  placeholder={t("Masalan: Nexora klinikasi")}
                 />
               </div>
             </>
           )}
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">{t("Email")}</Label>
             <Input
               id="email"
               type="email"
               autoComplete="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              placeholder="siz@kompaniya.uz"
+              placeholder={t("siz@kompaniya.uz")}
               required
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password">Parol</Label>
+            <Label htmlFor="password">{t("Parol")}</Label>
             <Input
               id="password"
               type="password"
@@ -172,13 +177,13 @@ function AuthPage() {
             />
           </div>
           <Button type="submit" className="w-full" disabled={busy}>
-            {busy ? "Yuklanmoqda…" : mode === "login" ? "Kirish" : "Ro‘yxatdan o‘tish"}
+            {busy ? t("Yuklanmoqda…") : mode === "login" ? "Kirish" : "Ro‘yxatdan o‘tish"}
           </Button>
         </form>
 
         <p className="mt-5 text-xs text-muted-foreground">
           {adminOnly
-            ? "Ro‘yxatdan o‘tish bu bo‘limda mavjud emas — faqat mavjud administrator hisobi bilan kiriladi."
+            ? t("Ro‘yxatdan o‘tish bu bo‘limda mavjud emas — faqat mavjud administrator hisobi bilan kiriladi.")
             : mode === "register"
               ? "Ro‘yxatdan o‘tgach biznes sohangizni tanlaysiz — CRM sizga moslab tayyorlanadi."
               : "Hisobingiz yo‘qmi? “Ro‘yxatdan o‘tish”ni tanlang — karta talab qilinmaydi."}
@@ -189,7 +194,7 @@ function AuthPage() {
         to="/"
         className="mt-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
       >
-        <ArrowLeft className="size-4" /> Bosh sahifaga
+        <ArrowLeft className="size-4" /> {t("Bosh sahifaga")}
       </Link>
     </div>
   );

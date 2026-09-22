@@ -3,6 +3,7 @@ import { AlertTriangle, Inbox, Loader2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { t } from "@/lib/i18n";
 
 export function PageHeader({
   title,
@@ -77,12 +78,12 @@ export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () =>
     <div className="clay-panel flex flex-col items-center gap-3 p-10 text-center">
       <span className="clay-inset grid size-14 place-items-center"><AlertTriangle className="size-6 text-destructive" /></span>
       <div>
-        <p className="font-medium text-foreground">Ma’lumotlarni yuklab bo‘lmadi</p>
+        <p className="font-medium text-foreground">{t("Ma’lumotlarni yuklab bo‘lmadi")}</p>
         <p className="mt-1 text-sm text-muted-foreground">{message}</p>
       </div>
       {onRetry ? (
         <Button variant="outline" size="sm" onClick={onRetry}>
-          Qayta urinish
+          {t("Qayta urinish")}
         </Button>
       ) : null}
     </div>

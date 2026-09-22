@@ -17,6 +17,7 @@ import {
   unlinkTelegram,
   updateTelegramSettings,
 } from "@/lib/telegram-link.functions";
+import { t } from "@/lib/i18n";
 
 const searchSchema = z.object({ code: z.string().optional() });
 
@@ -24,13 +25,13 @@ export const Route = createFileRoute("/_authenticated/dashboard/telegram")({
   validateSearch: searchSchema,
   head: () => ({
     meta: [
-      { title: "Telegram integratsiyasi — NEXORA CRM" },
+      { title: t("Telegram integratsiyasi — NEXORA CRM") },
       {
         name: "description",
-        content: "NEXORA CRM hisobingizni Telegram bilan ulang va biznes hisobotlarini Telegram orqali oling.",
+        content: t("NEXORA CRM hisobingizni Telegram bilan ulang va biznes hisobotlarini Telegram orqali oling."),
       },
-      { property: "og:title", content: "Telegram integratsiyasi — NEXORA CRM" },
-      { property: "og:description", content: "Kunlik hisobot, Excel fayl va muhim bildirishnomalar Telegramda." },
+      { property: "og:title", content: t("Telegram integratsiyasi — NEXORA CRM") },
+      { property: "og:description", content: t("Kunlik hisobot, Excel fayl va muhim bildirishnomalar Telegramda.") },
     ],
   }),
   component: TelegramPage,
@@ -57,30 +58,30 @@ function TelegramPage() {
   const confirmMutation = useMutation({
     mutationFn: () => confirm({ data: { code: search.code! } }),
     onSuccess: () => {
-      toast.success("Telegram muvaffaqiyatli ulandi");
+      toast.success(t("Telegram muvaffaqiyatli ulandi"));
       void queryClient.invalidateQueries({ queryKey: ["telegram-link"] });
       void navigate({ to: "/dashboard/telegram", search: {} });
     },
-    onError: (error: unknown) => toast.error(error instanceof Error ? error.message : "Ulash amalga oshmadi"),
+    onError: (error: unknown) => toast.error(error instanceof Error ? error.message : t("Ulash amalga oshmadi")),
   });
 
   const settingsMutation = useMutation({
     mutationFn: (input: Parameters<typeof saveSettings>[0] extends { data: infer D } ? D : never) =>
       saveSettings({ data: input }),
     onSuccess: () => {
-      toast.success("Sozlamalar saqlandi");
+      toast.success(t("Sozlamalar saqlandi"));
       void queryClient.invalidateQueries({ queryKey: ["telegram-link"] });
     },
-    onError: (error: unknown) => toast.error(error instanceof Error ? error.message : "Saqlash amalga oshmadi"),
+    onError: (error: unknown) => toast.error(error instanceof Error ? error.message : t("Saqlash amalga oshmadi")),
   });
 
   const unlinkMutation = useMutation({
     mutationFn: () => unlink(),
     onSuccess: () => {
-      toast.success("Telegram uzildi");
+      toast.success(t("Telegram uzildi"));
       void queryClient.invalidateQueries({ queryKey: ["telegram-link"] });
     },
-    onError: (error: unknown) => toast.error(error instanceof Error ? error.message : "Uzish amalga oshmadi"),
+    onError: (error: unknown) => toast.error(error instanceof Error ? error.message : t("Uzish amalga oshmadi")),
   });
 
   if (link.isPending) return <LoadingState />;
@@ -91,34 +92,33 @@ function TelegramPage() {
   return (
     <>
       <PageHeader
-        title="Telegram integratsiyasi"
-        description="Telegram — hisobot va bildirishnoma kanali. Asosiy CRM ishi shu veb platformada davom etadi."
+        title={t("Telegram integratsiyasi")}
+        description={t("Telegram — hisobot va bildirishnoma kanali. Asosiy CRM ishi shu veb platformada davom etadi.")}
       />
 
       {search.code ? (
         <div className="clay-panel space-y-4 p-6">
-          <h2 className="text-lg font-semibold">Telegram akkauntini ulash</h2>
+          <h2 className="text-lg font-semibold">{t("Telegram akkauntini ulash")}</h2>
           {request.isPending ? (
-            <p className="text-sm text-muted-foreground">Tekshirilmoqda...</p>
+            <p className="text-sm text-muted-foreground">{t("Tekshirilmoqda...")}</p>
           ) : request.data?.valid ? (
             <>
               <p className="text-sm text-muted-foreground">
-                {request.data.username ? `@${request.data.username}` : "Telegram akkauntingiz"} ni NEXORA CRM hisobingiz
-                bilan ulashga ruxsat berasizmi?
+                {request.data.username ? `@${request.data.username}` : t("Telegram akkauntingiz")} {t("ni NEXORA CRM hisobingiz\n                bilan ulashga ruxsat berasizmi?")}
               </p>
               <div className="flex flex-wrap gap-3">
                 <Button onClick={() => confirmMutation.mutate()} disabled={confirmMutation.isPending}>
-                  {confirmMutation.isPending ? "Ulanmoqda..." : "Ha, ruxsat beraman"}
+                  {confirmMutation.isPending ? t("Ulanmoqda...") : t("Ha, ruxsat beraman")}
                 </Button>
                 <Button variant="outline" onClick={() => void navigate({ to: "/dashboard/telegram", search: {} })}>
-                  Bekor qilish
+                  {t("Bekor qilish")}
                 </Button>
               </div>
             </>
           ) : (
             <p className="text-sm text-muted-foreground">
-              Ulanish havolasi yaroqsiz yoki muddati tugagan. Telegram botga qaytib{" "}
-              <span className="font-medium">/start</span> yuboring va yangi havolani oling.
+              {t("Ulanish havolasi yaroqsiz yoki muddati tugagan. Telegram botga qaytib")}{" "}
+              <span className="font-medium">/start</span> {t("yuboring va yangi havolani oling.")}
             </p>
           )}
         </div>
@@ -131,7 +131,7 @@ function TelegramPage() {
           saving={settingsMutation.isPending}
           onSave={(values) => settingsMutation.mutate(values as never)}
           onUnlink={() => {
-            if (window.confirm("Telegramni uzishni tasdiqlaysizmi? Hisobotlar kelishi to‘xtaydi.")) {
+            if (window.confirm(t("Telegramni uzishni tasdiqlaysizmi? Hisobotlar kelishi to‘xtaydi."))) {
               unlinkMutation.mutate();
             }
           }}
@@ -139,11 +139,10 @@ function TelegramPage() {
         />
       ) : (
         <div className="clay-panel space-y-3 p-6">
-          <h2 className="text-lg font-semibold">⚪️ Ulanmagan</h2>
+          <h2 className="text-lg font-semibold">{t("⚪️ Ulanmagan")}</h2>
           <p className="text-sm text-muted-foreground">
-            Telegram botni oching, <span className="font-medium">/start</span> yuboring va{" "}
-            <span className="font-medium">“🔗 NEXORA CRM akkauntini ulash”</span> tugmasini bosing. Bot sizni shu sahifaga
-            qaytaradi. Parolingiz hech qachon Telegramda so‘ralmaydi.
+            {t("Telegram botni oching,")}{" "}<span className="font-medium">/start</span> {t("yuboring va")}{" "}
+            <span className="font-medium">{t("“🔗 NEXORA CRM akkauntini ulash”")}</span> {t("tugmasini bosing. Bot sizni shu sahifaga\n            qaytaradi. Parolingiz hech qachon Telegramda so‘ralmaydi.")}
           </p>
         </div>
       )}
@@ -191,30 +190,30 @@ function LinkedCard({
   return (
     <div className="clay-panel space-y-6 p-6">
       <div className="space-y-1">
-        <h2 className="text-lg font-semibold">🟢 Ulangan</h2>
+        <h2 className="text-lg font-semibold">{t("🟢 Ulangan")}</h2>
         <p className="text-sm text-muted-foreground">
-          {link.telegram_username ? `@${link.telegram_username}` : "Telegram akkaunt"} ·{" "}
-          {new Date(link.linked_at).toLocaleDateString("uz-UZ")} dan beri
+          {link.telegram_username ? `@${link.telegram_username}` : t("Telegram akkaunt")} ·{" "}
+          {new Date(link.linked_at).toLocaleDateString("uz-UZ")} {t("dan beri")}
         </p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <ToggleRow label="Kunlik hisobot" value={dailyReports} onChange={setDailyReports} />
+        <ToggleRow label={t("Kunlik hisobot")} value={dailyReports} onChange={setDailyReports} />
         <div className="space-y-2">
-          <Label htmlFor="report-time">Hisobot vaqti</Label>
+          <Label htmlFor="report-time">{t("Hisobot vaqti")}</Label>
           <Input id="report-time" type="time" value={reportTime} onChange={(e) => setReportTime(e.target.value)} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="timezone">Vaqt mintaqasi</Label>
+          <Label htmlFor="timezone">{t("Vaqt mintaqasi")}</Label>
           <Input id="timezone" value={timezone} onChange={(e) => setTimezone(e.target.value)} />
         </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <ToggleRow label="Yangi buyurtma bildirishnomasi" value={notifyNewOrder} onChange={setNotifyNewOrder} />
-        <ToggleRow label="To‘lov bildirishnomasi" value={notifyPayment} onChange={setNotifyPayment} />
-        <ToggleRow label="Muhim lead bildirishnomasi" value={notifyLead} onChange={setNotifyLead} />
-        <ToggleRow label="Ombor qoldig‘i bildirishnomasi" value={notifyLowStock} onChange={setNotifyLowStock} />
+        <ToggleRow label={t("Yangi buyurtma bildirishnomasi")} value={notifyNewOrder} onChange={setNotifyNewOrder} />
+        <ToggleRow label={t("To‘lov bildirishnomasi")} value={notifyPayment} onChange={setNotifyPayment} />
+        <ToggleRow label={t("Muhim lead bildirishnomasi")} value={notifyLead} onChange={setNotifyLead} />
+        <ToggleRow label={t("Ombor qoldig‘i bildirishnomasi")} value={notifyLowStock} onChange={setNotifyLowStock} />
       </div>
 
       <div className="flex flex-wrap gap-3">
@@ -232,10 +231,10 @@ function LinkedCard({
           }
           disabled={saving}
         >
-          {saving ? "Saqlanmoqda..." : "Saqlash"}
+          {saving ? t("Saqlanmoqda...") : t("Saqlash")}
         </Button>
         <Button variant="destructive" onClick={onUnlink} disabled={unlinking}>
-          {unlinking ? "Uzilmoqda..." : "Telegramni uzish"}
+          {unlinking ? t("Uzilmoqda...") : t("Telegramni uzish")}
         </Button>
       </div>
     </div>

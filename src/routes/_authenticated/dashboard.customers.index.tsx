@@ -20,17 +20,18 @@ import { crmLabel, CUSTOMER_SOURCES, CUSTOMER_STATUSES } from "@/lib/crm-core";
 import { listCrmCustomers } from "@/lib/customers.functions";
 import { getMyCrmConfig } from "@/lib/crm-config.functions";
 import { formatMoney } from "@/lib/types";
+import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/dashboard/customers/")({
   head: () => ({
     meta: [
-      { title: "Mijozlar — NEXORA CRM" },
+      { title: t("Mijozlar — NEXORA CRM") },
       {
         name: "description",
-        content: "Mijozlar bazasi: aloqa ma’lumotlari, holati, manbasi va sotib olish tarixi.",
+        content: t("Mijozlar bazasi: aloqa ma’lumotlari, holati, manbasi va sotib olish tarixi."),
       },
-      { property: "og:title", content: "Mijozlar — NEXORA CRM" },
-      { property: "og:description", content: "Har bir mijoz uchun to‘liq profil va tarix." },
+      { property: "og:title", content: t("Mijozlar — NEXORA CRM") },
+      { property: "og:description", content: t("Har bir mijoz uchun to‘liq profil va tarix.") },
     ],
   }),
   component: CustomersPage,
@@ -63,7 +64,7 @@ function CustomersPage() {
     <>
       <PageHeader
         title={term}
-        description="Qidiruv, filtr va saralash bilan bazani boshqaring."
+        description={t("Qidiruv, filtr va saralash bilan bazani boshqaring.")}
         actions={
           <Button
             size="sm"
@@ -73,7 +74,7 @@ function CustomersPage() {
               setOpen(true);
             }}
           >
-            <Plus className="size-4" /> Yangi
+            <Plus className="size-4" /> {t("Yangi")}
           </Button>
         }
       />
@@ -82,15 +83,15 @@ function CustomersPage() {
         <Input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Ism, telefon yoki email…"
+          placeholder={t("Ism, telefon yoki email…")}
           className="h-9 w-full sm:w-64"
         />
         <Select value={status} onValueChange={setStatus}>
           <SelectTrigger className="h-9 w-36">
-            <SelectValue placeholder="Holat" />
+            <SelectValue placeholder={t("Holat")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Barcha holat</SelectItem>
+            <SelectItem value="all">{t("Barcha holat")}</SelectItem>
             {CUSTOMER_STATUSES.map((value) => (
               <SelectItem key={value} value={value}>
                 {crmLabel(value)}
@@ -100,10 +101,10 @@ function CustomersPage() {
         </Select>
         <Select value={source} onValueChange={setSource}>
           <SelectTrigger className="h-9 w-36">
-            <SelectValue placeholder="Manba" />
+            <SelectValue placeholder={t("Manba")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Barcha manba</SelectItem>
+            <SelectItem value="all">{t("Barcha manba")}</SelectItem>
             {CUSTOMER_SOURCES.map((value) => (
               <SelectItem key={value} value={value}>
                 {crmLabel(value)}
@@ -113,10 +114,10 @@ function CustomersPage() {
         </Select>
         <Select value={operatorId} onValueChange={setOperatorId}>
           <SelectTrigger className="h-9 w-40">
-            <SelectValue placeholder="Mas’ul" />
+            <SelectValue placeholder={t("Mas’ul")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Barcha mas’ul</SelectItem>
+            <SelectItem value="all">{t("Barcha mas’ul")}</SelectItem>
             {(pickers.data?.operators ?? []).map((operator) => (
               <SelectItem key={operator.id} value={operator.id}>
                 {operator.full_name}
@@ -126,35 +127,35 @@ function CustomersPage() {
         </Select>
         <Select value={sort} onValueChange={(value) => setSort(value as typeof sort)}>
           <SelectTrigger className="h-9 w-40">
-            <SelectValue placeholder="Saralash" />
+            <SelectValue placeholder={t("Saralash")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="recent">Oxirgi aloqa</SelectItem>
-            <SelectItem value="name">Ism bo‘yicha</SelectItem>
-            <SelectItem value="spent">Xarid summasi</SelectItem>
+            <SelectItem value="recent">{t("Oxirgi aloqa")}</SelectItem>
+            <SelectItem value="name">{t("Ism bo‘yicha")}</SelectItem>
+            <SelectItem value="spent">{t("Xarid summasi")}</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       {query.isPending ? (
-        <LoadingState label="Mijozlar yuklanmoqda…" />
+        <LoadingState label={t("Mijozlar yuklanmoqda…")} />
       ) : query.error ? (
         <ErrorState error={query.error} onRetry={() => void query.refetch()} />
       ) : (query.data ?? []).length === 0 ? (
-        <EmptyState title="Mijoz topilmadi" description="Filtrni o‘zgartiring yoki yangi mijoz qo‘shing." />
+        <EmptyState title={t("Mijoz topilmadi")} description={t("Filtrni o‘zgartiring yoki yangi mijoz qo‘shing.")} />
       ) : (
         <div className="clay-panel overflow-x-auto p-2">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Ism</TableHead>
-                <TableHead>Aloqa</TableHead>
-                <TableHead>Holat</TableHead>
-                <TableHead>Manba</TableHead>
-                <TableHead>Buyurtma</TableHead>
-                <TableHead>Xarid</TableHead>
-                <TableHead>Mas’ul</TableHead>
-                <TableHead className="text-right">Amal</TableHead>
+                <TableHead>{t("Ism")}</TableHead>
+                <TableHead>{t("Aloqa")}</TableHead>
+                <TableHead>{t("Holat")}</TableHead>
+                <TableHead>{t("Manba")}</TableHead>
+                <TableHead>{t("Buyurtma")}</TableHead>
+                <TableHead>{t("Xarid")}</TableHead>
+                <TableHead>{t("Mas’ul")}</TableHead>
+                <TableHead className="text-right">{t("Amal")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -187,7 +188,7 @@ function CustomersPage() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        aria-label="Tahrirlash"
+                        aria-label={t("Tahrirlash")}
                         onClick={() => {
                           setEditing(row);
                           setOpen(true);
@@ -222,7 +223,7 @@ function CustomersPage() {
               }
             : undefined
         }
-        title={editing ? "Mijozni tahrirlash" : "Yangi mijoz"}
+        title={editing ? t("Mijozni tahrirlash") : t("Yangi mijoz")}
       />
     </>
   );

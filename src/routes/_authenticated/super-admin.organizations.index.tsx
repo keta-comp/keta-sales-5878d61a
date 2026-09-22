@@ -18,14 +18,15 @@ import { ErrorState, LoadingState, PageHeader } from "@/components/app/primitive
 import { DataTable, NoData, Panel, Pill, fmtDate, fmtNumber } from "@/components/app/super-admin-ui";
 import { downloadBase64Xlsx } from "@/components/app/super-admin-ui";
 import { exportPlatformExcel, listOrganizationsFn } from "@/lib/super-admin.functions";
+import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/super-admin/organizations/")({
   head: () => ({
     meta: [
-      { title: "Organizationlar — NEXORA CRM Control Center" },
-      { name: "description", content: "NEXORA CRM platformasidagi barcha bizneslar ro‘yxati, holati va faolligi." },
-      { property: "og:title", content: "Organizationlar — NEXORA CRM Control Center" },
-      { property: "og:description", content: "Barcha bizneslar: soha, foydalanuvchilar soni, holat va plan." },
+      { title: t("Organizationlar — NEXORA CRM Control Center") },
+      { name: "description", content: t("NEXORA CRM platformasidagi barcha bizneslar ro‘yxati, holati va faolligi.") },
+      { property: "og:title", content: t("Organizationlar — NEXORA CRM Control Center") },
+      { property: "og:description", content: t("Barcha bizneslar: soha, foydalanuvchilar soni, holat va plan.") },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -55,15 +56,15 @@ function OrganizationsPage() {
       const file = await exportFn({ data: { kind: "organizations" } });
       downloadBase64Xlsx(file.base64, file.filename);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Eksport qilinmadi");
+      toast.error(e instanceof Error ? e.message : t("Eksport qilinmadi"));
     }
   };
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Organizationlar"
-        description="NEXORA CRM'dan foydalanayotgan barcha bizneslar."
+        title={t("Organizationlar")}
+        description={t("NEXORA CRM'dan foydalanayotgan barcha bizneslar.")}
         actions={
           <Button variant="outline" size="sm" onClick={() => void exportExcel()}>
             <Download className="size-4" /> Excel
@@ -76,38 +77,38 @@ function OrganizationsPage() {
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Nom, egasi yoki email"
+            placeholder={t("Nom, egasi yoki email")}
           />
           <Select value={industry} onValueChange={setIndustry}>
-            <SelectTrigger><SelectValue placeholder="Soha" /></SelectTrigger>
+            <SelectTrigger><SelectValue placeholder={t("Soha")} /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Barcha sohalar</SelectItem>
+              <SelectItem value="all">{t("Barcha sohalar")}</SelectItem>
               {(data?.industries ?? []).map((i) => (
                 <SelectItem key={i} value={i}>{i}</SelectItem>
               ))}
             </SelectContent>
           </Select>
           <Select value={plan} onValueChange={setPlan}>
-            <SelectTrigger><SelectValue placeholder="Plan" /></SelectTrigger>
+            <SelectTrigger><SelectValue placeholder={t("Plan")} /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Barcha planlar</SelectItem>
+              <SelectItem value="all">{t("Barcha planlar")}</SelectItem>
               {PLANS.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={status} onValueChange={setStatus}>
-            <SelectTrigger><SelectValue placeholder="Holat" /></SelectTrigger>
+            <SelectTrigger><SelectValue placeholder={t("Holat")} /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Barcha holatlar</SelectItem>
+              <SelectItem value="all">{t("Barcha holatlar")}</SelectItem>
               {STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={sort} onValueChange={setSort}>
-            <SelectTrigger><SelectValue placeholder="Saralash" /></SelectTrigger>
+            <SelectTrigger><SelectValue placeholder={t("Saralash")} /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="newest">Eng yangi</SelectItem>
-              <SelectItem value="oldest">Eng eski</SelectItem>
-              <SelectItem value="active">Eng faol</SelectItem>
-              <SelectItem value="users">Ko‘p foydalanuvchi</SelectItem>
+              <SelectItem value="newest">{t("Eng yangi")}</SelectItem>
+              <SelectItem value="oldest">{t("Eng eski")}</SelectItem>
+              <SelectItem value="active">{t("Eng faol")}</SelectItem>
+              <SelectItem value="users">{t("Ko‘p foydalanuvchi")}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -119,7 +120,7 @@ function OrganizationsPage() {
         ) : error ? (
           <ErrorState error={error} onRetry={() => void refetch()} />
         ) : (data?.rows ?? []).length === 0 ? (
-          <NoData label="Organization topilmadi" />
+          <NoData label={t("Organization topilmadi")} />
         ) : (
           <DataTable
             columns={["Organization", "Egasi", "Soha", "Foydalanuvchi", "Yaratilgan", "Oxirgi faollik", "Plan", "Holat"]}

@@ -12,14 +12,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { ErrorState, LoadingState, PageHeader } from "@/components/app/primitives";
 import { Panel } from "@/components/app/super-admin-ui";
 import { getSystemSettings, saveSystemSettings } from "@/lib/super-admin.functions";
+import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/super-admin/settings")({
   head: () => ({
     meta: [
-      { title: "Tizim sozlamalari — NEXORA CRM Control Center" },
-      { name: "description", content: "Platforma nomi, qo‘llab-quvvatlash aloqasi, standart vaqt mintaqasi va texnik ishlar rejimi." },
-      { property: "og:title", content: "Tizim sozlamalari — NEXORA CRM Control Center" },
-      { property: "og:description", content: "Platforma darajasidagi asosiy sozlamalar." },
+      { title: t("Tizim sozlamalari — NEXORA CRM Control Center") },
+      { name: "description", content: t("Platforma nomi, qo‘llab-quvvatlash aloqasi, standart vaqt mintaqasi va texnik ishlar rejimi.") },
+      { property: "og:title", content: t("Tizim sozlamalari — NEXORA CRM Control Center") },
+      { property: "og:description", content: t("Platforma darajasidagi asosiy sozlamalar.") },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -80,10 +81,10 @@ function SettingsPage() {
         },
       }),
     onSuccess: () => {
-      toast.success("Sozlamalar saqlandi");
+      toast.success(t("Sozlamalar saqlandi"));
       void queryClient.invalidateQueries({ queryKey: ["super-admin-settings"] });
     },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Saqlanmadi"),
+    onError: (e) => toast.error(e instanceof Error ? e.message : t("Saqlanmadi")),
   });
 
   if (isPending) return <LoadingState />;
@@ -94,54 +95,54 @@ function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Tizim sozlamalari" description="Platforma darajasidagi asosiy sozlamalar." />
+      <PageHeader title={t("Tizim sozlamalari")} description={t("Platforma darajasidagi asosiy sozlamalar.")} />
 
-      <Panel title="Asosiy">
+      <Panel title={t("Asosiy")}>
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="platform_name">Platforma nomi</Label>
+            <Label htmlFor="platform_name">{t("Platforma nomi")}</Label>
             <Input id="platform_name" value={form.platform_name} onChange={(e) => set("platform_name", e.target.value)} />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="support_email">Qo‘llab-quvvatlash emaili</Label>
+            <Label htmlFor="support_email">{t("Qo‘llab-quvvatlash emaili")}</Label>
             <Input id="support_email" type="email" value={form.support_email} onChange={(e) => set("support_email", e.target.value)} />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="support_phone">Qo‘llab-quvvatlash telefoni</Label>
+            <Label htmlFor="support_phone">{t("Qo‘llab-quvvatlash telefoni")}</Label>
             <Input id="support_phone" value={form.support_phone} onChange={(e) => set("support_phone", e.target.value)} />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="default_timezone">Standart vaqt mintaqasi</Label>
+            <Label htmlFor="default_timezone">{t("Standart vaqt mintaqasi")}</Label>
             <Input id="default_timezone" value={form.default_timezone} onChange={(e) => set("default_timezone", e.target.value)} />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="default_currency">Standart valyuta</Label>
+            <Label htmlFor="default_currency">{t("Standart valyuta")}</Label>
             <Input id="default_currency" value={form.default_currency} onChange={(e) => set("default_currency", e.target.value)} />
           </div>
         </div>
       </Panel>
 
-      <Panel title="Texnik ishlar rejimi" description="Yoqilganda oddiy foydalanuvchilar CRMga kira olmaydi. Super Admin kirishi saqlanadi.">
+      <Panel title={t("Texnik ishlar rejimi")} description={t("Yoqilganda oddiy foydalanuvchilar CRMga kira olmaydi. Super Admin kirishi saqlanadi.")}>
         <div className="space-y-4">
           <div className="flex items-center justify-between gap-3">
-            <span className="text-sm">{form.maintenance_mode ? "Yoqilgan" : "O‘chirilgan"}</span>
+            <span className="text-sm">{form.maintenance_mode ? t("Yoqilgan") : t("O‘chirilgan")}</span>
             <Switch checked={form.maintenance_mode} onCheckedChange={(v) => set("maintenance_mode", v)} />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="maintenance_message">Foydalanuvchilarga xabar</Label>
+            <Label htmlFor="maintenance_message">{t("Foydalanuvchilarga xabar")}</Label>
             <Textarea
               id="maintenance_message"
               rows={3}
               value={form.maintenance_message}
               onChange={(e) => set("maintenance_message", e.target.value)}
-              placeholder="Tizim texnik ishlar sababli vaqtincha mavjud emas."
+              placeholder={t("Tizim texnik ishlar sababli vaqtincha mavjud emas.")}
             />
           </div>
         </div>
       </Panel>
 
       <div>
-        <Button disabled={save.isPending} onClick={() => save.mutate()}>Saqlash</Button>
+        <Button disabled={save.isPending} onClick={() => save.mutate()}>{t("Saqlash")}</Button>
       </div>
     </div>
   );

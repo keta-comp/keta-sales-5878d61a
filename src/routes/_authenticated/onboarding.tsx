@@ -11,10 +11,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { getMyCrmConfig, generateCrmConfig } from "@/lib/crm-config.functions";
 import { INDUSTRIES } from "@/lib/crm-config";
 import { cn } from "@/lib/utils";
+import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/onboarding")({
   head: () => ({
-    meta: [{ title: "CRMni sozlash — NEXORA CRM" }],
+    meta: [{ title: t("CRMni sozlash — NEXORA CRM") }],
   }),
   component: Onboarding,
 });
@@ -86,11 +87,11 @@ function Onboarding() {
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
         <div className="flex items-center gap-3">
           <span className="clay-raised grid size-12 place-items-center overflow-hidden rounded-2xl bg-card">
-            <img src={logoAsset.url} alt="NEXORA CRM logotipi" className="size-9 object-contain" />
+            <img src={logoAsset.url} alt={t("NEXORA CRM logotipi")} className="size-9 object-contain" />
           </span>
           <div>
             <p className="font-display text-lg font-semibold">NEXORA CRM</p>
-            <p className="text-sm text-muted-foreground">O‘z CRMingizni sozlang</p>
+            <p className="text-sm text-muted-foreground">{t("O‘z CRMingizni sozlang")}</p>
           </div>
         </div>
 
@@ -121,26 +122,26 @@ function Onboarding() {
         {step === 1 && (
           <section className="clay-panel flex flex-col gap-5 p-6">
             <div>
-              <h1 className="font-display text-xl font-semibold">Biznesingiz haqida ma'lumot bering</h1>
+              <h1 className="font-display text-xl font-semibold">{t("Biznesingiz haqida ma'lumot bering")}</h1>
               <p className="mt-1 text-sm text-muted-foreground">
-                Bir daqiqada CRMni sizning biznesingizga moslaymiz.
+                {t("Bir daqiqada CRMni sizning biznesingizga moslaymiz.")}
               </p>
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="biznes-nomi">Biznes nomi</Label>
+              <Label htmlFor="biznes-nomi">{t("Biznes nomi")}</Label>
               <Input
                 id="biznes-nomi"
-                placeholder="Masalan: Nexora stomatologiya klinikasi"
+                placeholder={t("Masalan: Nexora stomatologiya klinikasi")}
                 value={businessName}
                 onChange={(e) => setBusinessName(e.target.value)}
               />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="biznes-tavsif">Biznesingiz haqida qisqacha ma'lumot bering</Label>
+              <Label htmlFor="biznes-tavsif">{t("Biznesingiz haqida qisqacha ma'lumot bering")}</Label>
               <Textarea
                 id="biznes-tavsif"
                 rows={5}
-                placeholder="Masalan: Biz stomatologiya klinikasimiz. 3 ta shifokorimiz bor va mijozlar asosan Telegram orqali murojaat qiladi."
+                placeholder={t("Masalan: Biz stomatologiya klinikasimiz. 3 ta shifokorimiz bor va mijozlar asosan Telegram orqali murojaat qiladi.")}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
               />
@@ -150,7 +151,7 @@ function Onboarding() {
               disabled={description.trim().length < 10}
               onClick={() => setStep(2)}
             >
-              Davom etish
+              {t("Davom etish")}
             </Button>
           </section>
         )}
@@ -158,9 +159,9 @@ function Onboarding() {
         {step === 2 && (
           <section className="clay-panel flex flex-col gap-5 p-6">
             <div>
-              <h1 className="font-display text-xl font-semibold">Biznesingiz qaysi sohada?</h1>
+              <h1 className="font-display text-xl font-semibold">{t("Biznesingiz qaysi sohada?")}</h1>
               <p className="mt-1 text-sm text-muted-foreground">
-                Shunga qarab modullar, pipeline va maydonlar tayyorlanadi.
+                {t("Shunga qarab modullar, pipeline va maydonlar tayyorlanadi.")}
               </p>
             </div>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -175,16 +176,16 @@ function Onboarding() {
                   )}
                 >
                   <span className="text-2xl">{option.emoji}</span>
-                  {option.label}
+                  {t(option.label)}
                 </button>
               ))}
             </div>
             {industry === "boshqa" && (
               <div className="flex flex-col gap-2">
-                <Label htmlFor="soha-boshqa">Sohangizni yozing</Label>
+                <Label htmlFor="soha-boshqa">{t("Sohangizni yozing")}</Label>
                 <Input
                   id="soha-boshqa"
-                  placeholder="Masalan: Veterinariya klinika"
+                  placeholder={t("Masalan: Veterinariya klinika")}
                   value={otherLabel}
                   onChange={(e) => setOtherLabel(e.target.value)}
                 />
@@ -193,13 +194,13 @@ function Onboarding() {
             {error && <p className="text-sm text-destructive">{error}</p>}
             <div className="flex items-center justify-between">
               <Button variant="outline" onClick={() => setStep(1)}>
-                Orqaga
+                {t("Orqaga")}
               </Button>
               <Button
                 disabled={!industry || (industry === "boshqa" && otherLabel.trim().length < 3)}
                 onClick={() => void startGeneration()}
               >
-                CRM yaratish
+                {t("CRM yaratish")}
               </Button>
             </div>
           </section>
@@ -227,16 +228,16 @@ function Onboarding() {
           <section className="clay-panel flex flex-col items-center gap-6 p-10 text-center">
             <span className="clay-raised grid size-16 place-items-center rounded-full bg-card text-3xl">🚀</span>
             <div>
-              <h1 className="font-display text-xl font-semibold">CRM tayyor!</h1>
+              <h1 className="font-display text-xl font-semibold">{t("CRM tayyor!")}</h1>
               <p className="mt-1 text-sm text-muted-foreground">
-                Dashboard, modullar va pipeline biznesingizga moslab tayyorlandi.
+                {t("Dashboard, modullar va pipeline biznesingizga moslab tayyorlandi.")}
               </p>
             </div>
             <Button size="lg" onClick={() => navigate({ to: "/dashboard" })}>
-              CRMga kirish
+              {t("CRMga kirish")}
             </Button>
             <Link to="/dashboard/crm-builder" className="text-xs text-primary hover:underline">
-              Keyinroq AI bilan CRMni moslash
+              {t("Keyinroq AI bilan CRMni moslash")}
             </Link>
           </section>
         )}

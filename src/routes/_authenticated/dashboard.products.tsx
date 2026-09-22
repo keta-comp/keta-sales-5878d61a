@@ -19,14 +19,15 @@ import {
   saveProduct,
 } from "@/lib/catalog.functions";
 import { formatMoney, stockState } from "@/lib/types";
+import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/dashboard/products")({
   head: () => ({
     meta: [
-      { title: "Mahsulotlar — NEXORA CRM" },
-      { name: "description", content: "AI savdo agentingiz taklif beradigan jonli mahsulotlar katalogi." },
-      { property: "og:title", content: "Mahsulotlar — NEXORA CRM" },
-      { property: "og:description", content: "AI savdo agentini boshqaradigan katalog va narxlar." },
+      { title: t("Mahsulotlar — NEXORA CRM") },
+      { name: "description", content: t("AI savdo agentingiz taklif beradigan jonli mahsulotlar katalogi.") },
+      { property: "og:title", content: t("Mahsulotlar — NEXORA CRM") },
+      { property: "og:description", content: t("AI savdo agentini boshqaradigan katalog va narxlar.") },
     ],
   }),
   component: ProductsPage,
@@ -98,20 +99,20 @@ function ProductsPage() {
         },
       }),
     onSuccess: () => {
-      toast.success("Mahsulot saqlandi");
+      toast.success(t("Mahsulot saqlandi"));
       setDraft(null);
       void queryClient.invalidateQueries({ queryKey: ["products"] });
     },
-    onError: (error: unknown) => toast.error(error instanceof Error ? error.message : "Saqlash amalga oshmadi"),
+    onError: (error: unknown) => toast.error(error instanceof Error ? error.message : t("Saqlash amalga oshmadi")),
   });
 
   const removeMutation = useMutation({
     mutationFn: (id: string) => remove({ data: { id } }),
     onSuccess: () => {
-      toast.success("Mahsulot o'chirildi");
+      toast.success(t("Mahsulot o'chirildi"));
       void queryClient.invalidateQueries({ queryKey: ["products"] });
     },
-    onError: (error: unknown) => toast.error(error instanceof Error ? error.message : "O'chirish amalga oshmadi"),
+    onError: (error: unknown) => toast.error(error instanceof Error ? error.message : t("O'chirish amalga oshmadi")),
   });
 
   const categoryMutation = useMutation({
@@ -120,35 +121,35 @@ function ProductsPage() {
       setNewCategory("");
       void queryClient.invalidateQueries({ queryKey: ["categories"] });
     },
-    onError: (error: unknown) => toast.error(error instanceof Error ? error.message : "Kategoriya qo'shilmadi"),
+    onError: (error: unknown) => toast.error(error instanceof Error ? error.message : t("Kategoriya qo'shilmadi")),
   });
 
   return (
     <>
       <PageHeader
-        title="Mahsulotlar"
-        description="AI agent faqat shu yerdagi mahsulotlarni, shu narx va zaxira bo'yicha sotadi."
-        actions={<Button onClick={() => setDraft(EMPTY)}>Yangi mahsulot</Button>}
+        title={t("Mahsulotlar")}
+        description={t("AI agent faqat shu yerdagi mahsulotlarni, shu narx va zaxira bo'yicha sotadi.")}
+        actions={<Button onClick={() => setDraft(EMPTY)}>{t("Yangi mahsulot")}</Button>}
       />
 
       <div className="flex flex-wrap items-end gap-3">
         <div className="min-w-48 flex-1">
-          <Label htmlFor="p-search">Qidiruv</Label>
+          <Label htmlFor="p-search">{t("Qidiruv")}</Label>
           <Input
             id="p-search"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Nomi yoki SKU"
+            placeholder={t("Nomi yoki SKU")}
           />
         </div>
         <div className="w-52">
-          <Label>Kategoriya</Label>
+          <Label>{t("Kategoriya")}</Label>
           <Select value={categoryId} onValueChange={setCategoryId}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Barcha kategoriyalar</SelectItem>
+              <SelectItem value="all">{t("Barcha kategoriyalar")}</SelectItem>
               {(categories.data ?? []).map((category) => (
                 <SelectItem key={category.id} value={category.id}>
                   {category.name}
@@ -165,11 +166,11 @@ function ProductsPage() {
           }}
         >
           <div>
-            <Label htmlFor="new-cat">Yangi kategoriya</Label>
+            <Label htmlFor="new-cat">{t("Yangi kategoriya")}</Label>
             <Input id="new-cat" value={newCategory} onChange={(event) => setNewCategory(event.target.value)} />
           </div>
           <Button variant="outline" type="submit">
-            Qo'shish
+            {t("Qo'shish")}
           </Button>
         </form>
       </div>
@@ -180,20 +181,20 @@ function ProductsPage() {
         <ErrorState error={products.error} onRetry={() => void products.refetch()} />
       ) : products.data.length === 0 ? (
         <EmptyState
-          title="Hozircha mahsulot yo'q"
-          description="AI agent haqiqiy narx va zaxira asosida taklif berishi uchun katalogingizni qo'shing."
-          action={<Button onClick={() => setDraft(EMPTY)}>Yangi mahsulot</Button>}
+          title={t("Hozircha mahsulot yo'q")}
+          description={t("AI agent haqiqiy narx va zaxira asosida taklif berishi uchun katalogingizni qo'shing.")}
+          action={<Button onClick={() => setDraft(EMPTY)}>{t("Yangi mahsulot")}</Button>}
         />
       ) : (
         <div className="clay-panel clay-inset overflow-x-auto rounded-3xl p-2">
           <table className="w-full text-sm">
             <thead className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
-                <th className="px-4 py-3">Mahsulot</th>
-                <th className="px-4 py-3">Kategoriya</th>
-                <th className="px-4 py-3">Narx</th>
-                <th className="px-4 py-3">Zaxira</th>
-                <th className="px-4 py-3">Mavjudlik</th>
+                <th className="px-4 py-3">{t("Mahsulot")}</th>
+                <th className="px-4 py-3">{t("Kategoriya")}</th>
+                <th className="px-4 py-3">{t("Narx")}</th>
+                <th className="px-4 py-3">{t("Zaxira")}</th>
+                <th className="px-4 py-3">{t("Mavjudlik")}</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
@@ -210,7 +211,7 @@ function ProductsPage() {
                     <td className="px-4 py-3 tabular-nums">{formatMoney(product.price)}</td>
                     <td className="px-4 py-3 tabular-nums">
                       {product.stock_quantity}
-                      <span className="text-xs text-muted-foreground"> ({product.reserved_quantity} band)</span>
+                      <span className="text-xs text-muted-foreground"> ({product.reserved_quantity} {t("band)")}</span>
                     </td>
                     <td className="px-4 py-3">
                       <StatusBadge
@@ -241,10 +242,10 @@ function ProductsPage() {
                             })
                           }
                         >
-                          Tahrirlash
+                          {t("Tahrirlash")}
                         </Button>
                         <Button variant="ghost" size="sm" onClick={() => removeMutation.mutate(product.id)}>
-                          O'chirish
+                          {t("O'chirish")}
                         </Button>
                       </div>
                     </td>
@@ -259,7 +260,7 @@ function ProductsPage() {
       <Sheet open={Boolean(draft)} onOpenChange={(open) => (open ? null : setDraft(null))}>
         <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
           <SheetHeader>
-            <SheetTitle>{draft?.id ? "Mahsulotni tahrirlash" : "Yangi mahsulot"}</SheetTitle>
+            <SheetTitle>{draft?.id ? t("Mahsulotni tahrirlash") : t("Yangi mahsulot")}</SheetTitle>
           </SheetHeader>
           {draft ? (
             <form
@@ -271,7 +272,7 @@ function ProductsPage() {
             >
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
-                  <Label htmlFor="d-sku">SKU</Label>
+                  <Label htmlFor="d-sku">{t("SKU")}</Label>
                   <Input
                     id="d-sku"
                     value={draft.sku}
@@ -280,7 +281,7 @@ function ProductsPage() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="d-name">Nomi</Label>
+                  <Label htmlFor="d-name">{t("Nomi")}</Label>
                   <Input
                     id="d-name"
                     value={draft.name}
@@ -289,7 +290,7 @@ function ProductsPage() {
                   />
                 </div>
                 <div className="sm:col-span-2">
-                  <Label>Kategoriya</Label>
+                  <Label>{t("Kategoriya")}</Label>
                   <Select
                     value={draft.category_id}
                     onValueChange={(value) => setDraft({ ...draft, category_id: value })}
@@ -298,7 +299,7 @@ function ProductsPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="none">Kategoriyasiz</SelectItem>
+                      <SelectItem value="none">{t("Kategoriyasiz")}</SelectItem>
                       {(categories.data ?? []).map((category) => (
                         <SelectItem key={category.id} value={category.id}>
                           {category.name}
@@ -308,7 +309,7 @@ function ProductsPage() {
                   </Select>
                 </div>
                 <div>
-                  <Label htmlFor="d-price">Narx</Label>
+                  <Label htmlFor="d-price">{t("Narx")}</Label>
                   <Input
                     id="d-price"
                     type="number"
@@ -318,7 +319,7 @@ function ProductsPage() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="d-stock">Zaxira</Label>
+                  <Label htmlFor="d-stock">{t("Zaxira")}</Label>
                   <Input
                     id="d-stock"
                     type="number"
@@ -328,7 +329,7 @@ function ProductsPage() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="d-threshold">Kam zaxira ogohlantirishi</Label>
+                  <Label htmlFor="d-threshold">{t("Kam zaxira ogohlantirishi")}</Label>
                   <Input
                     id="d-threshold"
                     type="number"
@@ -338,7 +339,7 @@ function ProductsPage() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="d-tags">Teglar (vergul bilan ajrating)</Label>
+                  <Label htmlFor="d-tags">{t("Teglar (vergul bilan ajrating)")}</Label>
                   <Input
                     id="d-tags"
                     value={draft.tags}
@@ -346,7 +347,7 @@ function ProductsPage() {
                   />
                 </div>
                 <div className="sm:col-span-2">
-                  <Label htmlFor="d-desc">AI foydalanadigan tavsif</Label>
+                  <Label htmlFor="d-desc">{t("AI foydalanadigan tavsif")}</Label>
                   <Textarea
                     id="d-desc"
                     rows={4}
@@ -356,7 +357,7 @@ function ProductsPage() {
                 </div>
               </div>
               <Button type="submit" className="w-full" disabled={saveMutation.isPending}>
-                Mahsulotni saqlash
+                {t("Mahsulotni saqlash")}
               </Button>
             </form>
           ) : null}
