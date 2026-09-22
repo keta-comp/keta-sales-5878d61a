@@ -559,12 +559,12 @@ export const exportPlatformExcel = createServerFn({ method: "POST" })
           {
             name: "Umumiy",
             rows: [
-              { Ko‘rsatkich: "Yangi organizationlar", Qiymat: report.newOrganizations },
-              { Ko‘rsatkich: "Yangi foydalanuvchilar", Qiymat: report.newUsers },
-              { Ko‘rsatkich: "Faol organizationlar", Qiymat: report.activeOrganizations },
-              { Ko‘rsatkich: "Faol foydalanuvchilar", Qiymat: report.activeUsers },
-              { Ko‘rsatkich: "Retention %", Qiymat: report.retention ?? "ma’lumot yetarli emas" },
-              { Ko‘rsatkich: "Churn %", Qiymat: report.churn ?? "ma’lumot yetarli emas" },
+              { "Ko‘rsatkich": "Yangi organizationlar", Qiymat: report.newOrganizations },
+              { "Ko‘rsatkich": "Yangi foydalanuvchilar", Qiymat: report.newUsers },
+              { "Ko‘rsatkich": "Faol organizationlar", Qiymat: report.activeOrganizations },
+              { "Ko‘rsatkich": "Faol foydalanuvchilar", Qiymat: report.activeUsers },
+              { "Ko‘rsatkich": "Retention %", Qiymat: report.retention ?? "ma’lumot yetarli emas" },
+              { "Ko‘rsatkich": "Churn %", Qiymat: report.churn ?? "ma’lumot yetarli emas" },
             ],
           },
           { name: "O‘sish", rows: report.growth },
@@ -580,9 +580,9 @@ export const exportPlatformExcel = createServerFn({ method: "POST" })
         {
           name: "Umumiy",
           rows: [
-            { Ko‘rsatkich: "Jami so‘rovlar", Qiymat: usage.totals.total },
-            { Ko‘rsatkich: "Bugun", Qiymat: usage.totals.today },
-            { Ko‘rsatkich: "Bu oy", Qiymat: usage.totals.thisMonth },
+            { "Ko‘rsatkich": "Jami so‘rovlar", Qiymat: usage.totals.total },
+            { "Ko‘rsatkich": "Bugun", Qiymat: usage.totals.today },
+            { "Ko‘rsatkich": "Bu oy", Qiymat: usage.totals.thisMonth },
           ],
         },
         {
