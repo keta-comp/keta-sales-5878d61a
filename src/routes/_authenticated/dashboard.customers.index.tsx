@@ -117,7 +117,7 @@ function CustomersPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Barcha mas’ul</SelectItem>
-            {(pickers.operators ?? []).map((operator) => (
+            {(pickers.data?.operators ?? []).map((operator) => (
               <SelectItem key={operator.id} value={operator.id}>
                 {operator.full_name}
               </SelectItem>
