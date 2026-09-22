@@ -17,19 +17,39 @@ export function createGeminiProvider(apiKey: string) {
   });
 }
 
+/** OpenRouter provider (self-hosted mode) — OpenAI-compatible, keeps "vendor/model" ids. */
+export function createOpenRouterProvider(apiKey: string) {
+  return createOpenAICompatible({
+    name: "openrouter",
+    baseURL: "https://openrouter.ai/api/v1",
+    headers: { Authorization: `Bearer ${apiKey}` },
+  });
+}
+
 export type AiRuntime = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   model: (id: string) => any;
   defaultModel: string;
-  backend: "gemini" | "lovable";
+  backend: "openrouter" | "gemini" | "lovable";
 };
 
 /**
  * AI runtime for the sales agent.
- * - GEMINI_API_KEY set  → direct Google Gemini (self-hosted, independent mode).
- * - otherwise           → Lovable AI Gateway (LOVABLE_API_KEY).
+ * - OPENROUTER_API_KEY set → OpenRouter (self-hosted, independent mode).
+ * - GEMINI_API_KEY set     → direct Google Gemini (self-hosted, independent mode).
+ * - otherwise              → Lovable AI Gateway (LOVABLE_API_KEY).
  */
 export function resolveAiRuntime(): AiRuntime | { error: string } {
+  const openRouterKey = process.env["OPENROUTER_API_KEY"];
+  if (openRouterKey) {
+    const provider = createOpenRouterProvider(openRouterKey);
+    return {
+      backend: "openrouter",
+      // OpenRouter uses "vendor/model" ids; override via OPENROUTER_MODEL.
+      defaultModel: process.env["OPENROUTER_MODEL"] ?? "google/gemini-2.5-flash",
+      model: (id: string) => provider(id.includes("/") ? id : `google/${id}`),
+    };
+  }
   const geminiKey = process.env["GEMINI_API_KEY"];
   if (geminiKey) {
     const provider = createGeminiProvider(geminiKey);
@@ -41,7 +61,7 @@ export function resolveAiRuntime(): AiRuntime | { error: string } {
     };
   }
   const lovableKey = process.env["LOVABLE_API_KEY"];
-  if (!lovableKey) return { error: "GEMINI_API_KEY (yoki LOVABLE_API_KEY) sozlanmagan" };
+  if (!lovableKey) return { error: "OPENROUTER_API_KEY yoki GEMINI_API_KEY (yoki LOVABLE_API_KEY) sozlanmagan" };
   const provider = createLovableAiGatewayProvider(lovableKey);
   return {
     backend: "lovable",
