@@ -167,7 +167,7 @@ function Overview() {
                 className="clay-inset clay-hover flex items-center justify-between gap-3 rounded-2xl px-4 py-3 text-left"
               >
                 <span className="text-sm">
-                  <span className="font-semibold tabular-nums">{todo.count}</span> ta {t(todo.label)}
+                  <span className="font-semibold tabular-nums">{todo.count}</span>{" "}{t("ta")} {t(todo.label)}
                 </span>
                 <ArrowRight className="size-4 shrink-0 text-muted-foreground" />
               </button>
