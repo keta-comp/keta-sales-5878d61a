@@ -21,16 +21,16 @@ import { requireBusinessId } from "./tenant.server";
 function normalizeField(raw: unknown): CrmField | null {
   if (!raw || typeof raw !== "object") return null;
   const r = raw as Record<string, unknown>;
-  if (typeof r.key !== "string" || !r.key.trim()) return null;
+  if (typeof r["key"] !== "string" || !r["key"].trim()) return null;
   const types = ["text", "phone", "number", "money", "date", "select", "textarea"] as const;
-  const type = types.includes(r.type as (typeof types)[number]) ? (r.type as CrmField["type"]) : "text";
+  const type = types.includes(r["type"] as (typeof types)[number]) ? (r["type"] as CrmField["type"]) : "text";
   return {
-    key: r.key.trim(),
-    label: typeof r.label === "string" && r.label.trim() ? r.label : r.key,
+    key: r["key"].trim(),
+    label: typeof r["label"] === "string" && r["label"].trim() ? r["label"] : r["key"],
     type,
-    required: r.required === true,
-    ...(Array.isArray(r.options)
-      ? { options: r.options.filter((o) => typeof o === "string") as string[] }
+    required: r["required"] === true,
+    ...(Array.isArray(r["options"])
+      ? { options: r["options"].filter((o) => typeof o === "string") as string[] }
       : {}),
   };
 }
@@ -38,16 +38,16 @@ function normalizeField(raw: unknown): CrmField | null {
 function normalizeModule(raw: unknown): CrmModule | null {
   if (!raw || typeof raw !== "object") return null;
   const r = raw as Record<string, unknown>;
-  if (typeof r.key !== "string" || !r.key.trim()) return null;
+  if (typeof r["key"] !== "string" || !r["key"].trim()) return null;
   const module: CrmModule = {
-    key: r.key.trim(),
-    label: typeof r.label === "string" && r.label.trim() ? r.label : r.key,
+    key: r["key"].trim(),
+    label: typeof r["label"] === "string" && r["label"].trim() ? r["label"] : r["key"],
   };
-  if (typeof r.icon === "string") module.icon = r.icon;
-  if (typeof r.link === "string" && r.link.startsWith("/dashboard")) module.link = r.link as CrmModule["link"];
-  if (r.pipeline === true) module.pipeline = true;
-  if (Array.isArray(r.fields)) {
-    const fields = r.fields.map(normalizeField).filter((f): f is CrmField => f !== null);
+  if (typeof r["icon"] === "string") module.icon = r["icon"];
+  if (typeof r["link"] === "string" && r["link"].startsWith("/dashboard")) module.link = r["link"] as CrmModule["link"];
+  if (r["pipeline"] === true) module.pipeline = true;
+  if (Array.isArray(r["fields"])) {
+    const fields = r["fields"].map(normalizeField).filter((f): f is CrmField => f !== null);
     if (fields.length) module.fields = fields;
   }
   return module;
@@ -66,16 +66,16 @@ function normalizeWidget(raw: unknown, fallbackKey: string): CrmWidget | null {
     "legacy_hot_leads",
     "legacy_handoffs",
   ] as const;
-  if (typeof r.kind !== "string" || !kinds.includes(r.kind as (typeof kinds)[number])) return null;
+  if (typeof r["kind"] !== "string" || !kinds.includes(r["kind"] as (typeof kinds)[number])) return null;
   const widget: CrmWidget = {
-    key: typeof r.key === "string" && r.key.trim() ? r.key : fallbackKey,
-    label: typeof r.label === "string" && r.label.trim() ? r.label : fallbackKey,
-    kind: r.kind as CrmWidget["kind"],
+    key: typeof r["key"] === "string" && r["key"].trim() ? r["key"] : fallbackKey,
+    label: typeof r["label"] === "string" && r["label"].trim() ? r["label"] : fallbackKey,
+    kind: r["kind"] as CrmWidget["kind"],
   };
-  if (typeof r.moduleKey === "string") widget.moduleKey = r.moduleKey;
-  if (typeof r.fieldKey === "string") widget.fieldKey = r.fieldKey;
-  if (r.where && typeof r.where === "object") {
-    const w = r.where as Record<string, unknown>;
+  if (typeof r["moduleKey"] === "string") widget.moduleKey = r["moduleKey"];
+  if (typeof r["fieldKey"] === "string") widget.fieldKey = r["fieldKey"];
+  if (r["where"] && typeof r["where"] === "object") {
+    const w = r["where"] as Record<string, unknown>;
     if (typeof w.field === "string" && typeof w.value === "string") {
       widget.where = { field: w.field, value: w.value };
     }
@@ -88,28 +88,28 @@ export function normalizeConfig(raw: unknown, preset: CrmConfigData): CrmConfigD
   if (!raw || typeof raw !== "object") return preset;
   const r = raw as Record<string, unknown>;
 
-  const modules = Array.isArray(r.modules)
-    ? (r.modules.map(normalizeModule).filter((m): m is CrmModule => m !== null))
+  const modules = Array.isArray(r["modules"])
+    ? (r["modules"].map(normalizeModule).filter((m): m is CrmModule => m !== null))
     : [];
-  const pipelineStages = Array.isArray(r.pipelineStages)
-    ? r.pipelineStages.filter((s): s is string => typeof s === "string" && s.trim().length > 0)
+  const pipelineStages = Array.isArray(r["pipelineStages"])
+    ? r["pipelineStages"].filter((s): s is string => typeof s === "string" && s.trim().length > 0)
     : [];
-  const widgets = Array.isArray(r.dashboardWidgets)
-    ? (r.dashboardWidgets
+  const widgets = Array.isArray(r["dashboardWidgets"])
+    ? (r["dashboardWidgets"]
         .map((w, i) => normalizeWidget(w, `widget_${i + 1}`))
         .filter((w): w is CrmWidget => w !== null))
     : [];
-  const automations = Array.isArray(r.automations)
-    ? r.automations.filter((a): a is string => typeof a === "string")
+  const automations = Array.isArray(r["automations"])
+    ? r["automations"].filter((a): a is string => typeof a === "string")
     : [];
 
   return {
     modules: modules.length ? modules : preset.modules,
     pipelineStages: pipelineStages.length ? pipelineStages : preset.pipelineStages,
     terminology:
-      r.terminology && typeof r.terminology === "object"
+      r["terminology"] && typeof r["terminology"] === "object"
         ? (Object.fromEntries(
-            Object.entries(r.terminology as Record<string, unknown>).filter(
+            Object.entries(r["terminology"] as Record<string, unknown>).filter(
               ([, v]) => typeof v === "string",
             ),
           ) as Record<string, string>)
@@ -121,7 +121,7 @@ export function normalizeConfig(raw: unknown, preset: CrmConfigData): CrmConfigD
 
 function extractJson(text: string): unknown {
   const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-  const candidate = (fenced ? fenced[1] : text).trim();
+  const candidate = (fenced ? (fenced[1] ?? text) : text).trim();
   const start = candidate.indexOf("{");
   const end = candidate.lastIndexOf("}");
   if (start === -1 || end === -1) throw new Error("AI javobida JSON topilmadi");
@@ -150,7 +150,7 @@ export const getMyCrmConfig = createServerFn({ method: "GET" })
       businessName: business?.name ?? null,
       industry: row?.industry ?? null,
       businessDescription: row?.business_description ?? null,
-      config: row ? (row.config as CrmConfigData) : null,
+      config: row ? (row.config as unknown as CrmConfigData) : null,
     };
   });
 
@@ -240,7 +240,7 @@ export const updateCrmConfig = createServerFn({ method: "POST" })
       .eq("business_id", businessId)
       .maybeSingle();
     if (!row) throw new Error("CRM konfiguratsiyasi topilmadi");
-    const normalized = normalizeConfig(data.config, row.config as CrmConfigData);
+    const normalized = normalizeConfig(data.config, row.config as unknown as CrmConfigData);
     const { error } = await context.supabase
       .from("crm_configs")
       .update({ config: normalized as never })
@@ -264,7 +264,7 @@ export const aiCrmBuilder = createServerFn({ method: "POST" })
       .maybeSingle();
     if (!row) throw new Error("Avval CRMni sozlang");
 
-    const current = row.config as CrmConfigData;
+    const current = row.config as unknown as CrmConfigData;
     const runtime = resolveAiRuntime();
     if ("error" in runtime) throw new Error(runtime.error);
 
@@ -372,7 +372,7 @@ export const getWidgetStats = createServerFn({ method: "GET" })
       .maybeSingle();
     if (!row) return { widgets: {} as Record<string, number> };
 
-    const cfg = row.config as CrmConfigData;
+    const cfg = row.config as unknown as CrmConfigData;
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
     const stats: Record<string, number> = {};
