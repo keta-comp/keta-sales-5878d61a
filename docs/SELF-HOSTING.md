@@ -20,7 +20,8 @@ realtime sozlamalari tayyor. Quyida qolgan bosqichlar.
 allaqachon to'ldirilgan. Qo'shishingiz kerak bo'lgani:
 
 - `SUPABASE_SERVICE_ROLE_KEY` — 1-bosqichda olgan secret kalit
-- `GEMINI_API_KEY` — https://aistudio.google.com/apikey (bepul)
+- `OPENROUTER_API_KEY` — https://openrouter.ai/keys (AI uchun, tavsiya etiladi)
+- yoki `GEMINI_API_KEY` — https://aistudio.google.com/apikey (bepul)
 - `TELEGRAM_BOT_TOKEN` — BotFather'dan
 - `PUBLIC_APP_URL` — saytning haqiqiy manzili (masalan `https://nexora-crm.uz`)
 
@@ -31,6 +32,7 @@ npm i -g wrangler
 wrangler login
 
 wrangler secret put SUPABASE_SERVICE_ROLE_KEY
+wrangler secret put OPENROUTER_API_KEY
 wrangler secret put GEMINI_API_KEY
 wrangler secret put TELEGRAM_BOT_TOKEN
 wrangler secret put LOVABLE_CRON_SECRET
@@ -89,5 +91,5 @@ $$);
 
 ## Lovable'ga bog'liqlik qoldimi?
 
-Yo'q. `GEMINI_API_KEY` berilgach AI to'g'ridan-to'g'ri Google bilan ishlaydi;
+Yo'q. `OPENROUTER_API_KEY` (yoki `GEMINI_API_KEY`) berilgach AI mustaqil ishlaydi;
 baza, login, fayllar — hammasi sizning Supabase va Cloudflare hisobingizda.
