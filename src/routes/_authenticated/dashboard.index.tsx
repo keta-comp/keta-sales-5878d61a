@@ -110,7 +110,7 @@ function Overview() {
                 key={widget.key}
                 label={widget.label}
                 value={isMoney ? formatMoney(value ?? 0, currency) : (value ?? 0)}
-                tone={widget.kind.startsWith("legacy") ? undefined : "info"}
+                tone={widget.kind.startsWith("legacy") ? "default" : "info"}
                 icon={<LayoutGrid className="size-4" />}
               />
             );

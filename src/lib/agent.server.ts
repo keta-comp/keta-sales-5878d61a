@@ -326,7 +326,6 @@ function buildSystemPrompt(
 ) {
   const crmBlock = crmContext
     ? [
-    ...crmBlock,
         "BUSINESS DOMAIN CONTEXT (from the owner's CRM setup — reflect it in your wording):",
         `Industry: ${crmContext.industry}`,
         crmContext.description ? `Industry notes: ${crmContext.description}` : "",
@@ -344,7 +343,7 @@ function buildSystemPrompt(
     `Return policy: ${business?.return_policy ?? "-"}`,
     `Currency: ${business?.currency ?? "UZS"}`,
     `Maximum discount you may mention: ${ai?.max_discount_percent ?? 0}%`,
-    "",
+    ...crmBlock,
     `Tone of voice: ${ai?.tone_of_voice ?? "professional"}`,
     `Sales strategy: ${ai?.sales_strategy ?? ""}`,
     `Language: ${ai?.language_instruction ?? "Reply in the customer's language."}`,

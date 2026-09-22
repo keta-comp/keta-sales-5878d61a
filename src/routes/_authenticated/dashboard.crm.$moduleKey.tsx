@@ -142,7 +142,8 @@ function CrmModulePage() {
   }
 
   const fields = module.fields ?? [];
-  const filtered = (records.data ?? []).filter((r) =>
+  const rows = (records.data ?? []) as unknown as RecordRow[];
+  const filtered = rows.filter((r) =>
     search ? r.title.toLowerCase().includes(search.toLowerCase()) : true,
   );
 
@@ -150,7 +151,7 @@ function CrmModulePage() {
     <>
       <PageHeader
         title={module.label}
-        description={module.pipeline ? "Pipeline bosqichlari bilan kuzatiladi" : undefined}
+        description={module.pipeline ? "Pipeline bosqichlari bilan kuzatiladi" : ""}
         actions={
           <div className="flex items-center gap-2">
             <div className="relative">
