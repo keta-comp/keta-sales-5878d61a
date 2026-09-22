@@ -8,14 +8,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ErrorState, LoadingState, PageHeader } from "@/components/app/primitives";
 import { DataTable, NoData, Panel, Pill, fmtDate } from "@/components/app/super-admin-ui";
 import { getAuditLogs } from "@/lib/super-admin.functions";
+import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/super-admin/audit")({
   head: () => ({
     meta: [
-      { title: "Audit jurnali — NEXORA CRM Control Center" },
-      { name: "description", content: "Platformadagi barcha muhim amallar jurnali: kirishlar, bloklashlar, sozlama o‘zgarishlari." },
-      { property: "og:title", content: "Audit jurnali — NEXORA CRM Control Center" },
-      { property: "og:description", content: "Kim, qachon va nima qilgani bo‘yicha to‘liq jurnal." },
+      { title: t("Audit jurnali — NEXORA CRM Control Center") },
+      { name: "description", content: t("Platformadagi barcha muhim amallar jurnali: kirishlar, bloklashlar, sozlama o‘zgarishlari.") },
+      { property: "og:title", content: t("Audit jurnali — NEXORA CRM Control Center") },
+      { property: "og:description", content: t("Kim, qachon va nima qilgani bo‘yicha to‘liq jurnal.") },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -47,22 +48,22 @@ function AuditPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Audit jurnali" description="Muhim amallar o‘zgartirilmaydi — faqat o‘qish uchun." />
+      <PageHeader title={t("Audit jurnali")} description={t("Muhim amallar o‘zgartirilmaydi — faqat o‘qish uchun.")} />
 
       <Panel>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Kim, amal, nishon" />
+          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t("Kim, amal, nishon")} />
           <Select value={action} onValueChange={setAction}>
-            <SelectTrigger><SelectValue placeholder="Amal" /></SelectTrigger>
+            <SelectTrigger><SelectValue placeholder={t("Amal")} /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Barcha amallar</SelectItem>
+              <SelectItem value="all">{t("Barcha amallar")}</SelectItem>
               {(data?.actions ?? []).map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={businessId} onValueChange={setBusinessId}>
-            <SelectTrigger><SelectValue placeholder="Organization" /></SelectTrigger>
+            <SelectTrigger><SelectValue placeholder={t("Organization")} /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Barcha organizationlar</SelectItem>
+              <SelectItem value="all">{t("Barcha organizationlar")}</SelectItem>
               {(data?.organizations ?? []).map((o) => (
                 <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>
               ))}
@@ -79,7 +80,7 @@ function AuditPage() {
         ) : error ? (
           <ErrorState error={error} onRetry={() => void refetch()} />
         ) : (data?.rows ?? []).length === 0 ? (
-          <NoData label="Jurnalda yozuv yo‘q" />
+          <NoData label={t("Jurnalda yozuv yo‘q")} />
         ) : (
           <DataTable columns={["Vaqt", "Kim", "Amal", "Nishon", "Organization", "IP", "Holat"]}>
             {(data?.rows ?? []).map((r) => (

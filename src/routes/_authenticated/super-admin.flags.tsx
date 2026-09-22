@@ -8,14 +8,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ErrorState, LoadingState, PageHeader } from "@/components/app/primitives";
 import { NoData, Panel } from "@/components/app/super-admin-ui";
 import { getFeatureFlags, saveFeatureFlag } from "@/lib/super-admin.functions";
+import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/super-admin/flags")({
   head: () => ({
     meta: [
-      { title: "Funksiyalar — NEXORA CRM Control Center" },
-      { name: "description", content: "NEXORA CRM funksiyalarini plan yoki organization bo‘yicha yoqish va o‘chirish." },
-      { property: "og:title", content: "Funksiyalar — NEXORA CRM Control Center" },
-      { property: "og:description", content: "Funksiya boshqaruvi: AI yordamchi, Telegram hisobotlar va boshqalar." },
+      { title: t("Funksiyalar — NEXORA CRM Control Center") },
+      { name: "description", content: t("NEXORA CRM funksiyalarini plan yoki organization bo‘yicha yoqish va o‘chirish.") },
+      { property: "og:title", content: t("Funksiyalar — NEXORA CRM Control Center") },
+      { property: "og:description", content: t("Funksiya boshqaruvi: AI yordamchi, Telegram hisobotlar va boshqalar.") },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -44,10 +45,10 @@ function FlagsPage() {
       target_business_id: string | null;
     }) => saveFn({ data: input }),
     onSuccess: () => {
-      toast.success("Saqlandi");
+      toast.success(t("Saqlandi"));
       void queryClient.invalidateQueries({ queryKey: ["super-admin-flags"] });
     },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Saqlanmadi"),
+    onError: (e) => toast.error(e instanceof Error ? e.message : t("Saqlanmadi")),
   });
 
   if (isPending) return <LoadingState />;
@@ -58,19 +59,19 @@ function FlagsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Funksiya boshqaruvi"
-        description="Har bir funksiyani umumiy, plan yoki bitta organization uchun yoqing."
+        title={t("Funksiya boshqaruvi")}
+        description={t("Har bir funksiyani umumiy, plan yoki bitta organization uchun yoqing.")}
       />
 
       {flags.length === 0 ? (
-        <Panel><NoData label="Funksiyalar ro‘yxati bo‘sh" /></Panel>
+        <Panel><NoData label={t("Funksiyalar ro‘yxati bo‘sh")} /></Panel>
       ) : (
         <div className="grid gap-4 lg:grid-cols-2">
           {flags.map((flag) => (
-            <Panel key={flag.key} title={flag.label} description={flag.key}>
+            <Panel key={flag.key} title={t(flag.label)} description={flag.key}>
               <div className="space-y-4">
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-sm">{flag.enabled ? "Yoqilgan" : "O‘chirilgan"}</span>
+                  <span className="text-sm">{flag.enabled ? t("Yoqilgan") : t("O‘chirilgan")}</span>
                   <Switch
                     checked={flag.enabled}
                     onCheckedChange={(checked) =>
@@ -98,9 +99,9 @@ function FlagsPage() {
                       })
                     }
                   >
-                    <SelectTrigger><SelectValue placeholder="Plan" /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder={t("Plan")} /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="none">Plan cheklovi yo‘q</SelectItem>
+                      <SelectItem value="none">{t("Plan cheklovi yo‘q")}</SelectItem>
                       {PLANS.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
                     </SelectContent>
                   </Select>
@@ -117,9 +118,9 @@ function FlagsPage() {
                       })
                     }
                   >
-                    <SelectTrigger><SelectValue placeholder="Organization" /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder={t("Organization")} /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="none">Organization cheklovi yo‘q</SelectItem>
+                      <SelectItem value="none">{t("Organization cheklovi yo‘q")}</SelectItem>
                       {(data?.businesses ?? []).map((b) => (
                         <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
                       ))}

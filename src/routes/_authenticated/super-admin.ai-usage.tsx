@@ -7,14 +7,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ErrorState, LoadingState, PageHeader } from "@/components/app/primitives";
 import { DataTable, MetricCard, NoData, Panel, fmtDate, fmtNumber } from "@/components/app/super-admin-ui";
 import { getAiUsage } from "@/lib/super-admin.functions";
+import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/super-admin/ai-usage")({
   head: () => ({
     meta: [
-      { title: "AI ishlatilishi — NEXORA CRM Control Center" },
-      { name: "description", content: "Platformada AI so‘rovlari: organization, foydalanuvchi va funksiya bo‘yicha." },
-      { property: "og:title", content: "AI ishlatilishi — NEXORA CRM Control Center" },
-      { property: "og:description", content: "AI so‘rovlari statistikasi va tokenlar." },
+      { title: t("AI ishlatilishi — NEXORA CRM Control Center") },
+      { name: "description", content: t("Platformada AI so‘rovlari: organization, foydalanuvchi va funksiya bo‘yicha.") },
+      { property: "og:title", content: t("AI ishlatilishi — NEXORA CRM Control Center") },
+      { property: "og:description", content: t("AI so‘rovlari statistikasi va tokenlar.") },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -39,15 +40,15 @@ function AiUsagePage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="AI ishlatilishi"
-        description="Haqiqiy so‘rovlar. Narx ma’lumoti mavjud bo‘lmaganda taxminiy xarajat ko‘rsatilmaydi."
+        title={t("AI ishlatilishi")}
+        description={t("Haqiqiy so‘rovlar. Narx ma’lumoti mavjud bo‘lmaganda taxminiy xarajat ko‘rsatilmaydi.")}
         actions={
           <Select value={days} onValueChange={setDays}>
             <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="7">Oxirgi 7 kun</SelectItem>
-              <SelectItem value="30">Oxirgi 30 kun</SelectItem>
-              <SelectItem value="90">Oxirgi 90 kun</SelectItem>
+              <SelectItem value="7">{t("Oxirgi 7 kun")}</SelectItem>
+              <SelectItem value="30">{t("Oxirgi 30 kun")}</SelectItem>
+              <SelectItem value="90">{t("Oxirgi 90 kun")}</SelectItem>
             </SelectContent>
           </Select>
         }
@@ -62,21 +63,21 @@ function AiUsagePage() {
       ) : (
         <>
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <MetricCard label="Jami so‘rov" value={fmtNumber(data.totals.total)} />
-            <MetricCard label="Bugun" value={fmtNumber(data.totals.today)} />
-            <MetricCard label="Bu oy" value={fmtNumber(data.totals.thisMonth)} />
-            <MetricCard label="Tanlangan davrda" value={fmtNumber(data.totals.inRange)} hint="Taxminiy narx: ma’lumot yo‘q" />
+            <MetricCard label={t("Jami so‘rov")} value={fmtNumber(data.totals.total)} />
+            <MetricCard label={t("Bugun")} value={fmtNumber(data.totals.today)} />
+            <MetricCard label={t("Bu oy")} value={fmtNumber(data.totals.thisMonth)} />
+            <MetricCard label={t("Tanlangan davrda")} value={fmtNumber(data.totals.inRange)} hint={t("Taxminiy narx: ma’lumot yo‘q")} />
           </div>
 
           <div className="grid gap-4 lg:grid-cols-2">
-            <Panel title="Organizationlar bo‘yicha">
+            <Panel title={t("Organizationlar bo‘yicha")}>
               {data.byOrganization.length === 0 ? (
                 <NoData />
               ) : (
                 <DataTable columns={["Organization", "So‘rov", "Tokenlar"]}>
                   {data.byOrganization.map((r) => (
                     <tr key={r.id}>
-                      <td className="px-3 py-2">{r.label}</td>
+                      <td className="px-3 py-2">{t(r.label)}</td>
                       <td className="px-3 py-2 tabular-nums">{fmtNumber(r.requests)}</td>
                       <td className="px-3 py-2 tabular-nums">{fmtNumber(r.tokens)}</td>
                     </tr>
@@ -85,14 +86,14 @@ function AiUsagePage() {
               )}
             </Panel>
 
-            <Panel title="Foydalanuvchilar bo‘yicha">
+            <Panel title={t("Foydalanuvchilar bo‘yicha")}>
               {data.byUser.length === 0 ? (
                 <NoData />
               ) : (
                 <DataTable columns={["Foydalanuvchi", "So‘rov", "Tokenlar"]}>
                   {data.byUser.map((r) => (
                     <tr key={r.id}>
-                      <td className="px-3 py-2">{r.label}</td>
+                      <td className="px-3 py-2">{t(r.label)}</td>
                       <td className="px-3 py-2 tabular-nums">{fmtNumber(r.requests)}</td>
                       <td className="px-3 py-2 tabular-nums">{fmtNumber(r.tokens)}</td>
                     </tr>
@@ -102,7 +103,7 @@ function AiUsagePage() {
             </Panel>
           </div>
 
-          <Panel title="Funksiyalar bo‘yicha">
+          <Panel title={t("Funksiyalar bo‘yicha")}>
             {data.byFeature.length === 0 ? (
               <NoData />
             ) : (
@@ -117,7 +118,7 @@ function AiUsagePage() {
             )}
           </Panel>
 
-          <Panel title="Oxirgi so‘rovlar">
+          <Panel title={t("Oxirgi so‘rovlar")}>
             {data.recent.length === 0 ? (
               <NoData />
             ) : (

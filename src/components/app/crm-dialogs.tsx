@@ -38,6 +38,7 @@ import {
   quickActionLabels,
   type QuickActionKey,
 } from "@/lib/crm-core";
+import { t } from "@/lib/i18n";
 
 const NONE = "__none__";
 
@@ -123,45 +124,45 @@ export function CustomerDialog({
         },
       }),
     onSuccess: () => {
-      toast.success("Mijoz saqlandi");
+      toast.success(t("Mijoz saqlandi"));
       invalidate();
       onOpenChange(false);
     },
     onError: (error: unknown) =>
-      toast.error(error instanceof Error ? error.message : "Saqlab bo‘lmadi"),
+      toast.error(error instanceof Error ? error.message : t("Saqlab bo‘lmadi")),
   });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>{form.id ? "Mijozni tahrirlash" : title}</DialogTitle>
-          <DialogDescription>Faqat kerakli maydonlarni to‘ldiring.</DialogDescription>
+          <DialogTitle>{form.id ? t("Mijozni tahrirlash") : title}</DialogTitle>
+          <DialogDescription>{t("Faqat kerakli maydonlarni to‘ldiring.")}</DialogDescription>
         </DialogHeader>
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="sm:col-span-2">
-            <Field label="Ism *">
+            <Field label={t("Ism *")}>
               <Input
                 value={form.full_name ?? ""}
                 onChange={(e) => setForm((f) => ({ ...f, full_name: e.target.value }))}
-                placeholder="Ali Valiyev"
+                placeholder={t("Ali Valiyev")}
               />
             </Field>
           </div>
-          <Field label="Telefon">
+          <Field label={t("Telefon")}>
             <Input
               value={form.phone ?? ""}
               onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
               placeholder="+998 90 123 45 67"
             />
           </Field>
-          <Field label="Email">
+          <Field label={t("Email")}>
             <Input
               value={form.email ?? ""}
               onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
             />
           </Field>
-          <Field label="Holat">
+          <Field label={t("Holat")}>
             <Select
               value={form.status ?? "active"}
               onValueChange={(value) => setForm((f) => ({ ...f, status: value }))}
@@ -178,7 +179,7 @@ export function CustomerDialog({
               </SelectContent>
             </Select>
           </Field>
-          <Field label="Manba">
+          <Field label={t("Manba")}>
             <Select
               value={form.source ?? "manual"}
               onValueChange={(value) => setForm((f) => ({ ...f, source: value }))}
@@ -195,13 +196,13 @@ export function CustomerDialog({
               </SelectContent>
             </Select>
           </Field>
-          <Field label="Manzil">
+          <Field label={t("Manzil")}>
             <Input
               value={form.location ?? ""}
               onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))}
             />
           </Field>
-          <Field label="Mas’ul">
+          <Field label={t("Mas’ul")}>
             <Select
               value={form.assigned_operator_id ?? NONE}
               onValueChange={(value) =>
@@ -209,10 +210,10 @@ export function CustomerDialog({
               }
             >
               <SelectTrigger>
-                <SelectValue placeholder="Tanlanmagan" />
+                <SelectValue placeholder={t("Tanlanmagan")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={NONE}>Tanlanmagan</SelectItem>
+                <SelectItem value={NONE}>{t("Tanlanmagan")}</SelectItem>
                 {(pickers.data?.operators ?? []).map((o) => (
                   <SelectItem key={o.id} value={o.id}>
                     {o.full_name}
@@ -222,7 +223,7 @@ export function CustomerDialog({
             </Select>
           </Field>
           <div className="sm:col-span-2">
-            <Field label="Izoh">
+            <Field label={t("Izoh")}>
               <Textarea
                 rows={2}
                 value={form.notes ?? ""}
@@ -233,13 +234,13 @@ export function CustomerDialog({
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Bekor qilish
+            {t("Bekor qilish")}
           </Button>
           <Button
             disabled={!form.full_name?.trim() || mutation.isPending}
             onClick={() => mutation.mutate()}
           >
-            Saqlash
+            {t("Saqlash")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -307,12 +308,12 @@ export function LeadDialog({
         },
       }),
     onSuccess: () => {
-      toast.success("Murojaat yaratildi");
+      toast.success(t("Murojaat yaratildi"));
       invalidate();
       onOpenChange(false);
     },
     onError: (error: unknown) =>
-      toast.error(error instanceof Error ? error.message : "Saqlab bo‘lmadi"),
+      toast.error(error instanceof Error ? error.message : t("Saqlab bo‘lmadi")),
   });
 
   return (
@@ -320,17 +321,17 @@ export function LeadDialog({
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>{label}</DialogTitle>
-          <DialogDescription>Mijozni tanlang — ma’lumotlarini qayta kiritish shart emas.</DialogDescription>
+          <DialogDescription>{t("Mijozni tanlang — ma’lumotlarini qayta kiritish shart emas.")}</DialogDescription>
         </DialogHeader>
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="sm:col-span-2">
-            <Field label="Mijoz *">
+            <Field label={t("Mijoz *")}>
               <Select
                 value={form.customer_id}
                 onValueChange={(value) => setForm((f) => ({ ...f, customer_id: value }))}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Mijozni tanlang" />
+                  <SelectValue placeholder={t("Mijozni tanlang")} />
                 </SelectTrigger>
                 <SelectContent>
                   {(pickers.data?.customers ?? []).map((c) => (
@@ -342,20 +343,20 @@ export function LeadDialog({
               </Select>
             </Field>
           </div>
-          <Field label="Nima so‘ralgan">
+          <Field label={t("Nima so‘ralgan")}>
             <Input
               value={form.requested_product}
               onChange={(e) => setForm((f) => ({ ...f, requested_product: e.target.value }))}
             />
           </Field>
-          <Field label="Taxminiy summa">
+          <Field label={t("Taxminiy summa")}>
             <Input
               type="number"
               value={form.value}
               onChange={(e) => setForm((f) => ({ ...f, value: e.target.value }))}
             />
           </Field>
-          <Field label="Manba">
+          <Field label={t("Manba")}>
             <Select value={form.source} onValueChange={(value) => setForm((f) => ({ ...f, source: value }))}>
               <SelectTrigger>
                 <SelectValue />
@@ -369,8 +370,8 @@ export function LeadDialog({
               </SelectContent>
             </Select>
           </Field>
-          <Field label="Bosqich">
-            <Select value={form.stage} onValueChange={(value) => setForm((f) => ({ ...f, stage: value }))}>
+          <Field label={t("Bosqich")}>
+            <Select value={t(form.stage)} onValueChange={(value) => setForm((f) => ({ ...f, stage: value }))}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -383,16 +384,16 @@ export function LeadDialog({
               </SelectContent>
             </Select>
           </Field>
-          <Field label="Mas’ul">
+          <Field label={t("Mas’ul")}>
             <Select
               value={form.assigned_operator_id}
               onValueChange={(value) => setForm((f) => ({ ...f, assigned_operator_id: value }))}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Tanlanmagan" />
+                <SelectValue placeholder={t("Tanlanmagan")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={NONE}>Tanlanmagan</SelectItem>
+                <SelectItem value={NONE}>{t("Tanlanmagan")}</SelectItem>
                 {(pickers.data?.operators ?? []).map((o) => (
                   <SelectItem key={o.id} value={o.id}>
                     {o.full_name}
@@ -401,15 +402,15 @@ export function LeadDialog({
               </SelectContent>
             </Select>
           </Field>
-          <Field label="Keyingi qadam">
+          <Field label={t("Keyingi qadam")}>
             <Input
               value={form.next_action}
               onChange={(e) => setForm((f) => ({ ...f, next_action: e.target.value }))}
-              placeholder="Ertaga qo‘ng‘iroq qilish"
+              placeholder={t("Ertaga qo‘ng‘iroq qilish")}
             />
           </Field>
           <div className="sm:col-span-2">
-            <Field label="Izoh">
+            <Field label={t("Izoh")}>
               <Textarea
                 rows={2}
                 value={form.notes}
@@ -420,10 +421,10 @@ export function LeadDialog({
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Bekor qilish
+            {t("Bekor qilish")}
           </Button>
           <Button disabled={!form.customer_id || mutation.isPending} onClick={() => mutation.mutate()}>
-            Saqlash
+            {t("Saqlash")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -486,12 +487,12 @@ export function OrderDialog({
         },
       }),
     onSuccess: () => {
-      toast.success("Buyurtma yaratildi");
+      toast.success(t("Buyurtma yaratildi"));
       invalidate();
       onOpenChange(false);
     },
     onError: (error: unknown) =>
-      toast.error(error instanceof Error ? error.message : "Saqlab bo‘lmadi"),
+      toast.error(error instanceof Error ? error.message : t("Saqlab bo‘lmadi")),
   });
 
   const setLine = (index: number, patch: Partial<OrderLine>) =>
@@ -502,13 +503,13 @@ export function OrderDialog({
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>{label}</DialogTitle>
-          <DialogDescription>Mahsulotni katalogdan tanlang yoki xizmat nomini yozing.</DialogDescription>
+          <DialogDescription>{t("Mahsulotni katalogdan tanlang yoki xizmat nomini yozing.")}</DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
-          <Field label="Mijoz *">
+          <Field label={t("Mijoz *")}>
             <Select value={customerId} onValueChange={setCustomerId}>
               <SelectTrigger>
-                <SelectValue placeholder="Mijozni tanlang" />
+                <SelectValue placeholder={t("Mijozni tanlang")} />
               </SelectTrigger>
               <SelectContent>
                 {(pickers.data?.customers ?? []).map((c) => (
@@ -525,7 +526,7 @@ export function OrderDialog({
               <div key={index} className="grid gap-2 sm:grid-cols-[1fr_5rem_8rem_2rem]">
                 <Input
                   value={line.product_name}
-                  placeholder="Mahsulot yoki xizmat"
+                  placeholder={t("Mahsulot yoki xizmat")}
                   onChange={(e) => setLine(index, { product_name: e.target.value, product_id: null })}
                   list={`products-${index}`}
                 />
@@ -541,7 +542,7 @@ export function OrderDialog({
                 />
                 <Input
                   type="number"
-                  placeholder="Narx"
+                  placeholder={t("Narx")}
                   value={line.unit_price}
                   onChange={(e) => setLine(index, { unit_price: e.target.value })}
                 />
@@ -549,7 +550,7 @@ export function OrderDialog({
                   variant="ghost"
                   size="icon"
                   onClick={() => setLines((rows) => rows.filter((_, i) => i !== index))}
-                  aria-label="Qatorni o‘chirish"
+                  aria-label={t("Qatorni o‘chirish")}
                 >
                   ×
                 </Button>
@@ -565,31 +566,31 @@ export function OrderDialog({
                 ])
               }
             >
-              <Plus className="mr-1 size-3" /> Qator qo‘shish
+              <Plus className="mr-1 size-3" /> {t("Qator qo‘shish")}
             </Button>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Chegirma">
+            <Field label={t("Chegirma")}>
               <Input type="number" value={discount} onChange={(e) => setDiscount(e.target.value)} />
             </Field>
-            <Field label="Izoh">
+            <Field label={t("Izoh")}>
               <Input value={notes} onChange={(e) => setNotes(e.target.value)} />
             </Field>
           </div>
           <p className="text-sm text-muted-foreground">
-            Jami: <span className="font-semibold text-foreground">{gross - Number(discount || 0)}</span>
+            {t("Jami:")}{" "}<span className="font-semibold text-foreground">{gross - Number(discount || 0)}</span>
           </p>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Bekor qilish
+            {t("Bekor qilish")}
           </Button>
           <Button
             disabled={!customerId || !lines.some((l) => l.product_name.trim()) || mutation.isPending}
             onClick={() => mutation.mutate()}
           >
-            Saqlash
+            {t("Saqlash")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -653,12 +654,12 @@ export function PaymentDialog({
         },
       }),
     onSuccess: () => {
-      toast.success("To‘lov saqlandi");
+      toast.success(t("To‘lov saqlandi"));
       invalidate();
       onOpenChange(false);
     },
     onError: (error: unknown) =>
-      toast.error(error instanceof Error ? error.message : "Saqlab bo‘lmadi"),
+      toast.error(error instanceof Error ? error.message : t("Saqlab bo‘lmadi")),
   });
 
   const orders = (pickers.data?.orders ?? []).filter(
@@ -669,11 +670,11 @@ export function PaymentDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>{form.id ? "To‘lovni tahrirlash" : label}</DialogTitle>
-          <DialogDescription>To‘lov buyurtma holatini avtomatik yangilaydi.</DialogDescription>
+          <DialogTitle>{form.id ? t("To‘lovni tahrirlash") : label}</DialogTitle>
+          <DialogDescription>{t("To‘lov buyurtma holatini avtomatik yangilaydi.")}</DialogDescription>
         </DialogHeader>
         <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="Mijoz">
+          <Field label={t("Mijoz")}>
             <Select
               value={form.customer_id ?? NONE}
               onValueChange={(value) =>
@@ -681,10 +682,10 @@ export function PaymentDialog({
               }
             >
               <SelectTrigger>
-                <SelectValue placeholder="Tanlanmagan" />
+                <SelectValue placeholder={t("Tanlanmagan")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={NONE}>Tanlanmagan</SelectItem>
+                <SelectItem value={NONE}>{t("Tanlanmagan")}</SelectItem>
                 {(pickers.data?.customers ?? []).map((c) => (
                   <SelectItem key={c.id} value={c.id}>
                     {c.full_name ?? "Ismsiz"}
@@ -693,16 +694,16 @@ export function PaymentDialog({
               </SelectContent>
             </Select>
           </Field>
-          <Field label="Buyurtma">
+          <Field label={t("Buyurtma")}>
             <Select
               value={form.order_id ?? NONE}
               onValueChange={(value) => setForm((f) => ({ ...f, order_id: value === NONE ? null : value }))}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Tanlanmagan" />
+                <SelectValue placeholder={t("Tanlanmagan")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={NONE}>Tanlanmagan</SelectItem>
+                <SelectItem value={NONE}>{t("Tanlanmagan")}</SelectItem>
                 {orders.map((o) => (
                   <SelectItem key={o.id} value={o.id}>
                     #{o.order_number} · {o.total}
@@ -711,14 +712,14 @@ export function PaymentDialog({
               </SelectContent>
             </Select>
           </Field>
-          <Field label="Summa *">
+          <Field label={t("Summa *")}>
             <Input
               type="number"
               value={String(form.amount ?? "")}
               onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
             />
           </Field>
-          <Field label="Usul">
+          <Field label={t("Usul")}>
             <Select
               value={form.method ?? "cash"}
               onValueChange={(value) => setForm((f) => ({ ...f, method: value }))}
@@ -735,7 +736,7 @@ export function PaymentDialog({
               </SelectContent>
             </Select>
           </Field>
-          <Field label="Holat">
+          <Field label={t("Holat")}>
             <Select
               value={form.status ?? "paid"}
               onValueChange={(value) => setForm((f) => ({ ...f, status: value }))}
@@ -752,7 +753,7 @@ export function PaymentDialog({
               </SelectContent>
             </Select>
           </Field>
-          <Field label="Muddat">
+          <Field label={t("Muddat")}>
             <Input
               type="date"
               value={form.due_date ?? ""}
@@ -760,7 +761,7 @@ export function PaymentDialog({
             />
           </Field>
           <div className="sm:col-span-2">
-            <Field label="Izoh">
+            <Field label={t("Izoh")}>
               <Input
                 value={form.note ?? ""}
                 onChange={(e) => setForm((f) => ({ ...f, note: e.target.value }))}
@@ -770,10 +771,10 @@ export function PaymentDialog({
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Bekor qilish
+            {t("Bekor qilish")}
           </Button>
           <Button disabled={!Number(form.amount || 0) || mutation.isPending} onClick={() => mutation.mutate()}>
-            Saqlash
+            {t("Saqlash")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -839,41 +840,41 @@ export function TaskDialog({
         },
       }),
     onSuccess: () => {
-      toast.success("Vazifa saqlandi");
+      toast.success(t("Vazifa saqlandi"));
       invalidate();
       onOpenChange(false);
     },
     onError: (error: unknown) =>
-      toast.error(error instanceof Error ? error.message : "Saqlab bo‘lmadi"),
+      toast.error(error instanceof Error ? error.message : t("Saqlab bo‘lmadi")),
   });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>{form.id ? "Vazifani tahrirlash" : label}</DialogTitle>
-          <DialogDescription>Keyingi qadamni yozib qo‘ying — hech narsa esdan chiqmaydi.</DialogDescription>
+          <DialogTitle>{form.id ? t("Vazifani tahrirlash") : label}</DialogTitle>
+          <DialogDescription>{t("Keyingi qadamni yozib qo‘ying — hech narsa esdan chiqmaydi.")}</DialogDescription>
         </DialogHeader>
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="sm:col-span-2">
-            <Field label="Sarlavha *">
+            <Field label={t("Sarlavha *")}>
               <Input
-                value={form.title ?? ""}
+                value={t(form.title ?? "")}
                 onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-                placeholder="Ali Valiyevga qo‘ng‘iroq qilish"
+                placeholder={t("Ali Valiyevga qo‘ng‘iroq qilish")}
               />
             </Field>
           </div>
-          <Field label="Mijoz">
+          <Field label={t("Mijoz")}>
             <Select
               value={form.customer_id ?? NONE}
               onValueChange={(value) => setForm((f) => ({ ...f, customer_id: value === NONE ? null : value }))}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Tanlanmagan" />
+                <SelectValue placeholder={t("Tanlanmagan")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={NONE}>Tanlanmagan</SelectItem>
+                <SelectItem value={NONE}>{t("Tanlanmagan")}</SelectItem>
                 {(pickers.data?.customers ?? []).map((c) => (
                   <SelectItem key={c.id} value={c.id}>
                     {c.full_name ?? "Ismsiz"}
@@ -882,7 +883,7 @@ export function TaskDialog({
               </SelectContent>
             </Select>
           </Field>
-          <Field label="Mas’ul">
+          <Field label={t("Mas’ul")}>
             <Select
               value={form.assigned_operator_id ?? NONE}
               onValueChange={(value) =>
@@ -890,10 +891,10 @@ export function TaskDialog({
               }
             >
               <SelectTrigger>
-                <SelectValue placeholder="Tanlanmagan" />
+                <SelectValue placeholder={t("Tanlanmagan")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={NONE}>Tanlanmagan</SelectItem>
+                <SelectItem value={NONE}>{t("Tanlanmagan")}</SelectItem>
                 {(pickers.data?.operators ?? []).map((o) => (
                   <SelectItem key={o.id} value={o.id}>
                     {o.full_name}
@@ -902,14 +903,14 @@ export function TaskDialog({
               </SelectContent>
             </Select>
           </Field>
-          <Field label="Muddat">
+          <Field label={t("Muddat")}>
             <Input
               type="date"
               value={form.due_date ?? ""}
               onChange={(e) => setForm((f) => ({ ...f, due_date: e.target.value }))}
             />
           </Field>
-          <Field label="Muhimlik">
+          <Field label={t("Muhimlik")}>
             <Select
               value={form.priority ?? "medium"}
               onValueChange={(value) => setForm((f) => ({ ...f, priority: value }))}
@@ -926,7 +927,7 @@ export function TaskDialog({
               </SelectContent>
             </Select>
           </Field>
-          <Field label="Holat">
+          <Field label={t("Holat")}>
             <Select
               value={form.status ?? "pending"}
               onValueChange={(value) => setForm((f) => ({ ...f, status: value }))}
@@ -944,7 +945,7 @@ export function TaskDialog({
             </Select>
           </Field>
           <div className="sm:col-span-2">
-            <Field label="Tavsif">
+            <Field label={t("Tavsif")}>
               <Textarea
                 rows={2}
                 value={form.description ?? ""}
@@ -955,10 +956,10 @@ export function TaskDialog({
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Bekor qilish
+            {t("Bekor qilish")}
           </Button>
           <Button disabled={!form.title?.trim() || mutation.isPending} onClick={() => mutation.mutate()}>
-            Saqlash
+            {t("Saqlash")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -984,7 +985,7 @@ export function QuickNewButton({
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button size={size} className="gap-1">
-            <Plus className="size-4" /> Yangi
+            <Plus className="size-4" /> {t("Yangi")}
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-48">
@@ -999,28 +1000,28 @@ export function QuickNewButton({
       <CustomerDialog
         open={openKey === "customer"}
         onOpenChange={(v) => setOpenKey(v ? "customer" : null)}
-        title={`Yangi ${labels.customer.toLowerCase()}`}
+        title={t("Yangi {v0}", { v0: labels.customer.toLowerCase() })}
       />
       <LeadDialog
         open={openKey === "lead"}
         onOpenChange={(v) => setOpenKey(v ? "lead" : null)}
         stages={stages}
-        label={`Yangi ${labels.lead.toLowerCase()}`}
+        label={t("Yangi {v0}", { v0: labels.lead.toLowerCase() })}
       />
       <OrderDialog
         open={openKey === "order"}
         onOpenChange={(v) => setOpenKey(v ? "order" : null)}
-        label={labels.order.startsWith("Yangi") ? labels.order : `Yangi ${labels.order.toLowerCase()}`}
+        label={labels.order.startsWith("Yangi") ? labels.order : t("Yangi {v0}", { v0: labels.order.toLowerCase() })}
       />
       <PaymentDialog
         open={openKey === "payment"}
         onOpenChange={(v) => setOpenKey(v ? "payment" : null)}
-        label={`Yangi ${labels.payment.toLowerCase()}`}
+        label={t("Yangi {v0}", { v0: labels.payment.toLowerCase() })}
       />
       <TaskDialog
         open={openKey === "task"}
         onOpenChange={(v) => setOpenKey(v ? "task" : null)}
-        label={`Yangi ${labels.task.toLowerCase()}`}
+        label={t("Yangi {v0}", { v0: labels.task.toLowerCase() })}
       />
     </>
   );

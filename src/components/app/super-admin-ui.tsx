@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
+import { t } from "@/lib/i18n";
 
 export function fmtNumber(value: number | null | undefined) {
   if (value === null || value === undefined) return "—";
@@ -109,7 +110,7 @@ export function Pill({ value, tone }: { value: string | null | undefined; tone?:
         resolved === "muted" && "border-border bg-muted/60 text-muted-foreground",
       )}
     >
-      {STATUS_LABELS[key] ?? value ?? "—"}
+      {t(STATUS_LABELS[key] ?? value ?? "—")}
     </span>
   );
 }

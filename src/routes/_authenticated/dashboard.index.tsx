@@ -21,17 +21,18 @@ import { getDashboardKpis } from "@/lib/workspace.functions";
 import { listLeads } from "@/lib/crm.functions";
 import { listOrders } from "@/lib/orders.functions";
 import { formatMoney } from "@/lib/types";
+import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/dashboard/")({
   head: () => ({
     meta: [
-      { title: "Ish ekrani — NEXORA CRM" },
+      { title: t("Ish ekrani — NEXORA CRM") },
       {
         name: "description",
-        content: "Bugungi tushum, yangi mijozlar, murojaatlar va bajarilishi kerak bo‘lgan ishlar bir ekranda.",
+        content: t("Bugungi tushum, yangi mijozlar, murojaatlar va bajarilishi kerak bo‘lgan ishlar bir ekranda."),
       },
-      { property: "og:title", content: "Ish ekrani — NEXORA CRM" },
-      { property: "og:description", content: "Biznesingizning bugungi holati real ma’lumotlar asosida." },
+      { property: "og:title", content: t("Ish ekrani — NEXORA CRM") },
+      { property: "og:description", content: t("Biznesingizning bugungi holati real ma’lumotlar asosida.") },
     ],
   }),
   component: Overview,
@@ -79,7 +80,7 @@ function Overview() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  if (kpis.isPending) return <LoadingState label="Ko‘rsatkichlar yuklanmoqda…" />;
+  if (kpis.isPending) return <LoadingState label={t("Ko‘rsatkichlar yuklanmoqda…")} />;
   if (kpis.error) return <ErrorState error={kpis.error} onRetry={() => void kpis.refetch()} />;
 
   const data = kpis.data.kpis;
@@ -90,12 +91,12 @@ function Overview() {
   return (
     <>
       <PageHeader
-        title="Ish ekrani"
-        description="Bugungi holat — barcha raqamlar bazadagi real ma’lumotlardan."
+        title={t("Ish ekrani")}
+        description={t("Bugungi holat — barcha raqamlar bazadagi real ma’lumotlardan.")}
         actions={
           <>
             <Button asChild variant="outline" size="sm">
-              <Link to="/dashboard/analytics">Hisobotlar</Link>
+              <Link to="/dashboard/analytics">{t("Hisobotlar")}</Link>
             </Button>
             <QuickNewButton
               industry={crmConfig.data?.industry}
@@ -108,48 +109,48 @@ function Overview() {
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         <StatCard
-          label="Bugungi tushum"
+          label={t("Bugungi tushum")}
           value={formatMoney(data.revenueToday, currency)}
           hint={`Bu oy: ${formatMoney(data.revenueMonth, currency)}`}
           icon={<TrendingUp className="size-4" />}
         />
         <StatCard
-          label={terms["customer"] ? `Yangi ${terms["customer"].toLowerCase()}` : "Yangi mijozlar"}
+          label={terms["customer"] ? t("Yangi {v0}", { v0: terms["customer"].toLowerCase() }) : t("Yangi mijozlar")}
           value={data.newCustomers}
-          hint="Bugun qo‘shilgan"
+          hint={t("Bugun qo‘shilgan")}
           icon={<UserRoundPlus className="size-4" />}
         />
         <StatCard
-          label="Yangi murojaatlar"
+          label={t("Yangi murojaatlar")}
           value={data.newLeads}
-          hint={`Faol: ${data.activeLeads}`}
+          hint={t("Faol: {v0}", { v0: data.activeLeads })}
           icon={<Target className="size-4" />}
         />
         <StatCard
-          label="Yangi buyurtmalar"
+          label={t("Yangi buyurtmalar")}
           value={data.newOrders}
-          hint="Bugun yaratilgan"
+          hint={t("Bugun yaratilgan")}
           icon={<ShoppingCart className="size-4" />}
         />
         <StatCard
-          label="Kutilayotgan to‘lovlar"
+          label={t("Kutilayotgan to‘lovlar")}
           value={formatMoney(data.pendingPaymentsAmount, currency)}
-          hint={`${data.pendingPaymentsCount} ta to‘lov`}
+          hint={t("{v0} ta to‘lov", { v0: data.pendingPaymentsCount })}
           icon={<Wallet className="size-4" />}
         />
         <StatCard
-          label="Yaqin vazifalar"
+          label={t("Yaqin vazifalar")}
           value={data.dueTasks}
-          hint="3 kun ichida bajarilishi kerak"
+          hint={t("3 kun ichida bajarilishi kerak")}
           icon={<ClipboardList className="size-4" />}
         />
       </div>
 
       <section className="clay-panel p-5">
-        <h2 className="font-display text-lg font-semibold">Bugun nima qilish kerak?</h2>
+        <h2 className="font-display text-lg font-semibold">{t("Bugun nima qilish kerak?")}</h2>
         {todos.length === 0 ? (
           <p className="mt-2 text-sm text-muted-foreground">
-            Hammasi joyida — kechiktirilgan ish yo‘q.
+            {t("Hammasi joyida — kechiktirilgan ish yo‘q.")}
           </p>
         ) : (
           <div className="mt-3 grid gap-2 sm:grid-cols-2">
@@ -166,7 +167,7 @@ function Overview() {
                 className="clay-inset clay-hover flex items-center justify-between gap-3 rounded-2xl px-4 py-3 text-left"
               >
                 <span className="text-sm">
-                  <span className="font-semibold tabular-nums">{todo.count}</span> ta {todo.label}
+                  <span className="font-semibold tabular-nums">{todo.count}</span>{" "}{t("ta")} {t(todo.label)}
                 </span>
                 <ArrowRight className="size-4 shrink-0 text-muted-foreground" />
               </button>
@@ -180,7 +181,7 @@ function Overview() {
           {(crmConfig.data.config?.dashboardWidgets ?? []).map((widget) => (
             <StatCard
               key={widget.key}
-              label={widget.label}
+              label={t(widget.label)}
               value={
                 widget.kind === "legacy_today_revenue" || widget.kind === "field_sum"
                   ? formatMoney(widgetStats.data?.widgets?.[widget.key] ?? 0, currency)
@@ -194,9 +195,9 @@ function Overview() {
       <div className="grid gap-4 lg:grid-cols-2">
         <section className="clay-panel p-5">
           <div className="flex items-center justify-between">
-            <h2 className="font-display text-base font-semibold">Oxirgi murojaatlar</h2>
+            <h2 className="font-display text-base font-semibold">{t("Oxirgi murojaatlar")}</h2>
             <Button asChild variant="ghost" size="sm">
-              <Link to="/dashboard/leads">Barchasi</Link>
+              <Link to="/dashboard/leads">{t("Barchasi")}</Link>
             </Button>
           </div>
           <div className="mt-3 space-y-2">
@@ -217,16 +218,16 @@ function Overview() {
               );
             })}
             {(leads.data ?? []).length === 0 ? (
-              <p className="text-sm text-muted-foreground">Hozircha murojaat yo‘q.</p>
+              <p className="text-sm text-muted-foreground">{t("Hozircha murojaat yo‘q.")}</p>
             ) : null}
           </div>
         </section>
 
         <section className="clay-panel p-5">
           <div className="flex items-center justify-between">
-            <h2 className="font-display text-base font-semibold">Oxirgi buyurtmalar</h2>
+            <h2 className="font-display text-base font-semibold">{t("Oxirgi buyurtmalar")}</h2>
             <Button asChild variant="ghost" size="sm">
-              <Link to="/dashboard/orders">Barchasi</Link>
+              <Link to="/dashboard/orders">{t("Barchasi")}</Link>
             </Button>
           </div>
           <div className="mt-3 space-y-2">
@@ -242,7 +243,7 @@ function Overview() {
               </div>
             ))}
             {(orders.data ?? []).length === 0 ? (
-              <p className="text-sm text-muted-foreground">Hozircha buyurtma yo‘q.</p>
+              <p className="text-sm text-muted-foreground">{t("Hozircha buyurtma yo‘q.")}</p>
             ) : null}
           </div>
         </section>

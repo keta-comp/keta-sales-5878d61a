@@ -5,14 +5,15 @@ import { useServerFn } from "@tanstack/react-start";
 import { ErrorState, LoadingState, PageHeader } from "@/components/app/primitives";
 import { DataTable, MetricCard, NoData, Panel, Pill, fmtDate, fmtNumber } from "@/components/app/super-admin-ui";
 import { getSecurityOverview } from "@/lib/super-admin.functions";
+import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/super-admin/security")({
   head: () => ({
     meta: [
-      { title: "Xavfsizlik — NEXORA CRM Control Center" },
-      { name: "description", content: "Kirishlar, muvaffaqiyatsiz urinishlar va admin amallari bo‘yicha xavfsizlik ko‘rinishi." },
-      { property: "og:title", content: "Xavfsizlik — NEXORA CRM Control Center" },
-      { property: "og:description", content: "Kirish tarixi va shubhali faollik." },
+      { title: t("Xavfsizlik — NEXORA CRM Control Center") },
+      { name: "description", content: t("Kirishlar, muvaffaqiyatsiz urinishlar va admin amallari bo‘yicha xavfsizlik ko‘rinishi.") },
+      { property: "og:title", content: t("Xavfsizlik — NEXORA CRM Control Center") },
+      { property: "og:description", content: t("Kirish tarixi va shubhali faollik.") },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -33,17 +34,17 @@ function SecurityPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Xavfsizlik" description="Audit jurnalidan olingan haqiqiy kirish va admin amallari." />
+      <PageHeader title={t("Xavfsizlik")} description={t("Audit jurnalidan olingan haqiqiy kirish va admin amallari.")} />
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <MetricCard label="Oxirgi kirishlar" value={fmtNumber(data.recentLogins.length)} />
-        <MetricCard label="24 soatda muvaffaqiyatsiz kirish" value={fmtNumber(data.failedLast24h)} />
-        <MetricCard label="Shubhali manbalar" value={fmtNumber(data.suspicious.length)} hint="24 soatda 3+ xato urinish" />
+        <MetricCard label={t("Oxirgi kirishlar")} value={fmtNumber(data.recentLogins.length)} />
+        <MetricCard label={t("24 soatda muvaffaqiyatsiz kirish")} value={fmtNumber(data.failedLast24h)} />
+        <MetricCard label={t("Shubhali manbalar")} value={fmtNumber(data.suspicious.length)} hint={t("24 soatda 3+ xato urinish")} />
       </div>
 
-      <Panel title="Shubhali faollik">
+      <Panel title={t("Shubhali faollik")}>
         {data.suspicious.length === 0 ? (
-          <NoData label="Shubhali faollik aniqlanmadi" />
+          <NoData label={t("Shubhali faollik aniqlanmadi")} />
         ) : (
           <DataTable columns={["Manba", "Xato urinishlar"]}>
             {data.suspicious.map((s) => (
@@ -57,7 +58,7 @@ function SecurityPage() {
       </Panel>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Panel title="Oxirgi kirishlar">
+        <Panel title={t("Oxirgi kirishlar")}>
           {data.recentLogins.length === 0 ? (
             <NoData />
           ) : (
@@ -73,7 +74,7 @@ function SecurityPage() {
           )}
         </Panel>
 
-        <Panel title="Muvaffaqiyatsiz kirishlar">
+        <Panel title={t("Muvaffaqiyatsiz kirishlar")}>
           {data.failedLogins.length === 0 ? (
             <NoData />
           ) : (
@@ -90,7 +91,7 @@ function SecurityPage() {
         </Panel>
       </div>
 
-      <Panel title="Super Admin amallari">
+      <Panel title={t("Super Admin amallari")}>
         {data.adminActions.length === 0 ? (
           <NoData />
         ) : (

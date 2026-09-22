@@ -12,17 +12,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { crmLabel } from "@/lib/crm-core";
 import { deleteCrmCustomer, getCustomerProfile } from "@/lib/customers.functions";
 import { formatMoney } from "@/lib/types";
+import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/dashboard/customers/$id")({
   head: () => ({
     meta: [
-      { title: "Mijoz profili — NEXORA CRM" },
+      { title: t("Mijoz profili — NEXORA CRM") },
       {
         name: "description",
-        content: "Mijozning murojaatlari, buyurtmalari, to‘lovlari, vazifalari va aloqa tarixi.",
+        content: t("Mijozning murojaatlari, buyurtmalari, to‘lovlari, vazifalari va aloqa tarixi."),
       },
-      { property: "og:title", content: "Mijoz profili — NEXORA CRM" },
-      { property: "og:description", content: "Bitta ekranda mijoz haqida hamma narsa." },
+      { property: "og:title", content: t("Mijoz profili — NEXORA CRM") },
+      { property: "og:description", content: t("Bitta ekranda mijoz haqida hamma narsa.") },
     ],
   }),
   component: CustomerProfile,
@@ -42,7 +43,7 @@ function CustomerProfile() {
     queryFn: () => fetchProfile({ data: { id } }),
   });
 
-  if (query.isPending) return <LoadingState label="Profil yuklanmoqda…" />;
+  if (query.isPending) return <LoadingState label={t("Profil yuklanmoqda…")} />;
   if (query.error) return <ErrorState error={query.error} onRetry={() => void query.refetch()} />;
 
   const { customer, leads, orders, payments, tasks, activities, conversations } = query.data;
@@ -59,7 +60,7 @@ function CustomerProfile() {
     <>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-start gap-3">
-          <Button asChild variant="ghost" size="icon" aria-label="Orqaga">
+          <Button asChild variant="ghost" size="icon" aria-label={t("Orqaga")}>
             <Link to="/dashboard/customers">
               <ArrowLeft className="size-4" />
             </Link>
@@ -72,35 +73,35 @@ function CustomerProfile() {
             </p>
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <StatusBadge value={customer.status} />
-              <span className="text-xs text-muted-foreground">Manba: {crmLabel(customer.source)}</span>
+              <span className="text-xs text-muted-foreground">{t("Manba:")}{" "}{crmLabel(customer.source)}</span>
               {operator?.full_name ? (
-                <span className="text-xs text-muted-foreground">Mas’ul: {operator.full_name}</span>
+                <span className="text-xs text-muted-foreground">{t("Mas’ul:")}{" "}{operator.full_name}</span>
               ) : null}
             </div>
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button size="sm" variant="outline" className="gap-1" onClick={() => setTaskOpen(true)}>
-            <Plus className="size-4" /> Vazifa
+            <Plus className="size-4" /> {t("Vazifa")}
           </Button>
           <Button size="sm" variant="outline" className="gap-1" onClick={() => setPaymentOpen(true)}>
-            <Plus className="size-4" /> To‘lov
+            <Plus className="size-4" /> {t("To‘lov")}
           </Button>
           <Button size="sm" variant="outline" className="gap-1" onClick={() => setEditOpen(true)}>
-            <Pencil className="size-4" /> Tahrirlash
+            <Pencil className="size-4" /> {t("Tahrirlash")}
           </Button>
           <Button
             size="sm"
             variant="ghost"
             className="gap-1"
             onClick={async () => {
-              if (!window.confirm("Mijozni o‘chirasizmi? Bu amalni qaytarib bo‘lmaydi.")) return;
+              if (!window.confirm(t("Mijozni o‘chirasizmi? Bu amalni qaytarib bo‘lmaydi."))) return;
               try {
                 await remove({ data: { id } });
-                toast.success("Mijoz o‘chirildi");
+                toast.success(t("Mijoz o‘chirildi"));
                 void navigate({ to: "/dashboard/customers" });
               } catch (error) {
-                toast.error(error instanceof Error ? error.message : "Xatolik");
+                toast.error(error instanceof Error ? error.message : t("Xatolik"));
               }
             }}
           >
@@ -110,26 +111,26 @@ function CustomerProfile() {
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Buyurtmalar" value={customer.total_orders} />
-        <StatCard label="Umumiy xarid" value={formatMoney(customer.total_spent, currency)} />
-        <StatCard label="To‘langan" value={formatMoney(paid, currency)} />
-        <StatCard label="Qarzdorlik" value={formatMoney(debt, currency)} />
+        <StatCard label={t("Buyurtmalar")} value={customer.total_orders} />
+        <StatCard label={t("Umumiy xarid")} value={formatMoney(customer.total_spent, currency)} />
+        <StatCard label={t("To‘langan")} value={formatMoney(paid, currency)} />
+        <StatCard label={t("Qarzdorlik")} value={formatMoney(debt, currency)} />
       </div>
 
       <Tabs defaultValue="overview">
         <TabsList className="flex-wrap">
-          <TabsTrigger value="overview">Umumiy</TabsTrigger>
-          <TabsTrigger value="leads">Murojaatlar ({leads.length})</TabsTrigger>
-          <TabsTrigger value="orders">Buyurtmalar ({orders.length})</TabsTrigger>
-          <TabsTrigger value="payments">To‘lovlar ({payments.length})</TabsTrigger>
-          <TabsTrigger value="tasks">Vazifalar ({tasks.length})</TabsTrigger>
-          <TabsTrigger value="activity">Tarix</TabsTrigger>
+          <TabsTrigger value="overview">{t("Umumiy")}</TabsTrigger>
+          <TabsTrigger value="leads">{t("Murojaatlar (")}{leads.length})</TabsTrigger>
+          <TabsTrigger value="orders">{t("Buyurtmalar (")}{orders.length})</TabsTrigger>
+          <TabsTrigger value="payments">{t("To‘lovlar (")}{payments.length})</TabsTrigger>
+          <TabsTrigger value="tasks">{t("Vazifalar (")}{tasks.length})</TabsTrigger>
+          <TabsTrigger value="activity">{t("Tarix")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="clay-panel mt-3 space-y-3 p-5">
-          <Field label="Izoh" value={customer.notes || "—"} />
+          <Field label={t("Izoh")} value={customer.notes || "—"} />
           <Field
-            label="Oxirgi aloqa"
+            label={t("Oxirgi aloqa")}
             value={
               customer.last_contact_at
                 ? new Date(customer.last_contact_at).toLocaleString("uz-UZ")
@@ -138,10 +139,10 @@ function CustomerProfile() {
           />
           <Field label="Telegram" value={customer.telegram_username ? `@${customer.telegram_username}` : "—"} />
           <div>
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">Suhbatlar</p>
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">{t("Suhbatlar")}</p>
             <div className="mt-2 space-y-2">
               {conversations.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Suhbat yo‘q.</p>
+                <p className="text-sm text-muted-foreground">{t("Suhbat yo‘q.")}</p>
               ) : (
                 conversations.map((conversation) => (
                   <Link
@@ -225,8 +226,8 @@ function CustomerProfile() {
                 title={task.title}
                 subtitle={
                   task.due_date
-                    ? `Muddat: ${new Date(task.due_date).toLocaleDateString("uz-UZ")}`
-                    : "Muddat belgilanmagan"
+                    ? t("Muddat: {v0}", { v0: new Date(task.due_date).toLocaleDateString("uz-UZ") })
+                    : t("Muddat belgilanmagan")
                 }
                 badge={task.status}
               />
@@ -263,7 +264,7 @@ function CustomerProfile() {
           assigned_operator_id: customer.assigned_operator_id,
           notes: customer.notes,
         }}
-        title="Mijozni tahrirlash"
+        title={t("Mijozni tahrirlash")}
       />
       <PaymentDialog open={paymentOpen} onOpenChange={setPaymentOpen} defaultCustomerId={id} />
       <TaskDialog open={taskOpen} onOpenChange={setTaskOpen} defaultCustomerId={id} />

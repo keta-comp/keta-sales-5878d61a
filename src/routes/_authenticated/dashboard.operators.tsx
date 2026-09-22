@@ -12,14 +12,15 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { deleteOperator, listOperators, saveOperator } from "@/lib/orders.functions";
 import { formatMoney } from "@/lib/types";
+import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/dashboard/operators")({
   head: () => ({
     meta: [
-      { title: "Operatorlar — NEXORA CRM" },
-      { name: "description", content: "Inson savdo operatorlarini boshqaring va ularning konversiya natijalarini kuzating." },
-      { property: "og:title", content: "Operatorlar — NEXORA CRM" },
-      { property: "og:description", content: "AI savdo jamoangiz uchun operatorlar ro'yxati va natijalari." },
+      { title: t("Operatorlar — NEXORA CRM") },
+      { name: "description", content: t("Inson savdo operatorlarini boshqaring va ularning konversiya natijalarini kuzating.") },
+      { property: "og:title", content: t("Operatorlar — NEXORA CRM") },
+      { property: "og:description", content: t("AI savdo jamoangiz uchun operatorlar ro'yxati va natijalari.") },
     ],
   }),
   component: OperatorsPage,
@@ -50,28 +51,28 @@ function OperatorsPage() {
       is_active: boolean;
     }) => save({ data: input }),
     onSuccess: () => {
-      toast.success("Operator saqlandi");
+      toast.success(t("Operator saqlandi"));
       setFullName("");
       setUsername("");
       setTelegramId("");
       setPhone("");
       invalidate();
     },
-    onError: (error: unknown) => toast.error(error instanceof Error ? error.message : "Saqlash amalga oshmadi"),
+    onError: (error: unknown) => toast.error(error instanceof Error ? error.message : t("Saqlash amalga oshmadi")),
   });
 
   const removeMutation = useMutation({
     mutationFn: (id: string) => remove({ data: { id } }),
     onSuccess: () => {
-      toast.success("Operator o'chirildi");
+      toast.success(t("Operator o'chirildi"));
       invalidate();
     },
-    onError: (error: unknown) => toast.error(error instanceof Error ? error.message : "O'chirish amalga oshmadi"),
+    onError: (error: unknown) => toast.error(error instanceof Error ? error.message : t("O'chirish amalga oshmadi")),
   });
 
   return (
     <>
-      <PageHeader title="Operatorlar" description="AI eskalatsiya qilgan lidlarni yopadigan insonlar." />
+      <PageHeader title={t("Operatorlar")} description={t("AI eskalatsiya qilgan lidlarni yopadigan insonlar.")} />
 
       <form
         className="clay-panel grid gap-3 p-4 sm:grid-cols-5"
@@ -87,24 +88,24 @@ function OperatorsPage() {
         }}
       >
         <div className="sm:col-span-2">
-          <Label htmlFor="op-name">To'liq ism</Label>
+          <Label htmlFor="op-name">{t("To'liq ism")}</Label>
           <Input id="op-name" value={fullName} onChange={(event) => setFullName(event.target.value)} required />
         </div>
         <div>
-          <Label htmlFor="op-username">Telegram @</Label>
+          <Label htmlFor="op-username">{t("Telegram @")}</Label>
           <Input id="op-username" value={username} onChange={(event) => setUsername(event.target.value)} />
         </div>
         <div>
-          <Label htmlFor="op-phone">Telefon</Label>
+          <Label htmlFor="op-phone">{t("Telefon")}</Label>
           <Input id="op-phone" value={phone} onChange={(event) => setPhone(event.target.value)} />
         </div>
         <div className="flex items-end">
           <Button type="submit" className="w-full" disabled={saveMutation.isPending}>
-            Operator qo'shish
+            {t("Operator qo'shish")}
           </Button>
         </div>
         <div className="sm:col-span-2">
-          <Label htmlFor="op-tgid">Telegram foydalanuvchi ID (ixtiyoriy)</Label>
+          <Label htmlFor="op-tgid">{t("Telegram foydalanuvchi ID (ixtiyoriy)")}</Label>
           <Input id="op-tgid" value={telegramId} onChange={(event) => setTelegramId(event.target.value)} />
         </div>
       </form>
@@ -114,19 +115,19 @@ function OperatorsPage() {
       ) : operators.error ? (
         <ErrorState error={operators.error} onRetry={() => void operators.refetch()} />
       ) : operators.data.length === 0 ? (
-        <EmptyState title="Hozircha operatorlar yo'q" description="AI qizigan lidlarni topshira olishi uchun savdo xodimlaringizni qo'shing." />
+        <EmptyState title={t("Hozircha operatorlar yo'q")} description={t("AI qizigan lidlarni topshira olishi uchun savdo xodimlaringizni qo'shing.")} />
       ) : (
         <div className="clay-panel overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
-                <th className="px-4 py-3">Operator</th>
-                <th className="px-4 py-3">Tayinlangan</th>
-                <th className="px-4 py-3">Bog'lanilgan</th>
-                <th className="px-4 py-3">Yopilgan</th>
-                <th className="px-4 py-3">Konversiya</th>
-                <th className="px-4 py-3">Daromad</th>
-                <th className="px-4 py-3">Faol</th>
+                <th className="px-4 py-3">{t("Operator")}</th>
+                <th className="px-4 py-3">{t("Tayinlangan")}</th>
+                <th className="px-4 py-3">{t("Bog'lanilgan")}</th>
+                <th className="px-4 py-3">{t("Yopilgan")}</th>
+                <th className="px-4 py-3">{t("Konversiya")}</th>
+                <th className="px-4 py-3">{t("Daromad")}</th>
+                <th className="px-4 py-3">{t("Faol")}</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
@@ -163,7 +164,7 @@ function OperatorsPage() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      aria-label="Operatorni o'chirish"
+                      aria-label={t("Operatorni o'chirish")}
                       onClick={() => removeMutation.mutate(operator.id)}
                     >
                       <Trash2 className="size-4 text-destructive" />

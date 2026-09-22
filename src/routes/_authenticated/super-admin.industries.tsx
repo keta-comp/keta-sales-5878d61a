@@ -7,14 +7,15 @@ import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxi
 import { ErrorState, LoadingState, PageHeader } from "@/components/app/primitives";
 import { DataTable, NoData, Panel, fmtNumber } from "@/components/app/super-admin-ui";
 import { getSaasAnalytics } from "@/lib/super-admin.functions";
+import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/super-admin/industries")({
   head: () => ({
     meta: [
-      { title: "Sohalar — NEXORA CRM Control Center" },
-      { name: "description", content: "NEXORA CRM foydalanuvchilarining sohalari bo‘yicha taqsimoti." },
-      { property: "og:title", content: "Sohalar — NEXORA CRM Control Center" },
-      { property: "og:description", content: "Organizationlar soha bo‘yicha taqsimoti." },
+      { title: t("Sohalar — NEXORA CRM Control Center") },
+      { name: "description", content: t("NEXORA CRM foydalanuvchilarining sohalari bo‘yicha taqsimoti.") },
+      { property: "og:title", content: t("Sohalar — NEXORA CRM Control Center") },
+      { property: "og:description", content: t("Organizationlar soha bo‘yicha taqsimoti.") },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -45,11 +46,11 @@ function IndustriesPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Sohalar" description="Organizationlar tanlagan sohalar — haqiqiy CRM sozlamalaridan." />
+      <PageHeader title={t("Sohalar")} description={t("Organizationlar tanlagan sohalar — haqiqiy CRM sozlamalaridan.")} />
 
-      <Panel title="Sohalar bo‘yicha organizationlar">
+      <Panel title={t("Sohalar bo‘yicha organizationlar")}>
         {rows.length === 0 ? (
-          <NoData label="Hali hech bir organization soha tanlamagan" />
+          <NoData label={t("Hali hech bir organization soha tanlamagan")} />
         ) : (
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
@@ -65,7 +66,7 @@ function IndustriesPage() {
         )}
       </Panel>
 
-      <Panel title="Ro‘yxat">
+      <Panel title={t("Ro‘yxat")}>
         {rows.length === 0 ? (
           <NoData />
         ) : (

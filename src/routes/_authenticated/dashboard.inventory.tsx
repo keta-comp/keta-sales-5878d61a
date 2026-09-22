@@ -9,14 +9,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { adjustStock, listInventoryMovements, listProducts } from "@/lib/catalog.functions";
 import { stockState } from "@/lib/types";
+import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/dashboard/inventory")({
   head: () => ({
     meta: [
-      { title: "Ombor — NEXORA CRM" },
-      { name: "description", content: "Haqiqiy zaxira darajalari, bandlar va to'liq harakatlar tarixi." },
-      { property: "og:title", content: "Ombor — NEXORA CRM" },
-      { property: "og:description", content: "AI orqali Telegram savdosi uchun jonli zaxira nazorati." },
+      { title: t("Ombor — NEXORA CRM") },
+      { name: "description", content: t("Haqiqiy zaxira darajalari, bandlar va to'liq harakatlar tarixi.") },
+      { property: "og:title", content: t("Ombor — NEXORA CRM") },
+      { property: "og:description", content: t("AI orqali Telegram savdosi uchun jonli zaxira nazorati.") },
     ],
   }),
   component: InventoryPage,
@@ -36,11 +37,11 @@ function InventoryPage() {
     mutationFn: (input: { id: string; change: number }) =>
       adjust({ data: { id: input.id, change: input.change, reason: "manual_adjustment" } }),
     onSuccess: () => {
-      toast.success("Zaxira yangilandi");
+      toast.success(t("Zaxira yangilandi"));
       void queryClient.invalidateQueries({ queryKey: ["products"] });
       void queryClient.invalidateQueries({ queryKey: ["movements"] });
     },
-    onError: (error: unknown) => toast.error(error instanceof Error ? error.message : "O'zgartirish amalga oshmadi"),
+    onError: (error: unknown) => toast.error(error instanceof Error ? error.message : t("O'zgartirish amalga oshmadi")),
   });
 
   if (products.isPending) return <LoadingState />;
@@ -58,25 +59,25 @@ function InventoryPage() {
 
   return (
     <>
-      <PageHeader title="Ombor" description="AI mijozga va'da berishdan oldin tekshiradigan zaxira." />
+      <PageHeader title={t("Ombor")} description={t("AI mijozga va'da berishdan oldin tekshiradigan zaxira.")} />
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="SKU'lar" value={rows.length} />
-        <StatCard label="Qo'ldagi birliklar" value={units} />
-        <StatCard label="Band qilingan" value={reserved} tone="info" />
-        <StatCard label="Kam / tugagan" value={`${lowStock} / ${outOfStock}`} tone="warning" />
+        <StatCard label={t("SKU'lar")} value={rows.length} />
+        <StatCard label={t("Qo'ldagi birliklar")} value={units} />
+        <StatCard label={t("Band qilingan")} value={reserved} tone="info" />
+        <StatCard label={t("Kam / tugagan")} value={`${lowStock} / ${outOfStock}`} tone="warning" />
       </div>
 
       <div className="clay-panel clay-inset overflow-x-auto rounded-3xl p-2">
         <table className="w-full text-sm">
           <thead className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
-              <th className="px-4 py-3">Mahsulot</th>
-              <th className="px-4 py-3">Qo'lda</th>
-              <th className="px-4 py-3">Band</th>
-              <th className="px-4 py-3">Mavjud</th>
-              <th className="px-4 py-3">Holat</th>
-              <th className="px-4 py-3">O'zgartirish</th>
+              <th className="px-4 py-3">{t("Mahsulot")}</th>
+              <th className="px-4 py-3">{t("Qo'lda")}</th>
+              <th className="px-4 py-3">{t("Band")}</th>
+              <th className="px-4 py-3">{t("Mavjud")}</th>
+              <th className="px-4 py-3">{t("Holat")}</th>
+              <th className="px-4 py-3">{t("O'zgartirish")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -109,12 +110,12 @@ function InventoryPage() {
                       className="w-24"
                       type="number"
                       placeholder="+/-"
-                      aria-label={`${product.name} uchun zaxirani o'zgartirish`}
+                      aria-label={t("{v0} uchun zaxirani o'zgartirish", { v0: product.name })}
                       value={deltas[product.id] ?? ""}
                       onChange={(event) => setDeltas({ ...deltas, [product.id]: event.target.value })}
                     />
                     <Button size="sm" variant="outline" type="submit">
-                      Qo'llash
+                      {t("Qo'llash")}
                     </Button>
                   </form>
                 </td>
@@ -125,7 +126,7 @@ function InventoryPage() {
       </div>
 
       <section className="clay-panel rounded-3xl p-4">
-        <h2 className="font-display text-base font-semibold">Harakatlar tarixi</h2>
+        <h2 className="font-display text-base font-semibold">{t("Harakatlar tarixi")}</h2>
         <div className="clay-inset mt-3 divide-y divide-border rounded-2xl p-2 text-sm">
           {(movements.data ?? []).map((movement) => {
             const product = movement.products as { name: string; sku: string } | null;
@@ -147,7 +148,7 @@ function InventoryPage() {
             );
           })}
           {movements.data?.length ? null : (
-            <p className="py-6 text-center text-sm text-muted-foreground">Hozircha harakatlar qayd etilmagan.</p>
+            <p className="py-6 text-center text-sm text-muted-foreground">{t("Hozircha harakatlar qayd etilmagan.")}</p>
           )}
         </div>
       </section>

@@ -42,10 +42,12 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { GlobalSearch } from "@/components/app/GlobalSearch";
 import { NotificationsBell } from "@/components/app/NotificationsBell";
+import { LanguageSwitcher } from "@/components/app/LanguageSwitcher";
 import { QuickNewButton } from "@/components/app/crm-dialogs";
 import { getMyCrmConfig } from "@/lib/crm-config.functions";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { t } from "@/lib/i18n";
 
 const ICONS: Record<string, LucideIcon> = {
   target: Target,
@@ -134,7 +136,7 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
             )}
           >
             <Icon className="size-4" />
-            {item.label}
+            {t(item.label)}
           </Link>
         );
       })}
@@ -166,11 +168,11 @@ export function DashboardShell({
   const brand = (
     <div className="flex items-center gap-2 px-3 py-4">
       <span className="clay-raised grid size-10 place-items-center overflow-hidden rounded-2xl bg-card">
-        <img src={logoAsset.url} alt="NEXORA CRM logotipi" className="size-8 object-contain" />
+        <img src={logoAsset.url} alt={t("NEXORA CRM logotipi")} className="size-8 object-contain" />
       </span>
       <div className="leading-tight">
         <p className="font-display text-sm font-semibold">NEXORA CRM</p>
-        <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Qoraqalpog‘iston uchun</p>
+        <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">{t("Qoraqalpog‘iston uchun")}</p>
       </div>
     </div>
   );
@@ -183,7 +185,7 @@ export function DashboardShell({
         <div className="mt-auto border-t border-sidebar-border py-4">
           <p className="truncate px-3 pb-2 text-xs text-muted-foreground">{email ?? ""}</p>
           <Button variant="ghost" size="sm" className="w-full justify-start gap-2" onClick={signOut}>
-            <LogOut className="size-4" /> Chiqish
+            <LogOut className="size-4" /> {t("Chiqish")}
           </Button>
         </div>
       </aside>
@@ -193,7 +195,7 @@ export function DashboardShell({
           <div className="flex items-center gap-2">
             <Sheet open={open} onOpenChange={setOpen}>
               <SheetTrigger asChild>
-                <Button variant="outline" size="icon" className="lg:hidden" aria-label="Menyuni ochish">
+                <Button variant="outline" size="icon" className="lg:hidden" aria-label={t("Menyuni ochish")}>
                   <Menu className="size-4" />
                 </Button>
               </SheetTrigger>
@@ -206,12 +208,13 @@ export function DashboardShell({
           </div>
           <div className="flex items-center gap-2">
             <GlobalSearch />
+            <LanguageSwitcher />
             <NotificationsBell />
             <QuickNewButton industry={crm?.industry} stages={crm?.config?.pipelineStages} size="sm" />
             <span className="hidden text-xs text-muted-foreground lg:inline">{email}</span>
             <Button variant="outline" size="sm" className="gap-2" onClick={signOut}>
               <LogOut className="size-4" />
-              <span className="hidden sm:inline">Chiqish</span>
+              <span className="hidden sm:inline">{t("Chiqish")}</span>
             </Button>
           </div>
         </header>

@@ -6,6 +6,7 @@ import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { getDashboardKpis } from "@/lib/workspace.functions";
+import { t } from "@/lib/i18n";
 
 /** Notifications are derived from real CRM rows — never fabricated. */
 export function NotificationsBell() {
@@ -23,7 +24,7 @@ export function NotificationsBell() {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="outline" size="icon" className="relative" aria-label="Bildirishnomalar">
+        <Button variant="outline" size="icon" className="relative" aria-label={t("Bildirishnomalar")}>
           <Bell className="size-4" />
           {total > 0 ? (
             <span className="absolute -right-1 -top-1 grid min-w-5 place-items-center rounded-full bg-foreground px-1 text-[10px] font-semibold text-background">
@@ -34,10 +35,10 @@ export function NotificationsBell() {
       </PopoverTrigger>
       <PopoverContent align="end" className="w-80 p-2">
         <p className="px-2 py-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          Bildirishnomalar
+          {t("Bildirishnomalar")}
         </p>
         {todos.length === 0 ? (
-          <p className="px-2 py-4 text-sm text-muted-foreground">Hozircha yangilik yo‘q.</p>
+          <p className="px-2 py-4 text-sm text-muted-foreground">{t("Hozircha yangilik yo‘q.")}</p>
         ) : (
           <div className="space-y-1">
             {todos.map((todo) => (
@@ -55,7 +56,7 @@ export function NotificationsBell() {
                 <span className="clay-inset grid size-7 shrink-0 place-items-center text-xs font-semibold">
                   {todo.count}
                 </span>
-                <span className="text-muted-foreground">{todo.label}</span>
+                <span className="text-muted-foreground">{t(todo.label)}</span>
               </button>
             ))}
           </div>

@@ -17,14 +17,15 @@ import {
   sendOperatorMessage,
   setConversationMode,
 } from "@/lib/crm.functions";
+import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/dashboard/conversations")({
   head: () => ({
     meta: [
-      { title: "Suhbatlar — NEXORA CRM" },
-      { name: "description", content: "Jonli Telegram inbox: AI savdo suhbatlarini o'qing va operator sifatida ularni o'z qo'lingizga oling." },
-      { property: "og:title", content: "Suhbatlar — NEXORA CRM" },
-      { property: "og:description", content: "Jonli AI va inson operator Telegram savdo inboxi." },
+      { title: t("Suhbatlar — NEXORA CRM") },
+      { name: "description", content: t("Jonli Telegram inbox: AI savdo suhbatlarini o'qing va operator sifatida ularni o'z qo'lingizga oling.") },
+      { property: "og:title", content: t("Suhbatlar — NEXORA CRM") },
+      { property: "og:description", content: t("Jonli AI va inson operator Telegram savdo inboxi.") },
     ],
   }),
   component: ConversationsPage,
@@ -86,17 +87,17 @@ function ConversationsPage() {
       setDraft("");
       void queryClient.invalidateQueries({ queryKey: ["conversation"] });
     },
-    onError: (error: unknown) => toast.error(error instanceof Error ? error.message : "Xabar yuborilmadi"),
+    onError: (error: unknown) => toast.error(error instanceof Error ? error.message : t("Xabar yuborilmadi")),
   });
 
   const modeMutation = useMutation({
     mutationFn: (next: "ai" | "human") => switchMode({ data: { id: activeId!, mode: next } }),
     onSuccess: () => {
-      toast.success("Suhbat rejimi yangilandi");
+      toast.success(t("Suhbat rejimi yangilandi"));
       void queryClient.invalidateQueries({ queryKey: ["conversation"] });
       void queryClient.invalidateQueries({ queryKey: ["conversations"] });
     },
-    onError: (error: unknown) => toast.error(error instanceof Error ? error.message : "Yangilash amalga oshmadi"),
+    onError: (error: unknown) => toast.error(error instanceof Error ? error.message : t("Yangilash amalga oshmadi")),
   });
 
   const conversation = thread.data?.conversation;
@@ -104,8 +105,8 @@ function ConversationsPage() {
   return (
     <>
       <PageHeader
-        title="Suhbatlar"
-        description="Har bir Telegram suhbati jonli rejimda. Xohlagan vaqtingizda AI’dan boshqaruvni o‘zingizga oling."
+        title={t("Suhbatlar")}
+        description={t("Har bir Telegram suhbati jonli rejimda. Xohlagan vaqtingizda AI’dan boshqaruvni o‘zingizga oling.")}
         actions={
           <div className="flex gap-2">
             {["all", "ai", "human"].map((value) => (
@@ -115,7 +116,7 @@ function ConversationsPage() {
                 variant={mode === value ? "default" : "outline"}
                 onClick={() => setMode(value)}
               >
-                {MODE_LABELS[value] ?? value}
+                {t(MODE_LABELS[value] ?? value)}
               </Button>
             ))}
           </div>
@@ -128,7 +129,7 @@ function ConversationsPage() {
             <Input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Mijoz yoki xabarni qidiring"
+              placeholder={t("Mijoz yoki xabarni qidiring")}
             />
           </div>
           <div className="clay-inset m-2 flex-1 overflow-y-auto rounded-2xl">
@@ -137,7 +138,7 @@ function ConversationsPage() {
             ) : conversations.error ? (
               <ErrorState error={conversations.error} onRetry={() => void conversations.refetch()} />
             ) : conversations.data.length === 0 ? (
-              <p className="p-6 text-center text-sm text-muted-foreground">Hozircha suhbatlar yo'q.</p>
+              <p className="p-6 text-center text-sm text-muted-foreground">{t("Hozircha suhbatlar yo'q.")}</p>
             ) : (
               conversations.data.map((row) => {
                 const customer = row.customers as { full_name: string | null; telegram_username: string | null } | null;
@@ -180,7 +181,7 @@ function ConversationsPage() {
 
         <div className="clay-panel flex max-h-[70vh] flex-col overflow-hidden">
           {!activeId ? (
-            <EmptyState title="Suhbatni tanlang" description="O'qish va javob berish uchun chapdan biror suhbatni tanlang." />
+            <EmptyState title={t("Suhbatni tanlang")} description={t("O'qish va javob berish uchun chapdan biror suhbatni tanlang.")} />
           ) : thread.isPending ? (
             <LoadingState />
           ) : thread.error ? (
@@ -192,7 +193,7 @@ function ConversationsPage() {
                   <p className="text-sm font-medium text-foreground">
                     {(conversation.customers as { full_name: string | null } | null)?.full_name ?? "Telegram mijozi"}
                   </p>
-                  <p className="text-xs text-muted-foreground">Chat ID {conversation.telegram_chat_id}</p>
+                  <p className="text-xs text-muted-foreground">{t("Chat ID")}{" "}{conversation.telegram_chat_id}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <StatusBadge value={conversation.mode} />
@@ -204,11 +205,11 @@ function ConversationsPage() {
                   >
                     {conversation.mode === "ai" ? (
                       <>
-                        <UserRound className="mr-1 size-4" /> O'zim boshqaraman
+                        <UserRound className="mr-1 size-4" /> {t("O'zim boshqaraman")}
                       </>
                     ) : (
                       <>
-                        <Bot className="mr-1 size-4" /> AI'ga qaytarish
+                        <Bot className="mr-1 size-4" /> {t("AI'ga qaytarish")}
                       </>
                     )}
                   </Button>
@@ -254,7 +255,7 @@ function ConversationsPage() {
                   value={draft}
                   rows={2}
                   onChange={(event) => setDraft(event.target.value)}
-                  placeholder="Mijozga Telegram orqali javob yozing…"
+                  placeholder={t("Mijozga Telegram orqali javob yozing…")}
                 />
                 <Button type="submit" disabled={sendMutation.isPending || !draft.trim()}>
                   <Send className="size-4" />
