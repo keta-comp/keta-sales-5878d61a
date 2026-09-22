@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { PAYMENT_METHODS, PAYMENT_STATUSES } from "@/lib/crm-core";
+import { crmLabel, PAYMENT_METHODS, PAYMENT_RECORD_STATUSES } from "@/lib/crm-core";
 import { deletePayment, listPayments } from "@/lib/payments.functions";
 import { formatMoney } from "@/lib/types";
 
@@ -98,9 +98,9 @@ function PaymentsPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Barcha holat</SelectItem>
-            {PAYMENT_STATUSES.map((s) => (
-              <SelectItem key={s.value} value={s.value}>
-                {s.label}
+            {PAYMENT_RECORD_STATUSES.map((s) => (
+              <SelectItem key={s} value={s}>
+                {crmLabel(s)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -112,8 +112,8 @@ function PaymentsPage() {
           <SelectContent>
             <SelectItem value="all">Barcha usul</SelectItem>
             {PAYMENT_METHODS.map((m) => (
-              <SelectItem key={m.value} value={m.value}>
-                {m.label}
+              <SelectItem key={m} value={m}>
+                {crmLabel(m)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -147,8 +147,7 @@ function PaymentsPage() {
               {(query.data ?? []).map((row) => {
                 const customer = row.customers as { full_name: string | null } | null;
                 const order = row.orders as { order_number: string | null } | null;
-                const methodLabel =
-                  PAYMENT_METHODS.find((m) => m.value === row.method)?.label ?? row.method;
+                const methodLabel = crmLabel(row.method);
                 return (
                   <TableRow key={row.id}>
                     <TableCell className="font-medium">{customer?.full_name ?? "—"}</TableCell>

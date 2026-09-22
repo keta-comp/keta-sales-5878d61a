@@ -196,8 +196,8 @@ function ReportBody({ data }: { data: Awaited<ReturnType<typeof getReport>> }) {
               <p className="text-sm text-muted-foreground">Ma’lumot yo‘q.</p>
             ) : (
               data.bySource.map((row) => (
-                <div key={row.source} className="clay-inset flex items-center justify-between rounded-2xl px-3 py-2 text-sm">
-                  <span>{row.source}</span>
+                <div key={row.name} className="clay-inset flex items-center justify-between rounded-2xl px-3 py-2 text-sm">
+                  <span>{row.name}</span>
                   <span className="text-muted-foreground">
                     {row.leads} murojaat • {row.customers} mijoz
                   </span>

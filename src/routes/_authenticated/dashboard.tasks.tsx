@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { TASK_PRIORITIES, TASK_STATUSES } from "@/lib/crm-core";
+import { crmLabel, TASK_PRIORITIES, TASK_STATUSES } from "@/lib/crm-core";
 import { deleteTask, listTasks, setTaskStatus } from "@/lib/tasks.functions";
 
 export const Route = createFileRoute("/_authenticated/dashboard/tasks")({
@@ -84,8 +84,8 @@ function TasksPage() {
           <SelectContent>
             <SelectItem value="all">Barcha holat</SelectItem>
             {TASK_STATUSES.map((s) => (
-              <SelectItem key={s.value} value={s.value}>
-                {s.label}
+              <SelectItem key={s} value={s}>
+                {crmLabel(s)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -97,8 +97,8 @@ function TasksPage() {
           <SelectContent>
             <SelectItem value="all">Barcha muhimlik</SelectItem>
             {TASK_PRIORITIES.map((p) => (
-              <SelectItem key={p.value} value={p.value}>
-                {p.label}
+              <SelectItem key={p} value={p}>
+                {crmLabel(p)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -214,7 +214,6 @@ function TasksPage() {
                 description: editing.description,
                 assigned_operator_id: editing.assigned_operator_id,
                 customer_id: editing.customer_id,
-                lead_id: editing.lead_id,
                 order_id: editing.order_id,
                 due_date: editing.due_date,
                 priority: editing.priority as "low" | "medium" | "high",
