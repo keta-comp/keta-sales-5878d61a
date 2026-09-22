@@ -6,6 +6,7 @@ import {
   Activity,
   BarChart3,
   Book,
+  Bot,
   Boxes,
   Building,
   Calendar,
@@ -17,6 +18,7 @@ import {
   LayoutDashboard,
   LayoutGrid,
   Layers,
+  ListChecks,
   LogOut,
   Menu,
   MessagesSquare,
@@ -28,6 +30,7 @@ import {
   Target,
   UserRound,
   Users,
+  Wallet,
   Wrench,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -36,6 +39,9 @@ import { toast } from "sonner";
 import logoAsset from "@/assets/keta-crm-logo.png.asset.json";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { GlobalSearch } from "@/components/app/GlobalSearch";
+import { NotificationsBell } from "@/components/app/NotificationsBell";
+import { QuickNewButton } from "@/components/app/crm-dialogs";
 import { getMyCrmConfig } from "@/lib/crm-config.functions";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -62,9 +68,18 @@ const ICONS: Record<string, LucideIcon> = {
   building: Building,
 };
 
+const CORE_LINKS: { to: string; label: string; icon: LucideIcon }[] = [
+  { to: "/dashboard/customers", label: "Mijozlar", icon: Users },
+  { to: "/dashboard/leads", label: "Murojaatlar", icon: Target },
+  { to: "/dashboard/orders", label: "Buyurtmalar", icon: ShoppingCart },
+];
+
 const STATIC_TAIL: { to: string; label: string; icon: LucideIcon }[] = [
-  { to: "/dashboard/operators", label: "Operatorlar", icon: UserRound },
-  { to: "/dashboard/analytics", label: "Savdo tahlili", icon: BarChart3 },
+  { to: "/dashboard/payments", label: "To‘lovlar", icon: Wallet },
+  { to: "/dashboard/tasks", label: "Vazifalar", icon: ListChecks },
+  { to: "/dashboard/operators", label: "Jamoa", icon: UserRound },
+  { to: "/dashboard/analytics", label: "Hisobotlar", icon: BarChart3 },
+  { to: "/dashboard/assistant", label: "AI yordamchi", icon: Bot },
   { to: "/dashboard/crm-builder", label: "AI CRM sozlash", icon: Sparkles },
   { to: "/dashboard/settings", label: "Sozlamalar", icon: Settings },
 ];
@@ -77,13 +92,20 @@ function buildNav(crm: Awaited<ReturnType<typeof getMyCrmConfig>> | undefined): 
   if (crm?.config?.pipelineStages.length && hasPipeline) {
     items.push({ to: "/dashboard/pipeline", label: "Pipeline", icon: LayoutGrid });
   }
+  const seen = new Set<string>();
   for (const module of crm?.config?.modules ?? []) {
     const to = module.link ?? `/dashboard/crm/${module.key}`;
+    seen.add(to);
     items.push({ to, label: module.label, icon: ICONS[module.icon ?? ""] ?? LayoutGrid });
+  }
+  // The CRM core is always reachable, even when the industry config renames modules.
+  for (const core of CORE_LINKS) {
+    if (!seen.has(core.to)) items.push(core);
   }
   items.push(...STATIC_TAIL);
   return items;
 }
+
 
 function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -127,6 +149,8 @@ export function DashboardShell({
 }) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const fetchConfig = useServerFn(getMyCrmConfig);
+  const { data: crm } = useQuery({ queryKey: ["crm-config"], queryFn: () => fetchConfig() });
 
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
@@ -179,7 +203,10 @@ export function DashboardShell({
             <span className="font-display text-sm font-semibold lg:hidden">KETA CRM</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="hidden text-xs text-muted-foreground sm:inline">{email}</span>
+            <GlobalSearch />
+            <NotificationsBell />
+            <QuickNewButton industry={crm?.industry} stages={crm?.config?.pipelineStages} size="sm" />
+            <span className="hidden text-xs text-muted-foreground lg:inline">{email}</span>
             <Button variant="outline" size="sm" className="gap-2" onClick={signOut}>
               <LogOut className="size-4" />
               <span className="hidden sm:inline">Chiqish</span>

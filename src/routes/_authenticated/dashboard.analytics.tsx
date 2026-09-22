@@ -1,12 +1,15 @@
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
+import { Download, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import {
-  Area,
-  AreaChart,
   Bar,
   BarChart,
   CartesianGrid,
+  Line,
+  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -14,188 +17,229 @@ import {
 } from "recharts";
 
 import { ErrorState, LoadingState, PageHeader, StatCard } from "@/components/app/primitives";
-import { getAnalytics } from "@/lib/stats.functions";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { dateRangeFromPreset, REPORT_PRESETS } from "@/lib/crm-core";
+import { exportReportExcel, getReport } from "@/lib/workspace.functions";
 import { formatMoney } from "@/lib/types";
 
 export const Route = createFileRoute("/_authenticated/dashboard/analytics")({
   head: () => ({
     meta: [
-      { title: "Savdo tahlili — KETA CRM" },
-      { name: "description", content: "30 kunlik daromad, lidlar konversiyasi va eng ko'p sotilgan mahsulotlar." },
-      { property: "og:title", content: "Savdo tahlili — KETA CRM" },
-      { property: "og:description", content: "AI savdo agentingiz uchun daromad va konversiya tahlili." },
+      { title: "Hisobotlar — KETA CRM" },
+      {
+        name: "description",
+        content: "Tushum, buyurtmalar, konversiya, manbalar va operatorlar bo‘yicha real hisobotlar.",
+      },
+      { property: "og:title", content: "Hisobotlar — KETA CRM" },
+      { property: "og:description", content: "Davrni tanlang va hisobotni Excelga yuklab oling." },
     ],
   }),
-  component: AnalyticsPage,
+  component: ReportsPage,
 });
 
-function AnalyticsPage() {
-  const fetchAnalytics = useServerFn(getAnalytics);
-  const analytics = useQuery({ queryKey: ["analytics"], queryFn: () => fetchAnalytics() });
+function ReportsPage() {
+  const fetchReport = useServerFn(getReport);
+  const exportExcel = useServerFn(exportReportExcel);
+  const [preset, setPreset] = useState("30d");
+  const [custom, setCustom] = useState<{ from: string; to: string }>(() => {
+    const range = dateRangeFromPreset("30d");
+    return { from: range.from.slice(0, 10), to: range.to.slice(0, 10) };
+  });
+  const [exporting, setExporting] = useState(false);
 
-  if (analytics.isPending) return <LoadingState />;
-  if (analytics.error) return <ErrorState error={analytics.error} onRetry={() => void analytics.refetch()} />;
+  const range = useMemo(() => {
+    if (preset === "custom") {
+      return {
+        from: new Date(`${custom.from}T00:00:00`).toISOString(),
+        to: new Date(`${custom.to}T23:59:59`).toISOString(),
+      };
+    }
+    return dateRangeFromPreset(preset);
+  }, [preset, custom]);
 
-  const { days, topProducts, funnel, currency } = analytics.data;
-  const revenue = days.reduce((sum, day) => sum + day.revenue, 0);
-  const leads = days.reduce((sum, day) => sum + day.leads, 0);
-  const orders = days.reduce((sum, day) => sum + day.orders, 0);
+  const query = useQuery({
+    queryKey: ["report", range.from, range.to],
+    queryFn: () => fetchReport({ data: { from: range.from, to: range.to } }),
+  });
+
+  const download = async () => {
+    setExporting(true);
+    try {
+      const file = await exportExcel({ data: { from: range.from, to: range.to } });
+      const bytes = Uint8Array.from(atob(file.base64), (c) => c.charCodeAt(0));
+      const blob = new Blob([bytes], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = file.filename;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Yuklab olish xatosi");
+    } finally {
+      setExporting(false);
+    }
+  };
 
   return (
     <>
-      <PageHeader title="Savdo tahlili" description="So'nggi 30 kun, haqiqiy buyurtmalar va lidlar asosida hisoblangan." />
+      <PageHeader
+        title="Hisobotlar"
+        description="Barcha raqamlar tanlangan davr uchun bazadan hisoblanadi."
+        actions={
+          <Button size="sm" variant="outline" className="gap-2" onClick={() => void download()} disabled={exporting}>
+            {exporting ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
+            Excel
+          </Button>
+        }
+      />
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Daromad (30 kun)" value={formatMoney(revenue, currency)} tone="success" />
-        <StatCard label="Lidlar (30 kun)" value={leads} />
-        <StatCard label="Buyurtmalar (30 kun)" value={orders} />
-        <StatCard
-          label="Konversiya"
-          value={`${leads ? Math.round((orders / leads) * 1000) / 10 : 0}%`}
-          tone="info"
-        />
+      <div className="clay-panel flex flex-wrap items-center gap-2 p-4">
+        {REPORT_PRESETS.map((item) => (
+          <Button
+            key={item.key}
+            size="sm"
+            variant={preset === item.key ? "default" : "outline"}
+            onClick={() => setPreset(item.key)}
+          >
+            {item.label}
+          </Button>
+        ))}
+        {preset === "custom" ? (
+          <div className="flex items-center gap-2">
+            <Input
+              type="date"
+              value={custom.from}
+              onChange={(e) => setCustom((p) => ({ ...p, from: e.target.value }))}
+              className="h-9 w-40"
+            />
+            <span className="text-muted-foreground">—</span>
+            <Input
+              type="date"
+              value={custom.to}
+              onChange={(e) => setCustom((p) => ({ ...p, to: e.target.value }))}
+              className="h-9 w-40"
+            />
+          </div>
+        ) : null}
       </div>
 
-      <section className="clay-panel rounded-3xl p-4">
-        <h2 className="font-display text-base font-semibold">Daromad dinamikasi</h2>
-        <div className="clay-inset mt-4 h-72 rounded-2xl p-2">
+      {query.isPending ? (
+        <LoadingState label="Hisobot hisoblanmoqda…" />
+      ) : query.error ? (
+        <ErrorState error={query.error} onRetry={() => void query.refetch()} />
+      ) : (
+        <ReportBody data={query.data} />
+      )}
+    </>
+  );
+}
+
+function ReportBody({ data }: { data: Awaited<ReturnType<typeof getReport>> }) {
+  const currency = data.currency;
+  const days = data.days.map((day) => ({
+    ...day,
+    label: new Date(day.date).toLocaleDateString("uz-UZ", { day: "2-digit", month: "2-digit" }),
+  }));
+
+  return (
+    <>
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard label="Tushum" value={formatMoney(data.kpis.revenue, currency)} />
+        <StatCard label="Buyurtmalar" value={data.kpis.orders} hint={`Yakunlangan: ${data.kpis.completedOrders}`} />
+        <StatCard label="Murojaatlar" value={data.kpis.leads} hint={`Yutilgan: ${data.kpis.wonLeads}`} />
+        <StatCard label="Konversiya" value={`${data.kpis.conversionRate}%`} />
+        <StatCard label="O‘rtacha buyurtma" value={formatMoney(data.kpis.averageOrderValue, currency)} />
+        <StatCard label="Yangi mijozlar" value={data.kpis.newCustomers} />
+        <StatCard label="Kutilayotgan to‘lovlar" value={formatMoney(data.kpis.pendingPayments, currency)} />
+      </div>
+
+      <section className="clay-panel p-5">
+        <h2 className="font-display text-base font-semibold">Tushum dinamikasi</h2>
+        <div className="mt-4 h-64">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={days}>
-              <defs>
-                <linearGradient id="rev" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="var(--color-primary)" stopOpacity={0.5} />
-                  <stop offset="100%" stopColor="var(--color-primary)" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid stroke="var(--color-border)" vertical={false} />
-              <XAxis dataKey="label" stroke="var(--color-muted-foreground)" fontSize={11} />
-              <YAxis stroke="var(--color-muted-foreground)" fontSize={11} />
-              <Tooltip
-                contentStyle={{
-                  background: "var(--color-card)",
-                  border: "1px solid var(--color-border)",
-                  borderRadius: 12,
-                  color: "var(--color-foreground)",
-                }}
-              />
-              <Area
-                type="monotone"
-                dataKey="revenue"
-                stroke="var(--color-primary)"
-                fill="url(#rev)"
-                strokeWidth={2}
-              />
-            </AreaChart>
+            <LineChart data={days}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+              <XAxis dataKey="label" tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" />
+              <YAxis tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" width={70} />
+              <Tooltip formatter={(value: number) => formatMoney(value, currency)} />
+              <Line type="monotone" dataKey="revenue" stroke="var(--foreground)" strokeWidth={2} dot={false} />
+            </LineChart>
           </ResponsiveContainer>
         </div>
       </section>
 
-      <div className="grid gap-6 xl:grid-cols-2">
-        <section className="clay-panel rounded-3xl p-4">
-          <h2 className="font-display text-base font-semibold">Lidlar va buyurtmalar</h2>
-          <div className="clay-inset mt-4 h-64 rounded-2xl p-2">
+      <div className="grid gap-4 lg:grid-cols-2">
+        <section className="clay-panel p-5">
+          <h2 className="font-display text-base font-semibold">Kunlik murojaat va buyurtma</h2>
+          <div className="mt-4 h-56">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={days}>
-                <CartesianGrid stroke="var(--color-border)" vertical={false} />
-                <XAxis dataKey="label" stroke="var(--color-muted-foreground)" fontSize={11} />
-                <YAxis stroke="var(--color-muted-foreground)" fontSize={11} />
-                <Tooltip
-                  contentStyle={{
-                    background: "var(--color-card)",
-                    border: "1px solid var(--color-border)",
-                    borderRadius: 12,
-                  }}
-                />
-                <Bar dataKey="leads" fill="var(--color-info)" radius={[4, 4, 0, 0]} name="Lidlar" />
-                <Bar dataKey="orders" fill="var(--color-success)" radius={[4, 4, 0, 0]} name="Buyurtmalar" />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                <XAxis dataKey="label" tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" />
+                <YAxis tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" width={30} />
+                <Tooltip />
+                <Bar dataKey="leads" fill="var(--muted-foreground)" radius={4} />
+                <Bar dataKey="orders" fill="var(--foreground)" radius={4} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </section>
 
-        <section className="clay-panel rounded-3xl p-4">
-          <h2 className="font-display text-base font-semibold">Eng ko'p sotilganlar</h2>
-          <div className="clay-inset mt-3 divide-y divide-border rounded-2xl p-2 text-sm">
-            {topProducts.map((product) => (
-              <div key={product.name} className="flex items-center justify-between gap-3 px-2 py-2">
-                <span className="truncate text-foreground">{product.name}</span>
-                <span className="text-xs text-muted-foreground">{product.quantity} dona sotildi</span>
-                <span className="tabular-nums">{formatMoney(product.revenue, currency)}</span>
-              </div>
-            ))}
-            {topProducts.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted-foreground">Hozircha sotuv ma'lumotlari yo'q.</p>
-            ) : null}
-          </div>
-
-          <h3 className="mt-6 font-display text-sm font-semibold">Lidlar voronkasi</h3>
-          <div className="mt-2 space-y-2">
-            {(
-              [
-                ["Jami lidlar", funnel.total],
-                ["Qizg'in", funnel.hot],
-                ["O'rtacha", funnel.warm],
-                ["Sovuq", funnel.cold],
-                ["Yutilgan", funnel.won],
-                ["Yo'qotilgan", funnel.lost],
-              ] as const
-            ).map(([label, count]) => (
-              <div key={label}>
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>{label}</span>
-                  <span>{count}</span>
+        <section className="clay-panel p-5">
+          <h2 className="font-display text-base font-semibold">Manbalar</h2>
+          <div className="mt-3 space-y-2">
+            {data.bySource.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Ma’lumot yo‘q.</p>
+            ) : (
+              data.bySource.map((row) => (
+                <div key={row.name} className="clay-inset flex items-center justify-between rounded-2xl px-3 py-2 text-sm">
+                  <span>{row.name}</span>
+                  <span className="text-muted-foreground">
+                    {row.leads} murojaat • {row.customers} mijoz
+                  </span>
                 </div>
-                <div className="clay-inset mt-1 h-2 rounded-full">
-                  <div
-                    className="h-2 rounded-full bg-primary"
-                    style={{ width: `${Math.min(100, (count / Math.max(1, funnel.total)) * 100)}%` }}
-                  />
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </section>
 
-        <section className="clay-panel rounded-3xl p-4">
-          <h2 className="font-display text-base font-semibold">Eng ko'p sotilganlar</h2>
-          <div className="clay-inset mt-3 divide-y divide-border rounded-2xl p-2 text-sm">
-            {topProducts.map((product) => (
-              <div key={product.name} className="flex items-center justify-between gap-3 px-2 py-2">
-                <span className="truncate text-foreground">{product.name}</span>
-                <span className="text-xs text-muted-foreground">{product.quantity} dona sotildi</span>
-                <span className="tabular-nums">{formatMoney(product.revenue, currency)}</span>
-              </div>
-            ))}
-            {topProducts.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted-foreground">Hozircha sotuv ma'lumotlari yo'q.</p>
-            ) : null}
+        <section className="clay-panel p-5">
+          <h2 className="font-display text-base font-semibold">Operatorlar</h2>
+          <div className="mt-3 space-y-2">
+            {data.byOperator.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Ma’lumot yo‘q.</p>
+            ) : (
+              data.byOperator.map((row) => (
+                <div key={row.name} className="clay-inset flex items-center justify-between rounded-2xl px-3 py-2 text-sm">
+                  <span>{row.name}</span>
+                  <span className="text-muted-foreground">
+                    {formatMoney(row.revenue, currency)} • {row.orders} buyurtma
+                  </span>
+                </div>
+              ))
+            )}
           </div>
+        </section>
 
-          <h3 className="mt-6 font-display text-sm font-semibold">Lidlar voronkasi</h3>
-          <div className="mt-2 space-y-2">
-            {(
-              [
-                ["Jami lidlar", funnel.total],
-                ["Qizg'in", funnel.hot],
-                ["O'rtacha", funnel.warm],
-                ["Sovuq", funnel.cold],
-                ["Yutilgan", funnel.won],
-                ["Yo'qotilgan", funnel.lost],
-              ] as const
-            ).map(([label, count]) => (
-              <div key={label}>
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>{label}</span>
-                  <span>{count}</span>
+        <section className="clay-panel p-5">
+          <h2 className="font-display text-base font-semibold">Eng ko‘p sotilganlar</h2>
+          <div className="mt-3 space-y-2">
+            {data.topProducts.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Ma’lumot yo‘q.</p>
+            ) : (
+              data.topProducts.map((row) => (
+                <div key={row.name} className="clay-inset flex items-center justify-between rounded-2xl px-3 py-2 text-sm">
+                  <span className="truncate">{row.name}</span>
+                  <span className="shrink-0 text-muted-foreground">
+                    {row.quantity} dona • {formatMoney(row.revenue, currency)}
+                  </span>
                 </div>
-                <div className="clay-inset mt-1 h-2 rounded-full">
-                  <div
-                    className="h-2 rounded-full bg-primary"
-                    style={{ width: `${Math.min(100, (count / Math.max(1, funnel.total)) * 100)}%` }}
-                  />
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </section>
       </div>
