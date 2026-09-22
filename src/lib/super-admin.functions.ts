@@ -354,12 +354,13 @@ export const saveSystemSettings = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { logAudit } = await import("./audit.server");
 
+    const payload = { ...data, maintenance_message: data.maintenance_message ?? null };
     const { data: current } = await supabaseAdmin.from("system_settings").select("id").limit(1).maybeSingle();
     if (current) {
-      const { error } = await supabaseAdmin.from("system_settings").update(data).eq("id", current.id);
+      const { error } = await supabaseAdmin.from("system_settings").update(payload).eq("id", current.id);
       if (error) throw new Error(error.message);
     } else {
-      const { error } = await supabaseAdmin.from("system_settings").insert(data);
+      const { error } = await supabaseAdmin.from("system_settings").insert(payload);
       if (error) throw new Error(error.message);
     }
 

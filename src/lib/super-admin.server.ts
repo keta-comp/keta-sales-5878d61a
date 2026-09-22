@@ -163,11 +163,11 @@ export interface OrgRow {
 }
 
 export async function listOrganizations(filters: {
-  search?: string;
-  industry?: string;
-  plan?: string;
-  status?: string;
-  sort?: string;
+  search?: string | undefined;
+  industry?: string | undefined;
+  plan?: string | undefined;
+  status?: string | undefined;
+  sort?: string | undefined;
 }) {
   const [{ data: businesses, error }, { data: members }, { data: profiles }, { data: configs }, { data: acts }] =
     await Promise.all([
@@ -348,9 +348,9 @@ export async function getOrganizationDetail(businessId: string) {
 }
 
 export async function listPlatformUsers(filters: {
-  search?: string;
-  status?: string;
-  role?: string;
+  search?: string | undefined;
+  status?: string | undefined;
+  role?: string | undefined;
 }) {
   const [{ data: profiles, error }, { data: members }, { data: businesses }, { data: roles }, { data: admins }, { data: configs }] =
     await Promise.all([
@@ -567,12 +567,12 @@ export async function buildAiUsage(from: string, to: string) {
 }
 
 export async function listAuditLogs(filters: {
-  action?: string;
-  businessId?: string;
-  search?: string;
-  from?: string;
-  to?: string;
-  limit?: number;
+  action?: string | undefined;
+  businessId?: string | undefined;
+  search?: string | undefined;
+  from?: string | undefined;
+  to?: string | undefined;
+  limit?: number | undefined;
 }) {
   let query = supabaseAdmin
     .from("audit_logs")
