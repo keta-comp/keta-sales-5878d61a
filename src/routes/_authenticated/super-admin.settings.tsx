@@ -1,0 +1,148 @@
+import { useEffect, useState } from "react";
+import { createFileRoute } from "@tanstack/react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import { ErrorState, LoadingState, PageHeader } from "@/components/app/primitives";
+import { Panel } from "@/components/app/super-admin-ui";
+import { getSystemSettings, saveSystemSettings } from "@/lib/super-admin.functions";
+
+export const Route = createFileRoute("/_authenticated/super-admin/settings")({
+  head: () => ({
+    meta: [
+      { title: "Tizim sozlamalari — KETA CRM Control Center" },
+      { name: "description", content: "Platforma nomi, qo‘llab-quvvatlash aloqasi, standart vaqt mintaqasi va texnik ishlar rejimi." },
+      { property: "og:title", content: "Tizim sozlamalari — KETA CRM Control Center" },
+      { property: "og:description", content: "Platforma darajasidagi asosiy sozlamalar." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
+  component: SettingsPage,
+});
+
+interface FormState {
+  platform_name: string;
+  support_email: string;
+  support_phone: string;
+  default_timezone: string;
+  default_currency: string;
+  maintenance_mode: boolean;
+  maintenance_message: string;
+}
+
+const EMPTY: FormState = {
+  platform_name: "KETA CRM",
+  support_email: "keta.comp.dev@gmail.com",
+  support_phone: "+998 77 763 02 16",
+  default_timezone: "Asia/Tashkent",
+  default_currency: "UZS",
+  maintenance_mode: false,
+  maintenance_message: "",
+};
+
+function SettingsPage() {
+  const queryClient = useQueryClient();
+  const load = useServerFn(getSystemSettings);
+  const saveFn = useServerFn(saveSystemSettings);
+  const [form, setForm] = useState<FormState>(EMPTY);
+
+  const { data, isPending, error, refetch } = useQuery({
+    queryKey: ["super-admin-settings"],
+    queryFn: () => load(),
+  });
+
+  useEffect(() => {
+    if (!data) return;
+    setForm({
+      platform_name: data.platform_name ?? EMPTY.platform_name,
+      support_email: data.support_email ?? EMPTY.support_email,
+      support_phone: data.support_phone ?? EMPTY.support_phone,
+      default_timezone: data.default_timezone ?? EMPTY.default_timezone,
+      default_currency: data.default_currency ?? EMPTY.default_currency,
+      maintenance_mode: data.maintenance_mode ?? false,
+      maintenance_message: data.maintenance_message ?? "",
+    });
+  }, [data]);
+
+  const save = useMutation({
+    mutationFn: () =>
+      saveFn({
+        data: {
+          ...form,
+          maintenance_message: form.maintenance_message.trim() || null,
+        },
+      }),
+    onSuccess: () => {
+      toast.success("Sozlamalar saqlandi");
+      void queryClient.invalidateQueries({ queryKey: ["super-admin-settings"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Saqlanmadi"),
+  });
+
+  if (isPending) return <LoadingState />;
+  if (error) return <ErrorState error={error} onRetry={() => void refetch()} />;
+
+  const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
+    setForm((prev) => ({ ...prev, [key]: value }));
+
+  return (
+    <div className="space-y-6">
+      <PageHeader title="Tizim sozlamalari" description="Platforma darajasidagi asosiy sozlamalar." />
+
+      <Panel title="Asosiy">
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="platform_name">Platforma nomi</Label>
+            <Input id="platform_name" value={form.platform_name} onChange={(e) => set("platform_name", e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="support_email">Qo‘llab-quvvatlash emaili</Label>
+            <Input id="support_email" type="email" value={form.support_email} onChange={(e) => set("support_email", e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="support_phone">Qo‘llab-quvvatlash telefoni</Label>
+            <Input id="support_phone" value={form.support_phone} onChange={(e) => set("support_phone", e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="default_timezone">Standart vaqt mintaqasi</Label>
+            <Input id="default_timezone" value={form.default_timezone} onChange={(e) => set("default_timezone", e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="default_currency">Standart valyuta</Label>
+            <Input id="default_currency" value={form.default_currency} onChange={(e) => set("default_currency", e.target.value)} />
+          </div>
+        </div>
+      </Panel>
+
+      <Panel title="Texnik ishlar rejimi" description="Yoqilganda oddiy foydalanuvchilar CRMga kira olmaydi. Super Admin kirishi saqlanadi.">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-sm">{form.maintenance_mode ? "Yoqilgan" : "O‘chirilgan"}</span>
+            <Switch checked={form.maintenance_mode} onCheckedChange={(v) => set("maintenance_mode", v)} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="maintenance_message">Foydalanuvchilarga xabar</Label>
+            <Textarea
+              id="maintenance_message"
+              rows={3}
+              value={form.maintenance_message}
+              onChange={(e) => set("maintenance_message", e.target.value)}
+              placeholder="Tizim texnik ishlar sababli vaqtincha mavjud emas."
+            />
+          </div>
+        </div>
+      </Panel>
+
+      <div>
+        <Button disabled={save.isPending} onClick={() => save.mutate()}>Saqlash</Button>
+      </div>
+    </div>
+  );
+}
