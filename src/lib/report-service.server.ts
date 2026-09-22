@@ -177,10 +177,6 @@ export async function buildBusinessReport(
   range: ReportRange,
 ): Promise<BusinessReport> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const scoped = <T extends string>(table: T) =>
-    supabaseAdmin.from(table as never).select("*") as never;
-  void scoped;
-
   const [settings, orders, payments, customers, leads, operators, items] = await Promise.all([
     supabaseAdmin
       .from("business_settings")
