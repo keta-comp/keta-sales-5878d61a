@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
+import { Route as AuthenticatedSuperAdminRouteImport } from './routes/_authenticated/super-admin'
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard.index'
 import { Route as AuthenticatedDashboardAnalyticsRouteImport } from './routes/_authenticated/dashboard.analytics'
 import { Route as AuthenticatedDashboardAssistantRouteImport } from './routes/_authenticated/dashboard.assistant'
@@ -30,9 +31,21 @@ import { Route as AuthenticatedDashboardProductsRouteImport } from './routes/_au
 import { Route as AuthenticatedDashboardSettingsRouteImport } from './routes/_authenticated/dashboard.settings'
 import { Route as AuthenticatedDashboardTasksRouteImport } from './routes/_authenticated/dashboard.tasks'
 import { Route as AuthenticatedDashboardTelegramRouteImport } from './routes/_authenticated/dashboard.telegram'
+import { Route as AuthenticatedSuperAdminIndexRouteImport } from './routes/_authenticated/super-admin.index'
+import { Route as AuthenticatedSuperAdminAiUsageRouteImport } from './routes/_authenticated/super-admin.ai-usage'
+import { Route as AuthenticatedSuperAdminAnalyticsRouteImport } from './routes/_authenticated/super-admin.analytics'
+import { Route as AuthenticatedSuperAdminAuditRouteImport } from './routes/_authenticated/super-admin.audit'
+import { Route as AuthenticatedSuperAdminFlagsRouteImport } from './routes/_authenticated/super-admin.flags'
+import { Route as AuthenticatedSuperAdminIndustriesRouteImport } from './routes/_authenticated/super-admin.industries'
+import { Route as AuthenticatedSuperAdminNotificationsRouteImport } from './routes/_authenticated/super-admin.notifications'
+import { Route as AuthenticatedSuperAdminSecurityRouteImport } from './routes/_authenticated/super-admin.security'
+import { Route as AuthenticatedSuperAdminSettingsRouteImport } from './routes/_authenticated/super-admin.settings'
+import { Route as AuthenticatedSuperAdminUsersRouteImport } from './routes/_authenticated/super-admin.users'
 import { Route as AuthenticatedDashboardCrmModuleKeyRouteImport } from './routes/_authenticated/dashboard.crm.$moduleKey'
 import { Route as AuthenticatedDashboardCustomersIndexRouteImport } from './routes/_authenticated/dashboard.customers.index'
 import { Route as AuthenticatedDashboardCustomersIdRouteImport } from './routes/_authenticated/dashboard.customers.$id'
+import { Route as AuthenticatedSuperAdminOrganizationsIndexRouteImport } from './routes/_authenticated/super-admin.organizations.index'
+import { Route as AuthenticatedSuperAdminOrganizationsIdRouteImport } from './routes/_authenticated/super-admin.organizations.$id'
 import { Route as ApiPublicInstagramWebhookRouteImport } from './routes/api/public/instagram/webhook'
 import { Route as ApiPublicTelegramDailyReportRouteImport } from './routes/api/public/telegram/daily-report'
 import { Route as ApiPublicTelegramWebhookRouteImport } from './routes/api/public/telegram/webhook'
@@ -59,6 +72,11 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
 const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedSuperAdminRoute = AuthenticatedSuperAdminRouteImport.update({
+  id: '/super-admin',
+  path: '/super-admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedDashboardIndexRoute =
@@ -157,6 +175,66 @@ const AuthenticatedDashboardTelegramRoute =
     path: '/telegram',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
+const AuthenticatedSuperAdminIndexRoute =
+  AuthenticatedSuperAdminIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedSuperAdminRoute,
+  } as any)
+const AuthenticatedSuperAdminAiUsageRoute =
+  AuthenticatedSuperAdminAiUsageRouteImport.update({
+    id: '/ai-usage',
+    path: '/ai-usage',
+    getParentRoute: () => AuthenticatedSuperAdminRoute,
+  } as any)
+const AuthenticatedSuperAdminAnalyticsRoute =
+  AuthenticatedSuperAdminAnalyticsRouteImport.update({
+    id: '/analytics',
+    path: '/analytics',
+    getParentRoute: () => AuthenticatedSuperAdminRoute,
+  } as any)
+const AuthenticatedSuperAdminAuditRoute =
+  AuthenticatedSuperAdminAuditRouteImport.update({
+    id: '/audit',
+    path: '/audit',
+    getParentRoute: () => AuthenticatedSuperAdminRoute,
+  } as any)
+const AuthenticatedSuperAdminFlagsRoute =
+  AuthenticatedSuperAdminFlagsRouteImport.update({
+    id: '/flags',
+    path: '/flags',
+    getParentRoute: () => AuthenticatedSuperAdminRoute,
+  } as any)
+const AuthenticatedSuperAdminIndustriesRoute =
+  AuthenticatedSuperAdminIndustriesRouteImport.update({
+    id: '/industries',
+    path: '/industries',
+    getParentRoute: () => AuthenticatedSuperAdminRoute,
+  } as any)
+const AuthenticatedSuperAdminNotificationsRoute =
+  AuthenticatedSuperAdminNotificationsRouteImport.update({
+    id: '/notifications',
+    path: '/notifications',
+    getParentRoute: () => AuthenticatedSuperAdminRoute,
+  } as any)
+const AuthenticatedSuperAdminSecurityRoute =
+  AuthenticatedSuperAdminSecurityRouteImport.update({
+    id: '/security',
+    path: '/security',
+    getParentRoute: () => AuthenticatedSuperAdminRoute,
+  } as any)
+const AuthenticatedSuperAdminSettingsRoute =
+  AuthenticatedSuperAdminSettingsRouteImport.update({
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => AuthenticatedSuperAdminRoute,
+  } as any)
+const AuthenticatedSuperAdminUsersRoute =
+  AuthenticatedSuperAdminUsersRouteImport.update({
+    id: '/users',
+    path: '/users',
+    getParentRoute: () => AuthenticatedSuperAdminRoute,
+  } as any)
 const AuthenticatedDashboardCrmModuleKeyRoute =
   AuthenticatedDashboardCrmModuleKeyRouteImport.update({
     id: '/crm/$moduleKey',
@@ -174,6 +252,18 @@ const AuthenticatedDashboardCustomersIdRoute =
     id: '/$id',
     path: '/$id',
     getParentRoute: () => AuthenticatedDashboardCustomersRoute,
+  } as any)
+const AuthenticatedSuperAdminOrganizationsIndexRoute =
+  AuthenticatedSuperAdminOrganizationsIndexRouteImport.update({
+    id: '/organizations/',
+    path: '/organizations/',
+    getParentRoute: () => AuthenticatedSuperAdminRoute,
+  } as any)
+const AuthenticatedSuperAdminOrganizationsIdRoute =
+  AuthenticatedSuperAdminOrganizationsIdRouteImport.update({
+    id: '/organizations/$id',
+    path: '/organizations/$id',
+    getParentRoute: () => AuthenticatedSuperAdminRoute,
   } as any)
 const ApiPublicInstagramWebhookRoute =
   ApiPublicInstagramWebhookRouteImport.update({
@@ -199,6 +289,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/super-admin': typeof AuthenticatedSuperAdminRouteWithChildren
   '/dashboard/analytics': typeof AuthenticatedDashboardAnalyticsRoute
   '/dashboard/assistant': typeof AuthenticatedDashboardAssistantRoute
   '/dashboard/conversations': typeof AuthenticatedDashboardConversationsRoute
@@ -214,13 +305,25 @@ export interface FileRoutesByFullPath {
   '/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
   '/dashboard/tasks': typeof AuthenticatedDashboardTasksRoute
   '/dashboard/telegram': typeof AuthenticatedDashboardTelegramRoute
+  '/super-admin/ai-usage': typeof AuthenticatedSuperAdminAiUsageRoute
+  '/super-admin/analytics': typeof AuthenticatedSuperAdminAnalyticsRoute
+  '/super-admin/audit': typeof AuthenticatedSuperAdminAuditRoute
+  '/super-admin/flags': typeof AuthenticatedSuperAdminFlagsRoute
+  '/super-admin/industries': typeof AuthenticatedSuperAdminIndustriesRoute
+  '/super-admin/notifications': typeof AuthenticatedSuperAdminNotificationsRoute
+  '/super-admin/security': typeof AuthenticatedSuperAdminSecurityRoute
+  '/super-admin/settings': typeof AuthenticatedSuperAdminSettingsRoute
+  '/super-admin/users': typeof AuthenticatedSuperAdminUsersRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
+  '/super-admin/': typeof AuthenticatedSuperAdminIndexRoute
   '/dashboard/crm/$moduleKey': typeof AuthenticatedDashboardCrmModuleKeyRoute
   '/dashboard/customers/$id': typeof AuthenticatedDashboardCustomersIdRoute
+  '/super-admin/organizations/$id': typeof AuthenticatedSuperAdminOrganizationsIdRoute
   '/api/public/instagram/webhook': typeof ApiPublicInstagramWebhookRoute
   '/api/public/telegram/daily-report': typeof ApiPublicTelegramDailyReportRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
   '/dashboard/customers/': typeof AuthenticatedDashboardCustomersIndexRoute
+  '/super-admin/organizations/': typeof AuthenticatedSuperAdminOrganizationsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -240,13 +343,25 @@ export interface FileRoutesByTo {
   '/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
   '/dashboard/tasks': typeof AuthenticatedDashboardTasksRoute
   '/dashboard/telegram': typeof AuthenticatedDashboardTelegramRoute
+  '/super-admin/ai-usage': typeof AuthenticatedSuperAdminAiUsageRoute
+  '/super-admin/analytics': typeof AuthenticatedSuperAdminAnalyticsRoute
+  '/super-admin/audit': typeof AuthenticatedSuperAdminAuditRoute
+  '/super-admin/flags': typeof AuthenticatedSuperAdminFlagsRoute
+  '/super-admin/industries': typeof AuthenticatedSuperAdminIndustriesRoute
+  '/super-admin/notifications': typeof AuthenticatedSuperAdminNotificationsRoute
+  '/super-admin/security': typeof AuthenticatedSuperAdminSecurityRoute
+  '/super-admin/settings': typeof AuthenticatedSuperAdminSettingsRoute
+  '/super-admin/users': typeof AuthenticatedSuperAdminUsersRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
+  '/super-admin': typeof AuthenticatedSuperAdminIndexRoute
   '/dashboard/crm/$moduleKey': typeof AuthenticatedDashboardCrmModuleKeyRoute
   '/dashboard/customers/$id': typeof AuthenticatedDashboardCustomersIdRoute
+  '/super-admin/organizations/$id': typeof AuthenticatedSuperAdminOrganizationsIdRoute
   '/api/public/instagram/webhook': typeof ApiPublicInstagramWebhookRoute
   '/api/public/telegram/daily-report': typeof ApiPublicTelegramDailyReportRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
   '/dashboard/customers': typeof AuthenticatedDashboardCustomersIndexRoute
+  '/super-admin/organizations': typeof AuthenticatedSuperAdminOrganizationsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -255,6 +370,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
+  '/_authenticated/super-admin': typeof AuthenticatedSuperAdminRouteWithChildren
   '/_authenticated/dashboard/analytics': typeof AuthenticatedDashboardAnalyticsRoute
   '/_authenticated/dashboard/assistant': typeof AuthenticatedDashboardAssistantRoute
   '/_authenticated/dashboard/conversations': typeof AuthenticatedDashboardConversationsRoute
@@ -270,13 +386,25 @@ export interface FileRoutesById {
   '/_authenticated/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
   '/_authenticated/dashboard/tasks': typeof AuthenticatedDashboardTasksRoute
   '/_authenticated/dashboard/telegram': typeof AuthenticatedDashboardTelegramRoute
+  '/_authenticated/super-admin/ai-usage': typeof AuthenticatedSuperAdminAiUsageRoute
+  '/_authenticated/super-admin/analytics': typeof AuthenticatedSuperAdminAnalyticsRoute
+  '/_authenticated/super-admin/audit': typeof AuthenticatedSuperAdminAuditRoute
+  '/_authenticated/super-admin/flags': typeof AuthenticatedSuperAdminFlagsRoute
+  '/_authenticated/super-admin/industries': typeof AuthenticatedSuperAdminIndustriesRoute
+  '/_authenticated/super-admin/notifications': typeof AuthenticatedSuperAdminNotificationsRoute
+  '/_authenticated/super-admin/security': typeof AuthenticatedSuperAdminSecurityRoute
+  '/_authenticated/super-admin/settings': typeof AuthenticatedSuperAdminSettingsRoute
+  '/_authenticated/super-admin/users': typeof AuthenticatedSuperAdminUsersRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
+  '/_authenticated/super-admin/': typeof AuthenticatedSuperAdminIndexRoute
   '/_authenticated/dashboard/crm/$moduleKey': typeof AuthenticatedDashboardCrmModuleKeyRoute
   '/_authenticated/dashboard/customers/$id': typeof AuthenticatedDashboardCustomersIdRoute
+  '/_authenticated/super-admin/organizations/$id': typeof AuthenticatedSuperAdminOrganizationsIdRoute
   '/api/public/instagram/webhook': typeof ApiPublicInstagramWebhookRoute
   '/api/public/telegram/daily-report': typeof ApiPublicTelegramDailyReportRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
   '/_authenticated/dashboard/customers/': typeof AuthenticatedDashboardCustomersIndexRoute
+  '/_authenticated/super-admin/organizations/': typeof AuthenticatedSuperAdminOrganizationsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -285,6 +413,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/dashboard'
     | '/onboarding'
+    | '/super-admin'
     | '/dashboard/analytics'
     | '/dashboard/assistant'
     | '/dashboard/conversations'
@@ -300,13 +429,25 @@ export interface FileRouteTypes {
     | '/dashboard/settings'
     | '/dashboard/tasks'
     | '/dashboard/telegram'
+    | '/super-admin/ai-usage'
+    | '/super-admin/analytics'
+    | '/super-admin/audit'
+    | '/super-admin/flags'
+    | '/super-admin/industries'
+    | '/super-admin/notifications'
+    | '/super-admin/security'
+    | '/super-admin/settings'
+    | '/super-admin/users'
     | '/dashboard/'
+    | '/super-admin/'
     | '/dashboard/crm/$moduleKey'
     | '/dashboard/customers/$id'
+    | '/super-admin/organizations/$id'
     | '/api/public/instagram/webhook'
     | '/api/public/telegram/daily-report'
     | '/api/public/telegram/webhook'
     | '/dashboard/customers/'
+    | '/super-admin/organizations/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -326,13 +467,25 @@ export interface FileRouteTypes {
     | '/dashboard/settings'
     | '/dashboard/tasks'
     | '/dashboard/telegram'
+    | '/super-admin/ai-usage'
+    | '/super-admin/analytics'
+    | '/super-admin/audit'
+    | '/super-admin/flags'
+    | '/super-admin/industries'
+    | '/super-admin/notifications'
+    | '/super-admin/security'
+    | '/super-admin/settings'
+    | '/super-admin/users'
     | '/dashboard'
+    | '/super-admin'
     | '/dashboard/crm/$moduleKey'
     | '/dashboard/customers/$id'
+    | '/super-admin/organizations/$id'
     | '/api/public/instagram/webhook'
     | '/api/public/telegram/daily-report'
     | '/api/public/telegram/webhook'
     | '/dashboard/customers'
+    | '/super-admin/organizations'
   id:
     | '__root__'
     | '/'
@@ -340,6 +493,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/_authenticated/dashboard'
     | '/_authenticated/onboarding'
+    | '/_authenticated/super-admin'
     | '/_authenticated/dashboard/analytics'
     | '/_authenticated/dashboard/assistant'
     | '/_authenticated/dashboard/conversations'
@@ -355,13 +509,25 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard/settings'
     | '/_authenticated/dashboard/tasks'
     | '/_authenticated/dashboard/telegram'
+    | '/_authenticated/super-admin/ai-usage'
+    | '/_authenticated/super-admin/analytics'
+    | '/_authenticated/super-admin/audit'
+    | '/_authenticated/super-admin/flags'
+    | '/_authenticated/super-admin/industries'
+    | '/_authenticated/super-admin/notifications'
+    | '/_authenticated/super-admin/security'
+    | '/_authenticated/super-admin/settings'
+    | '/_authenticated/super-admin/users'
     | '/_authenticated/dashboard/'
+    | '/_authenticated/super-admin/'
     | '/_authenticated/dashboard/crm/$moduleKey'
     | '/_authenticated/dashboard/customers/$id'
+    | '/_authenticated/super-admin/organizations/$id'
     | '/api/public/instagram/webhook'
     | '/api/public/telegram/daily-report'
     | '/api/public/telegram/webhook'
     | '/_authenticated/dashboard/customers/'
+    | '/_authenticated/super-admin/organizations/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -408,6 +574,13 @@ declare module '@tanstack/react-router' {
       path: '/onboarding'
       fullPath: '/onboarding'
       preLoaderRoute: typeof AuthenticatedOnboardingRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/super-admin': {
+      id: '/_authenticated/super-admin'
+      path: '/super-admin'
+      fullPath: '/super-admin'
+      preLoaderRoute: typeof AuthenticatedSuperAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/dashboard/': {
@@ -522,6 +695,76 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardTelegramRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
+    '/_authenticated/super-admin/': {
+      id: '/_authenticated/super-admin/'
+      path: '/'
+      fullPath: '/super-admin/'
+      preLoaderRoute: typeof AuthenticatedSuperAdminIndexRouteImport
+      parentRoute: typeof AuthenticatedSuperAdminRoute
+    }
+    '/_authenticated/super-admin/ai-usage': {
+      id: '/_authenticated/super-admin/ai-usage'
+      path: '/ai-usage'
+      fullPath: '/super-admin/ai-usage'
+      preLoaderRoute: typeof AuthenticatedSuperAdminAiUsageRouteImport
+      parentRoute: typeof AuthenticatedSuperAdminRoute
+    }
+    '/_authenticated/super-admin/analytics': {
+      id: '/_authenticated/super-admin/analytics'
+      path: '/analytics'
+      fullPath: '/super-admin/analytics'
+      preLoaderRoute: typeof AuthenticatedSuperAdminAnalyticsRouteImport
+      parentRoute: typeof AuthenticatedSuperAdminRoute
+    }
+    '/_authenticated/super-admin/audit': {
+      id: '/_authenticated/super-admin/audit'
+      path: '/audit'
+      fullPath: '/super-admin/audit'
+      preLoaderRoute: typeof AuthenticatedSuperAdminAuditRouteImport
+      parentRoute: typeof AuthenticatedSuperAdminRoute
+    }
+    '/_authenticated/super-admin/flags': {
+      id: '/_authenticated/super-admin/flags'
+      path: '/flags'
+      fullPath: '/super-admin/flags'
+      preLoaderRoute: typeof AuthenticatedSuperAdminFlagsRouteImport
+      parentRoute: typeof AuthenticatedSuperAdminRoute
+    }
+    '/_authenticated/super-admin/industries': {
+      id: '/_authenticated/super-admin/industries'
+      path: '/industries'
+      fullPath: '/super-admin/industries'
+      preLoaderRoute: typeof AuthenticatedSuperAdminIndustriesRouteImport
+      parentRoute: typeof AuthenticatedSuperAdminRoute
+    }
+    '/_authenticated/super-admin/notifications': {
+      id: '/_authenticated/super-admin/notifications'
+      path: '/notifications'
+      fullPath: '/super-admin/notifications'
+      preLoaderRoute: typeof AuthenticatedSuperAdminNotificationsRouteImport
+      parentRoute: typeof AuthenticatedSuperAdminRoute
+    }
+    '/_authenticated/super-admin/security': {
+      id: '/_authenticated/super-admin/security'
+      path: '/security'
+      fullPath: '/super-admin/security'
+      preLoaderRoute: typeof AuthenticatedSuperAdminSecurityRouteImport
+      parentRoute: typeof AuthenticatedSuperAdminRoute
+    }
+    '/_authenticated/super-admin/settings': {
+      id: '/_authenticated/super-admin/settings'
+      path: '/settings'
+      fullPath: '/super-admin/settings'
+      preLoaderRoute: typeof AuthenticatedSuperAdminSettingsRouteImport
+      parentRoute: typeof AuthenticatedSuperAdminRoute
+    }
+    '/_authenticated/super-admin/users': {
+      id: '/_authenticated/super-admin/users'
+      path: '/users'
+      fullPath: '/super-admin/users'
+      preLoaderRoute: typeof AuthenticatedSuperAdminUsersRouteImport
+      parentRoute: typeof AuthenticatedSuperAdminRoute
+    }
     '/_authenticated/dashboard/crm/$moduleKey': {
       id: '/_authenticated/dashboard/crm/$moduleKey'
       path: '/crm/$moduleKey'
@@ -542,6 +785,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/dashboard/customers/$id'
       preLoaderRoute: typeof AuthenticatedDashboardCustomersIdRouteImport
       parentRoute: typeof AuthenticatedDashboardCustomersRoute
+    }
+    '/_authenticated/super-admin/organizations/': {
+      id: '/_authenticated/super-admin/organizations/'
+      path: '/organizations'
+      fullPath: '/super-admin/organizations/'
+      preLoaderRoute: typeof AuthenticatedSuperAdminOrganizationsIndexRouteImport
+      parentRoute: typeof AuthenticatedSuperAdminRoute
+    }
+    '/_authenticated/super-admin/organizations/$id': {
+      id: '/_authenticated/super-admin/organizations/$id'
+      path: '/organizations/$id'
+      fullPath: '/super-admin/organizations/$id'
+      preLoaderRoute: typeof AuthenticatedSuperAdminOrganizationsIdRouteImport
+      parentRoute: typeof AuthenticatedSuperAdminRoute
     }
     '/api/public/instagram/webhook': {
       id: '/api/public/instagram/webhook'
@@ -635,14 +892,57 @@ const AuthenticatedDashboardRouteWithChildren =
     AuthenticatedDashboardRouteChildren,
   )
 
+interface AuthenticatedSuperAdminRouteChildren {
+  AuthenticatedSuperAdminAiUsageRoute: typeof AuthenticatedSuperAdminAiUsageRoute
+  AuthenticatedSuperAdminAnalyticsRoute: typeof AuthenticatedSuperAdminAnalyticsRoute
+  AuthenticatedSuperAdminAuditRoute: typeof AuthenticatedSuperAdminAuditRoute
+  AuthenticatedSuperAdminFlagsRoute: typeof AuthenticatedSuperAdminFlagsRoute
+  AuthenticatedSuperAdminIndustriesRoute: typeof AuthenticatedSuperAdminIndustriesRoute
+  AuthenticatedSuperAdminNotificationsRoute: typeof AuthenticatedSuperAdminNotificationsRoute
+  AuthenticatedSuperAdminSecurityRoute: typeof AuthenticatedSuperAdminSecurityRoute
+  AuthenticatedSuperAdminSettingsRoute: typeof AuthenticatedSuperAdminSettingsRoute
+  AuthenticatedSuperAdminUsersRoute: typeof AuthenticatedSuperAdminUsersRoute
+  AuthenticatedSuperAdminIndexRoute: typeof AuthenticatedSuperAdminIndexRoute
+  AuthenticatedSuperAdminOrganizationsIdRoute: typeof AuthenticatedSuperAdminOrganizationsIdRoute
+  AuthenticatedSuperAdminOrganizationsIndexRoute: typeof AuthenticatedSuperAdminOrganizationsIndexRoute
+}
+
+const AuthenticatedSuperAdminRouteChildren: AuthenticatedSuperAdminRouteChildren =
+  {
+    AuthenticatedSuperAdminAiUsageRoute: AuthenticatedSuperAdminAiUsageRoute,
+    AuthenticatedSuperAdminAnalyticsRoute:
+      AuthenticatedSuperAdminAnalyticsRoute,
+    AuthenticatedSuperAdminAuditRoute: AuthenticatedSuperAdminAuditRoute,
+    AuthenticatedSuperAdminFlagsRoute: AuthenticatedSuperAdminFlagsRoute,
+    AuthenticatedSuperAdminIndustriesRoute:
+      AuthenticatedSuperAdminIndustriesRoute,
+    AuthenticatedSuperAdminNotificationsRoute:
+      AuthenticatedSuperAdminNotificationsRoute,
+    AuthenticatedSuperAdminSecurityRoute: AuthenticatedSuperAdminSecurityRoute,
+    AuthenticatedSuperAdminSettingsRoute: AuthenticatedSuperAdminSettingsRoute,
+    AuthenticatedSuperAdminUsersRoute: AuthenticatedSuperAdminUsersRoute,
+    AuthenticatedSuperAdminIndexRoute: AuthenticatedSuperAdminIndexRoute,
+    AuthenticatedSuperAdminOrganizationsIdRoute:
+      AuthenticatedSuperAdminOrganizationsIdRoute,
+    AuthenticatedSuperAdminOrganizationsIndexRoute:
+      AuthenticatedSuperAdminOrganizationsIndexRoute,
+  }
+
+const AuthenticatedSuperAdminRouteWithChildren =
+  AuthenticatedSuperAdminRoute._addFileChildren(
+    AuthenticatedSuperAdminRouteChildren,
+  )
+
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRouteWithChildren
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
+  AuthenticatedSuperAdminRoute: typeof AuthenticatedSuperAdminRouteWithChildren
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRouteWithChildren,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
+  AuthenticatedSuperAdminRoute: AuthenticatedSuperAdminRouteWithChildren,
 }
 
 const AuthenticatedRouteRouteWithChildren =
