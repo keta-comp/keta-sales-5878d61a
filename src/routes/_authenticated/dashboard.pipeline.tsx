@@ -82,7 +82,7 @@ function PipelinePage() {
   if (config.error) return <ErrorState error={config.error} onRetry={() => void config.refetch()} />;
 
   const stages = config.data?.config?.pipelineStages ?? [];
-  const rows = allRecords.data ?? [];
+  const rows = (allRecords.data ?? []) as unknown as (RecordRow & { moduleLabel: string })[];
 
   return (
     <>
