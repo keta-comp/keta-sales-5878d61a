@@ -177,9 +177,11 @@ function AuthPage() {
         </form>
 
         <p className="mt-5 text-xs text-muted-foreground">
-          {mode === "register"
-            ? "Ro‘yxatdan o‘tgach biznes sohangizni tanlaysiz — CRM sizga moslab tayyorlanadi."
-            : "Hisobingiz yo‘qmi? “Ro‘yxatdan o‘tish”ni tanlang — karta talab qilinmaydi."}
+          {adminOnly
+            ? "Ro‘yxatdan o‘tish bu bo‘limda mavjud emas — faqat mavjud administrator hisobi bilan kiriladi."
+            : mode === "register"
+              ? "Ro‘yxatdan o‘tgach biznes sohangizni tanlaysiz — CRM sizga moslab tayyorlanadi."
+              : "Hisobingiz yo‘qmi? “Ro‘yxatdan o‘tish”ni tanlang — karta talab qilinmaydi."}
         </p>
       </div>
 
