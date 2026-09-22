@@ -1293,6 +1293,107 @@ export type Database = {
           },
         ]
       }
+      telegram_link_requests: {
+        Row: {
+          code: string
+          consumed_at: string | null
+          created_at: string
+          expires_at: string
+          telegram_chat_id: string
+          telegram_user_id: string
+          telegram_username: string | null
+        }
+        Insert: {
+          code: string
+          consumed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          telegram_chat_id: string
+          telegram_user_id: string
+          telegram_username?: string | null
+        }
+        Update: {
+          code?: string
+          consumed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          telegram_chat_id?: string
+          telegram_user_id?: string
+          telegram_username?: string | null
+        }
+        Relationships: []
+      }
+      telegram_links: {
+        Row: {
+          business_id: string
+          created_at: string
+          daily_reports: boolean
+          id: string
+          last_report_date: string | null
+          linked_at: string
+          notify_lead: boolean
+          notify_low_stock: boolean
+          notify_new_order: boolean
+          notify_payment: boolean
+          report_time: string
+          status: string
+          telegram_chat_id: string
+          telegram_user_id: string
+          telegram_username: string | null
+          timezone: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          daily_reports?: boolean
+          id?: string
+          last_report_date?: string | null
+          linked_at?: string
+          notify_lead?: boolean
+          notify_low_stock?: boolean
+          notify_new_order?: boolean
+          notify_payment?: boolean
+          report_time?: string
+          status?: string
+          telegram_chat_id: string
+          telegram_user_id: string
+          telegram_username?: string | null
+          timezone?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          daily_reports?: boolean
+          id?: string
+          last_report_date?: string | null
+          linked_at?: string
+          notify_lead?: boolean
+          notify_low_stock?: boolean
+          notify_new_order?: boolean
+          notify_payment?: boolean
+          report_time?: string
+          status?: string
+          telegram_chat_id?: string
+          telegram_user_id?: string
+          telegram_username?: string | null
+          timezone?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "telegram_links_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       telegram_updates: {
         Row: {
           business_id: string

@@ -24,6 +24,7 @@ import {
   MessagesSquare,
   Package,
   Settings,
+  Send,
   ShoppingCart,
   Sparkles,
   Stethoscope,
@@ -81,6 +82,7 @@ const STATIC_TAIL: { to: string; label: string; icon: LucideIcon }[] = [
   { to: "/dashboard/analytics", label: "Hisobotlar", icon: BarChart3 },
   { to: "/dashboard/assistant", label: "AI yordamchi", icon: Bot },
   { to: "/dashboard/crm-builder", label: "AI CRM sozlash", icon: Sparkles },
+  { to: "/dashboard/telegram", label: "Telegram", icon: Send },
   { to: "/dashboard/settings", label: "Sozlamalar", icon: Settings },
 ];
 
