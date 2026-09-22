@@ -329,10 +329,10 @@ function buildSystemPrompt(
     ...crmBlock,
         "BUSINESS DOMAIN CONTEXT (from the owner's CRM setup — reflect it in your wording):",
         `Industry: ${crmContext.industry}`,
-        crmContext.businessDescription ? `Industry notes: ${crmContext.businessDescription}` : "",
+        crmContext.description ? `Industry notes: ${crmContext.description}` : "",
         `CRM terminology to use for this business: ${JSON.stringify(crmContext.terminology)}`,
         `Sales pipeline stages: ${crmContext.pipelineStages.join(" → ")}`,
-        `Active CRM modules: ${crmContext.modules.join(", ")}`,
+        `Active CRM modules: ${crmContext.moduleLabels.join(", ")}`,
       ]
     : [];
   return [
