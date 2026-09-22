@@ -121,6 +121,103 @@ export type Database = {
           },
         ]
       }
+      ai_usage_events: {
+        Row: {
+          business_id: string | null
+          created_at: string
+          feature: string
+          id: string
+          input_tokens: number
+          model: string | null
+          output_tokens: number
+          user_id: string | null
+        }
+        Insert: {
+          business_id?: string | null
+          created_at?: string
+          feature: string
+          id?: string
+          input_tokens?: number
+          model?: string | null
+          output_tokens?: number
+          user_id?: string | null
+        }
+        Update: {
+          business_id?: string | null
+          created_at?: string
+          feature?: string
+          id?: string
+          input_tokens?: number
+          model?: string | null
+          output_tokens?: number
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_usage_events_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audit_logs: {
+        Row: {
+          action: string
+          actor_email: string | null
+          actor_kind: string
+          actor_user_id: string | null
+          business_id: string | null
+          created_at: string
+          id: string
+          ip: string | null
+          metadata: Json
+          status: string
+          target_id: string | null
+          target_label: string | null
+          target_type: string | null
+        }
+        Insert: {
+          action: string
+          actor_email?: string | null
+          actor_kind?: string
+          actor_user_id?: string | null
+          business_id?: string | null
+          created_at?: string
+          id?: string
+          ip?: string | null
+          metadata?: Json
+          status?: string
+          target_id?: string | null
+          target_label?: string | null
+          target_type?: string | null
+        }
+        Update: {
+          action?: string
+          actor_email?: string | null
+          actor_kind?: string
+          actor_user_id?: string | null
+          business_id?: string | null
+          created_at?: string
+          id?: string
+          ip?: string | null
+          metadata?: Json
+          status?: string
+          target_id?: string | null
+          target_label?: string | null
+          target_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       business_members: {
         Row: {
           business_id: string
@@ -212,6 +309,10 @@ export type Database = {
           id: string
           name: string
           owner_id: string
+          plan: string
+          status: string
+          suspend_reason: string | null
+          suspended_at: string | null
           updated_at: string
         }
         Insert: {
@@ -219,6 +320,10 @@ export type Database = {
           id?: string
           name?: string
           owner_id: string
+          plan?: string
+          status?: string
+          suspend_reason?: string | null
+          suspended_at?: string | null
           updated_at?: string
         }
         Update: {
@@ -226,6 +331,10 @@ export type Database = {
           id?: string
           name?: string
           owner_id?: string
+          plan?: string
+          status?: string
+          suspend_reason?: string | null
+          suspended_at?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -489,6 +598,44 @@ export type Database = {
           {
             foreignKeyName: "customers_business_id_fkey"
             columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feature_flags: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          key: string
+          label: string
+          target_business_id: string | null
+          target_plan: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          key: string
+          label: string
+          target_business_id?: string | null
+          target_plan?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          key?: string
+          label?: string
+          target_business_id?: string | null
+          target_plan?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feature_flags_target_business_id_fkey"
+            columns: ["target_business_id"]
             isOneToOne: false
             referencedRelation: "businesses"
             referencedColumns: ["id"]
@@ -1098,6 +1245,24 @@ export type Database = {
           },
         ]
       }
+      platform_admins: {
+        Row: {
+          created_at: string
+          email: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           business_id: string
@@ -1185,6 +1350,9 @@ export type Database = {
           email: string | null
           full_name: string | null
           id: string
+          last_active_at: string | null
+          phone: string | null
+          status: string
           updated_at: string
         }
         Insert: {
@@ -1192,6 +1360,9 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id: string
+          last_active_at?: string | null
+          phone?: string | null
+          status?: string
           updated_at?: string
         }
         Update: {
@@ -1199,6 +1370,81 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          last_active_at?: string | null
+          phone?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      system_notifications: {
+        Row: {
+          body: string
+          created_at: string
+          created_by: string | null
+          id: string
+          kind: string
+          target_kind: string
+          target_value: string | null
+          title: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind?: string
+          target_kind?: string
+          target_value?: string | null
+          title: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind?: string
+          target_kind?: string
+          target_value?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
+      system_settings: {
+        Row: {
+          created_at: string
+          default_currency: string
+          default_timezone: string
+          id: string
+          maintenance_message: string | null
+          maintenance_mode: boolean
+          platform_name: string
+          support_email: string
+          support_phone: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          default_currency?: string
+          default_timezone?: string
+          id?: string
+          maintenance_message?: string | null
+          maintenance_mode?: boolean
+          platform_name?: string
+          support_email?: string
+          support_phone?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          default_currency?: string
+          default_timezone?: string
+          id?: string
+          maintenance_message?: string | null
+          maintenance_mode?: boolean
+          platform_name?: string
+          support_email?: string
+          support_phone?: string
           updated_at?: string
         }
         Relationships: []
@@ -1462,6 +1708,9 @@ export type Database = {
         Returns: boolean
       }
       is_business_member: { Args: { _business_id: string }; Returns: boolean }
+      is_super_admin: { Args: never; Returns: boolean }
+      my_access_state: { Args: never; Returns: Json }
+      my_workspace_status: { Args: never; Returns: string }
       platform_stats: { Args: never; Returns: Json }
       revert_order_stock: {
         Args: { _actor?: string; _order_id: string }
