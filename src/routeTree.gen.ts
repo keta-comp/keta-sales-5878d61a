@@ -31,6 +31,7 @@ import { Route as AuthenticatedDashboardProductsRouteImport } from './routes/_au
 import { Route as AuthenticatedDashboardSettingsRouteImport } from './routes/_authenticated/dashboard.settings'
 import { Route as AuthenticatedDashboardTasksRouteImport } from './routes/_authenticated/dashboard.tasks'
 import { Route as AuthenticatedDashboardTelegramRouteImport } from './routes/_authenticated/dashboard.telegram'
+import { Route as AuthenticatedSuperAdminIndexRouteImport } from './routes/_authenticated/super-admin.index'
 import { Route as AuthenticatedDashboardCrmModuleKeyRouteImport } from './routes/_authenticated/dashboard.crm.$moduleKey'
 import { Route as AuthenticatedDashboardCustomersIndexRouteImport } from './routes/_authenticated/dashboard.customers.index'
 import { Route as AuthenticatedDashboardCustomersIdRouteImport } from './routes/_authenticated/dashboard.customers.$id'
@@ -163,6 +164,12 @@ const AuthenticatedDashboardTelegramRoute =
     path: '/telegram',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
+const AuthenticatedSuperAdminIndexRoute =
+  AuthenticatedSuperAdminIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedSuperAdminRoute,
+  } as any)
 const AuthenticatedDashboardCrmModuleKeyRoute =
   AuthenticatedDashboardCrmModuleKeyRouteImport.update({
     id: '/crm/$moduleKey',
@@ -205,7 +212,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/onboarding': typeof AuthenticatedOnboardingRoute
-  '/super-admin': typeof AuthenticatedSuperAdminRoute
+  '/super-admin': typeof AuthenticatedSuperAdminRouteWithChildren
   '/dashboard/analytics': typeof AuthenticatedDashboardAnalyticsRoute
   '/dashboard/assistant': typeof AuthenticatedDashboardAssistantRoute
   '/dashboard/conversations': typeof AuthenticatedDashboardConversationsRoute
@@ -222,6 +229,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/tasks': typeof AuthenticatedDashboardTasksRoute
   '/dashboard/telegram': typeof AuthenticatedDashboardTelegramRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
+  '/super-admin/': typeof AuthenticatedSuperAdminIndexRoute
   '/dashboard/crm/$moduleKey': typeof AuthenticatedDashboardCrmModuleKeyRoute
   '/dashboard/customers/$id': typeof AuthenticatedDashboardCustomersIdRoute
   '/api/public/instagram/webhook': typeof ApiPublicInstagramWebhookRoute
@@ -233,7 +241,6 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
-  '/super-admin': typeof AuthenticatedSuperAdminRoute
   '/dashboard/analytics': typeof AuthenticatedDashboardAnalyticsRoute
   '/dashboard/assistant': typeof AuthenticatedDashboardAssistantRoute
   '/dashboard/conversations': typeof AuthenticatedDashboardConversationsRoute
@@ -249,6 +256,7 @@ export interface FileRoutesByTo {
   '/dashboard/tasks': typeof AuthenticatedDashboardTasksRoute
   '/dashboard/telegram': typeof AuthenticatedDashboardTelegramRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
+  '/super-admin': typeof AuthenticatedSuperAdminIndexRoute
   '/dashboard/crm/$moduleKey': typeof AuthenticatedDashboardCrmModuleKeyRoute
   '/dashboard/customers/$id': typeof AuthenticatedDashboardCustomersIdRoute
   '/api/public/instagram/webhook': typeof ApiPublicInstagramWebhookRoute
@@ -263,7 +271,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
-  '/_authenticated/super-admin': typeof AuthenticatedSuperAdminRoute
+  '/_authenticated/super-admin': typeof AuthenticatedSuperAdminRouteWithChildren
   '/_authenticated/dashboard/analytics': typeof AuthenticatedDashboardAnalyticsRoute
   '/_authenticated/dashboard/assistant': typeof AuthenticatedDashboardAssistantRoute
   '/_authenticated/dashboard/conversations': typeof AuthenticatedDashboardConversationsRoute
@@ -280,6 +288,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard/tasks': typeof AuthenticatedDashboardTasksRoute
   '/_authenticated/dashboard/telegram': typeof AuthenticatedDashboardTelegramRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
+  '/_authenticated/super-admin/': typeof AuthenticatedSuperAdminIndexRoute
   '/_authenticated/dashboard/crm/$moduleKey': typeof AuthenticatedDashboardCrmModuleKeyRoute
   '/_authenticated/dashboard/customers/$id': typeof AuthenticatedDashboardCustomersIdRoute
   '/api/public/instagram/webhook': typeof ApiPublicInstagramWebhookRoute
@@ -311,6 +320,7 @@ export interface FileRouteTypes {
     | '/dashboard/tasks'
     | '/dashboard/telegram'
     | '/dashboard/'
+    | '/super-admin/'
     | '/dashboard/crm/$moduleKey'
     | '/dashboard/customers/$id'
     | '/api/public/instagram/webhook'
@@ -322,7 +332,6 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/onboarding'
-    | '/super-admin'
     | '/dashboard/analytics'
     | '/dashboard/assistant'
     | '/dashboard/conversations'
@@ -338,6 +347,7 @@ export interface FileRouteTypes {
     | '/dashboard/tasks'
     | '/dashboard/telegram'
     | '/dashboard'
+    | '/super-admin'
     | '/dashboard/crm/$moduleKey'
     | '/dashboard/customers/$id'
     | '/api/public/instagram/webhook'
@@ -368,6 +378,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard/tasks'
     | '/_authenticated/dashboard/telegram'
     | '/_authenticated/dashboard/'
+    | '/_authenticated/super-admin/'
     | '/_authenticated/dashboard/crm/$moduleKey'
     | '/_authenticated/dashboard/customers/$id'
     | '/api/public/instagram/webhook'
@@ -541,6 +552,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardTelegramRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
+    '/_authenticated/super-admin/': {
+      id: '/_authenticated/super-admin/'
+      path: '/'
+      fullPath: '/super-admin/'
+      preLoaderRoute: typeof AuthenticatedSuperAdminIndexRouteImport
+      parentRoute: typeof AuthenticatedSuperAdminRoute
+    }
     '/_authenticated/dashboard/crm/$moduleKey': {
       id: '/_authenticated/dashboard/crm/$moduleKey'
       path: '/crm/$moduleKey'
@@ -654,16 +672,30 @@ const AuthenticatedDashboardRouteWithChildren =
     AuthenticatedDashboardRouteChildren,
   )
 
+interface AuthenticatedSuperAdminRouteChildren {
+  AuthenticatedSuperAdminIndexRoute: typeof AuthenticatedSuperAdminIndexRoute
+}
+
+const AuthenticatedSuperAdminRouteChildren: AuthenticatedSuperAdminRouteChildren =
+  {
+    AuthenticatedSuperAdminIndexRoute: AuthenticatedSuperAdminIndexRoute,
+  }
+
+const AuthenticatedSuperAdminRouteWithChildren =
+  AuthenticatedSuperAdminRoute._addFileChildren(
+    AuthenticatedSuperAdminRouteChildren,
+  )
+
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRouteWithChildren
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
-  AuthenticatedSuperAdminRoute: typeof AuthenticatedSuperAdminRoute
+  AuthenticatedSuperAdminRoute: typeof AuthenticatedSuperAdminRouteWithChildren
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRouteWithChildren,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
-  AuthenticatedSuperAdminRoute: AuthenticatedSuperAdminRoute,
+  AuthenticatedSuperAdminRoute: AuthenticatedSuperAdminRouteWithChildren,
 }
 
 const AuthenticatedRouteRouteWithChildren =
