@@ -9,6 +9,7 @@ import {
   type CrmConfigData,
   type CrmField,
   type CrmModule,
+  type CrmModuleLink,
   type CrmWidget,
 } from "./crm-config";
 import { invalidateCrmAgentContext } from "./crm-config.server";
@@ -44,7 +45,7 @@ function normalizeModule(raw: unknown): CrmModule | null {
     label: typeof r["label"] === "string" && r["label"].trim() ? r["label"] : r["key"],
   };
   if (typeof r["icon"] === "string") module.icon = r["icon"];
-  if (typeof r["link"] === "string" && r["link"].startsWith("/dashboard")) module.link = r["link"] as CrmModule["link"];
+  if (typeof r["link"] === "string" && r["link"].startsWith("/dashboard")) module.link = r["link"] as CrmModuleLink;
   if (r["pipeline"] === true) module.pipeline = true;
   if (Array.isArray(r["fields"])) {
     const fields = r["fields"].map(normalizeField).filter((f): f is CrmField => f !== null);
@@ -76,8 +77,8 @@ function normalizeWidget(raw: unknown, fallbackKey: string): CrmWidget | null {
   if (typeof r["fieldKey"] === "string") widget.fieldKey = r["fieldKey"];
   if (r["where"] && typeof r["where"] === "object") {
     const w = r["where"] as Record<string, unknown>;
-    if (typeof w.field === "string" && typeof w.value === "string") {
-      widget.where = { field: w.field, value: w.value };
+    if (typeof w["field"] === "string" && typeof w["value"] === "string") {
+      widget.where = { field: w["field"], value: w["value"] };
     }
   }
   return widget;
@@ -388,7 +389,7 @@ export const getWidgetStats = createServerFn({ method: "GET" })
           ) {
             if (!widget.moduleKey) return;
             let query = sb.from("crm_records").select(widget.kind === "field_sum" ? "data" : "id");
-            if (widget.kind === "field_sum") query = query.select("data").limit(1000);
+            if (widget.kind === "field_sum") query = query.limit(1000);
             query = query.eq("module_key", widget.moduleKey);
             if (widget.where) query = query.eq(`data->>${widget.where.field}`, widget.where.value);
             if (widget.kind === "module_count_today") query = query.gte("created_at", todayStart.toISOString());
