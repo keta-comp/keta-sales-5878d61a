@@ -15,7 +15,7 @@ export const getBilling = createServerFn({ method: "GET" })
         .order("created_at", { ascending: false })
         .limit(20),
     ]);
-    const s = (state ?? {}) as Record<string, unknown>;
+    const s = (state ?? {}) as { plan?: string; trial_ends_at?: string; subscription_ends_at?: string; is_super_admin?: boolean };
     return {
       plan: (s.plan as string | null) ?? null,
       trial_ends_at: (s.trial_ends_at as string | null) ?? null,

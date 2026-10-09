@@ -7,7 +7,7 @@ export const Route = createFileRoute("/api/public/payme")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        let body: { id?: number; method?: string; params?: Record<string, any> } = {};
+        let body: { id?: number; method?: string; params?: { id?: string; time?: number; amount?: number; reason?: number; from?: number; to?: number; account?: { invoice_id?: string } } } = {};
         const reply = (payload: object) => Response.json({ id: body.id ?? null, ...payload });
         const fail = (code: number, text: string, data?: string) =>
           reply({ error: { code, message: msg(text), data } });
