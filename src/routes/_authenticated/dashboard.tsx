@@ -1,7 +1,11 @@
-import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, redirect, useRouterState } from "@tanstack/react-router";
 
 import { DashboardShell } from "@/components/app/DashboardShell";
+import { Button } from "@/components/ui/button";
+import { computeAccess } from "@/lib/billing";
 import { getMyCrmConfig } from "@/lib/crm-config.functions";
+import { t } from "@/lib/i18n";
+import { useBilling } from "./dashboard.billing";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   // CRM sozlanmagan foydalanuvchini onboarding wizard'ga yo'naltiramiz.
@@ -14,9 +18,26 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 
 function DashboardLayout() {
   const { user } = Route.useRouteContext();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const billing = useBilling();
+  const expired = billing.data ? computeAccess(billing.data) === "expired" : false;
+  const blocked = expired && pathname !== "/dashboard/billing";
+
   return (
     <DashboardShell email={user?.email ?? undefined}>
-      <Outlet />
+      {blocked ? (
+        <div className="clay-panel mx-auto mt-10 max-w-lg space-y-4 p-8 text-center">
+          <h2 className="text-xl font-semibold">{t("Bepul muddat tugadi")}</h2>
+          <p className="text-muted-foreground">
+            {t("Ma'lumotlaringiz saqlangan. CRMdan foydalanishni davom ettirish uchun tarifni tanlang.")}
+          </p>
+          <Button asChild>
+            <Link to="/dashboard/billing">{t("Tarifni tanlash")}</Link>
+          </Button>
+        </div>
+      ) : (
+        <Outlet />
+      )}
     </DashboardShell>
   );
 }

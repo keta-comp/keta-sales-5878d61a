@@ -218,6 +218,71 @@ export type Database = {
           },
         ]
       }
+      billing_invoices: {
+        Row: {
+          amount: number
+          business_id: string
+          cancel_reason: number | null
+          cancel_time: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          invoice_no: number
+          perform_time: string | null
+          plan: string
+          provider: string
+          provider_state: number | null
+          provider_time: number | null
+          provider_txn_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          business_id: string
+          cancel_reason?: number | null
+          cancel_time?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          invoice_no?: number
+          perform_time?: string | null
+          plan: string
+          provider: string
+          provider_state?: number | null
+          provider_time?: number | null
+          provider_txn_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          business_id?: string
+          cancel_reason?: number | null
+          cancel_time?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          invoice_no?: number
+          perform_time?: string | null
+          plan?: string
+          provider?: string
+          provider_state?: number | null
+          provider_time?: number | null
+          provider_txn_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_invoices_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       business_members: {
         Row: {
           business_id: string
@@ -311,8 +376,10 @@ export type Database = {
           owner_id: string
           plan: string
           status: string
+          subscription_ends_at: string | null
           suspend_reason: string | null
           suspended_at: string | null
+          trial_ends_at: string
           updated_at: string
         }
         Insert: {
@@ -322,8 +389,10 @@ export type Database = {
           owner_id: string
           plan?: string
           status?: string
+          subscription_ends_at?: string | null
           suspend_reason?: string | null
           suspended_at?: string | null
+          trial_ends_at?: string
           updated_at?: string
         }
         Update: {
@@ -333,8 +402,10 @@ export type Database = {
           owner_id?: string
           plan?: string
           status?: string
+          subscription_ends_at?: string | null
           suspend_reason?: string | null
           suspended_at?: string | null
+          trial_ends_at?: string
           updated_at?: string
         }
         Relationships: []

@@ -18,6 +18,7 @@ import { Route as AuthenticatedSuperAdminRouteImport } from './routes/_authentic
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard.index'
 import { Route as AuthenticatedDashboardAnalyticsRouteImport } from './routes/_authenticated/dashboard.analytics'
 import { Route as AuthenticatedDashboardAssistantRouteImport } from './routes/_authenticated/dashboard.assistant'
+import { Route as AuthenticatedDashboardBillingRouteImport } from './routes/_authenticated/dashboard.billing'
 import { Route as AuthenticatedDashboardConversationsRouteImport } from './routes/_authenticated/dashboard.conversations'
 import { Route as AuthenticatedDashboardCrmBuilderRouteImport } from './routes/_authenticated/dashboard.crm-builder'
 import { Route as AuthenticatedDashboardCustomersRouteImport } from './routes/_authenticated/dashboard.customers'
@@ -41,11 +42,13 @@ import { Route as AuthenticatedSuperAdminNotificationsRouteImport } from './rout
 import { Route as AuthenticatedSuperAdminSecurityRouteImport } from './routes/_authenticated/super-admin.security'
 import { Route as AuthenticatedSuperAdminSettingsRouteImport } from './routes/_authenticated/super-admin.settings'
 import { Route as AuthenticatedSuperAdminUsersRouteImport } from './routes/_authenticated/super-admin.users'
+import { Route as ApiPublicPaymeRouteImport } from './routes/api/public/payme'
 import { Route as AuthenticatedDashboardCrmModuleKeyRouteImport } from './routes/_authenticated/dashboard.crm.$moduleKey'
 import { Route as AuthenticatedDashboardCustomersIndexRouteImport } from './routes/_authenticated/dashboard.customers.index'
 import { Route as AuthenticatedDashboardCustomersIdRouteImport } from './routes/_authenticated/dashboard.customers.$id'
 import { Route as AuthenticatedSuperAdminOrganizationsIndexRouteImport } from './routes/_authenticated/super-admin.organizations.index'
 import { Route as AuthenticatedSuperAdminOrganizationsIdRouteImport } from './routes/_authenticated/super-admin.organizations.$id'
+import { Route as ApiPublicClickActionRouteImport } from './routes/api/public/click.$action'
 import { Route as ApiPublicInstagramWebhookRouteImport } from './routes/api/public/instagram/webhook'
 import { Route as ApiPublicTelegramDailyReportRouteImport } from './routes/api/public/telegram/daily-report'
 import { Route as ApiPublicTelegramWebhookRouteImport } from './routes/api/public/telegram/webhook'
@@ -95,6 +98,12 @@ const AuthenticatedDashboardAssistantRoute =
   AuthenticatedDashboardAssistantRouteImport.update({
     id: '/assistant',
     path: '/assistant',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
+const AuthenticatedDashboardBillingRoute =
+  AuthenticatedDashboardBillingRouteImport.update({
+    id: '/billing',
+    path: '/billing',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
 const AuthenticatedDashboardConversationsRoute =
@@ -235,6 +244,11 @@ const AuthenticatedSuperAdminUsersRoute =
     path: '/users',
     getParentRoute: () => AuthenticatedSuperAdminRoute,
   } as any)
+const ApiPublicPaymeRoute = ApiPublicPaymeRouteImport.update({
+  id: '/api/public/payme',
+  path: '/api/public/payme',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedDashboardCrmModuleKeyRoute =
   AuthenticatedDashboardCrmModuleKeyRouteImport.update({
     id: '/crm/$moduleKey',
@@ -265,6 +279,11 @@ const AuthenticatedSuperAdminOrganizationsIdRoute =
     path: '/organizations/$id',
     getParentRoute: () => AuthenticatedSuperAdminRoute,
   } as any)
+const ApiPublicClickActionRoute = ApiPublicClickActionRouteImport.update({
+  id: '/api/public/click/$action',
+  path: '/api/public/click/$action',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicInstagramWebhookRoute =
   ApiPublicInstagramWebhookRouteImport.update({
     id: '/api/public/instagram/webhook',
@@ -292,6 +311,7 @@ export interface FileRoutesByFullPath {
   '/super-admin': typeof AuthenticatedSuperAdminRouteWithChildren
   '/dashboard/analytics': typeof AuthenticatedDashboardAnalyticsRoute
   '/dashboard/assistant': typeof AuthenticatedDashboardAssistantRoute
+  '/dashboard/billing': typeof AuthenticatedDashboardBillingRoute
   '/dashboard/conversations': typeof AuthenticatedDashboardConversationsRoute
   '/dashboard/crm-builder': typeof AuthenticatedDashboardCrmBuilderRoute
   '/dashboard/customers': typeof AuthenticatedDashboardCustomersRouteWithChildren
@@ -314,11 +334,13 @@ export interface FileRoutesByFullPath {
   '/super-admin/security': typeof AuthenticatedSuperAdminSecurityRoute
   '/super-admin/settings': typeof AuthenticatedSuperAdminSettingsRoute
   '/super-admin/users': typeof AuthenticatedSuperAdminUsersRoute
+  '/api/public/payme': typeof ApiPublicPaymeRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/super-admin/': typeof AuthenticatedSuperAdminIndexRoute
   '/dashboard/crm/$moduleKey': typeof AuthenticatedDashboardCrmModuleKeyRoute
   '/dashboard/customers/$id': typeof AuthenticatedDashboardCustomersIdRoute
   '/super-admin/organizations/$id': typeof AuthenticatedSuperAdminOrganizationsIdRoute
+  '/api/public/click/$action': typeof ApiPublicClickActionRoute
   '/api/public/instagram/webhook': typeof ApiPublicInstagramWebhookRoute
   '/api/public/telegram/daily-report': typeof ApiPublicTelegramDailyReportRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
@@ -331,6 +353,7 @@ export interface FileRoutesByTo {
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/dashboard/analytics': typeof AuthenticatedDashboardAnalyticsRoute
   '/dashboard/assistant': typeof AuthenticatedDashboardAssistantRoute
+  '/dashboard/billing': typeof AuthenticatedDashboardBillingRoute
   '/dashboard/conversations': typeof AuthenticatedDashboardConversationsRoute
   '/dashboard/crm-builder': typeof AuthenticatedDashboardCrmBuilderRoute
   '/dashboard/inventory': typeof AuthenticatedDashboardInventoryRoute
@@ -352,11 +375,13 @@ export interface FileRoutesByTo {
   '/super-admin/security': typeof AuthenticatedSuperAdminSecurityRoute
   '/super-admin/settings': typeof AuthenticatedSuperAdminSettingsRoute
   '/super-admin/users': typeof AuthenticatedSuperAdminUsersRoute
+  '/api/public/payme': typeof ApiPublicPaymeRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
   '/super-admin': typeof AuthenticatedSuperAdminIndexRoute
   '/dashboard/crm/$moduleKey': typeof AuthenticatedDashboardCrmModuleKeyRoute
   '/dashboard/customers/$id': typeof AuthenticatedDashboardCustomersIdRoute
   '/super-admin/organizations/$id': typeof AuthenticatedSuperAdminOrganizationsIdRoute
+  '/api/public/click/$action': typeof ApiPublicClickActionRoute
   '/api/public/instagram/webhook': typeof ApiPublicInstagramWebhookRoute
   '/api/public/telegram/daily-report': typeof ApiPublicTelegramDailyReportRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
@@ -373,6 +398,7 @@ export interface FileRoutesById {
   '/_authenticated/super-admin': typeof AuthenticatedSuperAdminRouteWithChildren
   '/_authenticated/dashboard/analytics': typeof AuthenticatedDashboardAnalyticsRoute
   '/_authenticated/dashboard/assistant': typeof AuthenticatedDashboardAssistantRoute
+  '/_authenticated/dashboard/billing': typeof AuthenticatedDashboardBillingRoute
   '/_authenticated/dashboard/conversations': typeof AuthenticatedDashboardConversationsRoute
   '/_authenticated/dashboard/crm-builder': typeof AuthenticatedDashboardCrmBuilderRoute
   '/_authenticated/dashboard/customers': typeof AuthenticatedDashboardCustomersRouteWithChildren
@@ -395,11 +421,13 @@ export interface FileRoutesById {
   '/_authenticated/super-admin/security': typeof AuthenticatedSuperAdminSecurityRoute
   '/_authenticated/super-admin/settings': typeof AuthenticatedSuperAdminSettingsRoute
   '/_authenticated/super-admin/users': typeof AuthenticatedSuperAdminUsersRoute
+  '/api/public/payme': typeof ApiPublicPaymeRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/_authenticated/super-admin/': typeof AuthenticatedSuperAdminIndexRoute
   '/_authenticated/dashboard/crm/$moduleKey': typeof AuthenticatedDashboardCrmModuleKeyRoute
   '/_authenticated/dashboard/customers/$id': typeof AuthenticatedDashboardCustomersIdRoute
   '/_authenticated/super-admin/organizations/$id': typeof AuthenticatedSuperAdminOrganizationsIdRoute
+  '/api/public/click/$action': typeof ApiPublicClickActionRoute
   '/api/public/instagram/webhook': typeof ApiPublicInstagramWebhookRoute
   '/api/public/telegram/daily-report': typeof ApiPublicTelegramDailyReportRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
@@ -416,6 +444,7 @@ export interface FileRouteTypes {
     | '/super-admin'
     | '/dashboard/analytics'
     | '/dashboard/assistant'
+    | '/dashboard/billing'
     | '/dashboard/conversations'
     | '/dashboard/crm-builder'
     | '/dashboard/customers'
@@ -438,11 +467,13 @@ export interface FileRouteTypes {
     | '/super-admin/security'
     | '/super-admin/settings'
     | '/super-admin/users'
+    | '/api/public/payme'
     | '/dashboard/'
     | '/super-admin/'
     | '/dashboard/crm/$moduleKey'
     | '/dashboard/customers/$id'
     | '/super-admin/organizations/$id'
+    | '/api/public/click/$action'
     | '/api/public/instagram/webhook'
     | '/api/public/telegram/daily-report'
     | '/api/public/telegram/webhook'
@@ -455,6 +486,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/dashboard/analytics'
     | '/dashboard/assistant'
+    | '/dashboard/billing'
     | '/dashboard/conversations'
     | '/dashboard/crm-builder'
     | '/dashboard/inventory'
@@ -476,11 +508,13 @@ export interface FileRouteTypes {
     | '/super-admin/security'
     | '/super-admin/settings'
     | '/super-admin/users'
+    | '/api/public/payme'
     | '/dashboard'
     | '/super-admin'
     | '/dashboard/crm/$moduleKey'
     | '/dashboard/customers/$id'
     | '/super-admin/organizations/$id'
+    | '/api/public/click/$action'
     | '/api/public/instagram/webhook'
     | '/api/public/telegram/daily-report'
     | '/api/public/telegram/webhook'
@@ -496,6 +530,7 @@ export interface FileRouteTypes {
     | '/_authenticated/super-admin'
     | '/_authenticated/dashboard/analytics'
     | '/_authenticated/dashboard/assistant'
+    | '/_authenticated/dashboard/billing'
     | '/_authenticated/dashboard/conversations'
     | '/_authenticated/dashboard/crm-builder'
     | '/_authenticated/dashboard/customers'
@@ -518,11 +553,13 @@ export interface FileRouteTypes {
     | '/_authenticated/super-admin/security'
     | '/_authenticated/super-admin/settings'
     | '/_authenticated/super-admin/users'
+    | '/api/public/payme'
     | '/_authenticated/dashboard/'
     | '/_authenticated/super-admin/'
     | '/_authenticated/dashboard/crm/$moduleKey'
     | '/_authenticated/dashboard/customers/$id'
     | '/_authenticated/super-admin/organizations/$id'
+    | '/api/public/click/$action'
     | '/api/public/instagram/webhook'
     | '/api/public/telegram/daily-report'
     | '/api/public/telegram/webhook'
@@ -534,6 +571,8 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ApiPublicPaymeRoute: typeof ApiPublicPaymeRoute
+  ApiPublicClickActionRoute: typeof ApiPublicClickActionRoute
   ApiPublicInstagramWebhookRoute: typeof ApiPublicInstagramWebhookRoute
   ApiPublicTelegramDailyReportRoute: typeof ApiPublicTelegramDailyReportRoute
   ApiPublicTelegramWebhookRoute: typeof ApiPublicTelegramWebhookRoute
@@ -602,6 +641,13 @@ declare module '@tanstack/react-router' {
       path: '/assistant'
       fullPath: '/dashboard/assistant'
       preLoaderRoute: typeof AuthenticatedDashboardAssistantRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
+    '/_authenticated/dashboard/billing': {
+      id: '/_authenticated/dashboard/billing'
+      path: '/billing'
+      fullPath: '/dashboard/billing'
+      preLoaderRoute: typeof AuthenticatedDashboardBillingRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
     '/_authenticated/dashboard/conversations': {
@@ -765,6 +811,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSuperAdminUsersRouteImport
       parentRoute: typeof AuthenticatedSuperAdminRoute
     }
+    '/api/public/payme': {
+      id: '/api/public/payme'
+      path: '/api/public/payme'
+      fullPath: '/api/public/payme'
+      preLoaderRoute: typeof ApiPublicPaymeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/dashboard/crm/$moduleKey': {
       id: '/_authenticated/dashboard/crm/$moduleKey'
       path: '/crm/$moduleKey'
@@ -799,6 +852,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/super-admin/organizations/$id'
       preLoaderRoute: typeof AuthenticatedSuperAdminOrganizationsIdRouteImport
       parentRoute: typeof AuthenticatedSuperAdminRoute
+    }
+    '/api/public/click/$action': {
+      id: '/api/public/click/$action'
+      path: '/api/public/click/$action'
+      fullPath: '/api/public/click/$action'
+      preLoaderRoute: typeof ApiPublicClickActionRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/public/instagram/webhook': {
       id: '/api/public/instagram/webhook'
@@ -845,6 +905,7 @@ const AuthenticatedDashboardCustomersRouteWithChildren =
 interface AuthenticatedDashboardRouteChildren {
   AuthenticatedDashboardAnalyticsRoute: typeof AuthenticatedDashboardAnalyticsRoute
   AuthenticatedDashboardAssistantRoute: typeof AuthenticatedDashboardAssistantRoute
+  AuthenticatedDashboardBillingRoute: typeof AuthenticatedDashboardBillingRoute
   AuthenticatedDashboardConversationsRoute: typeof AuthenticatedDashboardConversationsRoute
   AuthenticatedDashboardCrmBuilderRoute: typeof AuthenticatedDashboardCrmBuilderRoute
   AuthenticatedDashboardCustomersRoute: typeof AuthenticatedDashboardCustomersRouteWithChildren
@@ -866,6 +927,7 @@ const AuthenticatedDashboardRouteChildren: AuthenticatedDashboardRouteChildren =
   {
     AuthenticatedDashboardAnalyticsRoute: AuthenticatedDashboardAnalyticsRoute,
     AuthenticatedDashboardAssistantRoute: AuthenticatedDashboardAssistantRoute,
+    AuthenticatedDashboardBillingRoute: AuthenticatedDashboardBillingRoute,
     AuthenticatedDashboardConversationsRoute:
       AuthenticatedDashboardConversationsRoute,
     AuthenticatedDashboardCrmBuilderRoute:
@@ -952,6 +1014,8 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  ApiPublicPaymeRoute: ApiPublicPaymeRoute,
+  ApiPublicClickActionRoute: ApiPublicClickActionRoute,
   ApiPublicInstagramWebhookRoute: ApiPublicInstagramWebhookRoute,
   ApiPublicTelegramDailyReportRoute: ApiPublicTelegramDailyReportRoute,
   ApiPublicTelegramWebhookRoute: ApiPublicTelegramWebhookRoute,
