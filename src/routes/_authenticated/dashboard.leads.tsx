@@ -3,6 +3,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
+import { Columns3, List } from "lucide-react";
+import { LeadKanban } from "@/components/app/LeadKanban";
+import { LEAD_STATUS_LABELS } from "@/lib/lead-kanban";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { EmptyState, ErrorState, LoadingState, PageHeader, StatusBadge } from "@/components/app/primitives";
 import { Button } from "@/components/ui/button";
@@ -26,16 +30,6 @@ type LeadPatch = {
   notes?: string;
 };
 
-const LEAD_STATUS_LABELS: Record<LeadStatus, string> = {
-  new: "Yangi",
-  needs_operator: "Operator kerak",
-  assigned: "Biriktirilgan",
-  contacted: "Bog'lanildi",
-  negotiating: "Muzokara",
-  won: "Yutildi",
-  lost: "Yo'qotildi",
-};
-
 const LEAD_SCORE_LABELS: Record<LeadScore, string> = {
   hot: "Issiq",
   warm: "Iliq",
@@ -49,6 +43,8 @@ export const Route = createFileRoute("/_authenticated/dashboard/leads")({
       { name: "description", content: t("AI tomonidan yaratilgan Telegram savdo lidlarini baholang, biriktiring va yakunlang.") },
       { property: "og:title", content: t("Lidlar — NEXORA CRM") },
       { property: "og:description", content: t("Operatorga biriktirish imkoniyati bilan AI baholagan Telegram savdo lidlari.") },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: LeadsPage,
@@ -63,6 +59,7 @@ function LeadsPage() {
   const notify = useServerFn(notifyLeadOperators);
 
   const [status, setStatus] = useState("all");
+  const [view, setView] = useState("kanban");
   const [score, setScore] = useState("all");
   const [search, setSearch] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
@@ -74,7 +71,10 @@ function LeadsPage() {
 
   const detail = useQuery({
     queryKey: ["lead", openId],
-    queryFn: () => fetchLead({ data: { id: openId! } }),
+    queryFn: () => {
+      if (!openId) throw new Error(t("Lid topilmadi"));
+      return fetchLead({ data: { id: openId } });
+    },
     enabled: Boolean(openId),
   });
 
@@ -85,6 +85,7 @@ function LeadsPage() {
       .channel("leads-live")
       .on("postgres_changes", { event: "*", schema: "public", table: "leads" }, () => {
         void queryClient.invalidateQueries({ queryKey: ["leads"] });
+        void queryClient.invalidateQueries({ queryKey: ["lead"] });
       })
       .subscribe();
     return () => {
@@ -98,6 +99,7 @@ function LeadsPage() {
       toast.success(t("Lid yangilandi"));
       void queryClient.invalidateQueries({ queryKey: ["leads"] });
       void queryClient.invalidateQueries({ queryKey: ["lead"] });
+      void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     },
     onError: (error: unknown) =>
       toast.error(error instanceof Error ? error.message : t("Lidni yangilab bo'lmadi")),
@@ -114,8 +116,13 @@ function LeadsPage() {
   const lead = detail.data?.lead;
 
   return (
-    <>
-      <PageHeader title={t("Lidlar")} description={t("AI agenti aniqlagan, baholagan va yo'naltirgan har bir so'rov.")} />
+    <Tabs value={view} onValueChange={setView} className="space-y-5">
+      <PageHeader title={t("Lidlar")} description={t("AI agenti aniqlagan, baholagan va yo'naltirgan har bir so'rov.")} actions={
+        <TabsList aria-label={t("Lidlar ko‘rinishi")}>
+          <TabsTrigger value="kanban"><Columns3 className="mr-2 size-4" />{t("Kanban")}</TabsTrigger>
+          <TabsTrigger value="table"><List className="mr-2 size-4" />{t("Jadval")}</TabsTrigger>
+        </TabsList>
+      } />
 
       <div className="flex flex-wrap items-end gap-3">
         <div className="min-w-48 flex-1">
@@ -161,10 +168,13 @@ function LeadsPage() {
         </div>
       </div>
 
+      <TabsContent value={view}>
       {leads.isPending ? (
-        <LoadingState />
+        <LoadingState label={t("Yuklanmoqda…")} />
       ) : leads.error ? (
         <ErrorState error={leads.error} onRetry={() => void leads.refetch()} />
+      ) : view === "kanban" ? (
+        <LeadKanban rows={leads.data} pending={mutation.isPending} movingId={mutation.isPending ? mutation.variables?.id : undefined} onOpen={setOpenId} onMove={(id, status) => mutation.mutate({ id, status })} />
       ) : leads.data.length === 0 ? (
         <EmptyState
           title={t("Bu filtrga mos lid topilmadi")}
@@ -196,7 +206,7 @@ function LeadsPage() {
                   <tr key={row.id} className="clay-hover">
                     <td className="px-4 py-3">
                       <p className="font-medium text-foreground">
-                        {customer?.full_name ?? "Telegram mijozi"}
+                         {customer?.full_name ?? t("Telegram mijozi")}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {customer?.telegram_username ? `@${customer.telegram_username}` : (customer?.phone ?? "—")}
@@ -212,7 +222,7 @@ function LeadsPage() {
                     <td className="px-4 py-3">
                       <StatusBadge value={row.status} />
                     </td>
-                    <td className="px-4 py-3 text-muted-foreground">{operator?.full_name ?? "Biriktirilmagan"}</td>
+                     <td className="px-4 py-3 text-muted-foreground">{operator?.full_name ?? t("Biriktirilmagan")}</td>
                     <td className="px-4 py-3 text-xs text-muted-foreground">
                       {new Date(row.created_at).toLocaleString()}
                     </td>
@@ -228,6 +238,7 @@ function LeadsPage() {
           </table>
         </div>
       )}
+      </TabsContent>
 
       <Sheet open={Boolean(openId)} onOpenChange={(next) => setOpenId(next ? openId : null)}>
         <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
@@ -242,9 +253,9 @@ function LeadsPage() {
             <div className="space-y-5 px-4 pb-8">
               <div className="clay-panel p-4 text-sm">
                 <p className="font-medium text-foreground">
-                  {(lead.customers as { full_name: string | null } | null)?.full_name ?? "Telegram mijozi"}
+                   {(lead.customers as { full_name: string | null } | null)?.full_name ?? t("Telegram mijozi")}
                 </p>
-                <p className="text-xs text-muted-foreground">{lead.ai_summary ?? "AI xulosasi hali yo'q"}</p>
+                 <p className="text-xs text-muted-foreground">{lead.ai_summary ?? t("AI xulosasi hali yo'q")}</p>
                 {lead.handoff_reason ? (
                   <p className="mt-2 text-xs text-warning">{t("Uzatish sababi:")}{" "}{lead.handoff_reason}</p>
                 ) : null}
@@ -355,7 +366,7 @@ function LeadsPage() {
           ) : null}
         </SheetContent>
       </Sheet>
-    </>
+    </Tabs>
   );
 }
 
