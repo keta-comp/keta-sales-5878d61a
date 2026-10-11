@@ -1,5 +1,7 @@
 // Auto-generated UI translations. Keys are the Uzbek source strings.
 const table: Record<string, string> = {
+  "Muloqotlar": "Conversations",
+  "Tarif va to‘lov": "Plan and payment",
   "ta": "",
   "- 5-8 ta widget yetarli. 6-10 ta modul yetarli.": "- 5-8 widgets are enough. 6-10 modules are enough.",
   "- Agar ma'lumot yetarli bo'lmasa, aynan shu gapni yozing: \"Bu ma'lumotni aniqlash uchun yetarli ma'lumot mavjud emas.\"": "- If there is not enough information, write exactly this sentence: \"There is not enough information to determine this data.\"",

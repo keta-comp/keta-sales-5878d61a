@@ -1,5 +1,7 @@
 // Auto-generated UI translations. Keys are the Uzbek source strings.
 const table: Record<string, string> = {
+  "Muloqotlar": "Sáwbetlesiwler",
+  "Tarif va to‘lov": "Tarif hám tólem",
   "ta": "ta",
   "- 5-8 ta widget yetarli. 6-10 ta modul yetarli.": "- 5-8 dana widget jetkilikli. 6-10 dana modul jetkilikli.",
   "- Agar ma'lumot yetarli bo'lmasa, aynan shu gapni yozing: \"Bu ma'lumotni aniqlash uchun yetarli ma'lumot mavjud emas.\"": "- Eger maǵlıwmat jetkilikli bolmasa, aynan usı gápti jazıń: \"Bul maǵlıwmattı anıqlaw ushın jetkilikli maǵlıwmat joq.\"",

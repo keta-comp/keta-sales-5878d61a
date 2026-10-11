@@ -204,7 +204,7 @@ export function DashboardShell({
                   <Menu className="size-4" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="w-72 bg-sidebar px-3 shadow-clay-lg">
+              <SheetContent side="left" className="flex w-72 flex-col bg-sidebar px-3 shadow-clay-lg">
                 {brand}
                 <div className="min-h-0 flex-1 overflow-y-auto pb-4">
                   <NavLinks onNavigate={() => setOpen(false)} />
