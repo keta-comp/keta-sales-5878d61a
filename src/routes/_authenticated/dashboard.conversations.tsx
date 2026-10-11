@@ -26,6 +26,8 @@ export const Route = createFileRoute("/_authenticated/dashboard/conversations")(
       { name: "description", content: t("Jonli Telegram inbox: AI savdo suhbatlarini o'qing va operator sifatida ularni o'z qo'lingizga oling.") },
       { property: "og:title", content: t("Suhbatlar — NEXORA CRM") },
       { property: "og:description", content: t("Jonli AI va inson operator Telegram savdo inboxi.") },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: ConversationsPage,
