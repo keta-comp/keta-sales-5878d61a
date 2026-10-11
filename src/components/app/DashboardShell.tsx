@@ -74,6 +74,8 @@ const ICONS: Record<string, LucideIcon> = {
 const CORE_LINKS: { to: string; label: string; icon: LucideIcon }[] = [
   { to: "/dashboard/customers", label: "Mijozlar", icon: Users },
   { to: "/dashboard/leads", label: "Murojaatlar", icon: Target },
+  { to: "/dashboard/conversations", label: "Muloqotlar", icon: MessagesSquare },
+  { to: "/dashboard/products", label: "Mahsulotlar", icon: Package },
   { to: "/dashboard/orders", label: "Buyurtmalar", icon: ShoppingCart },
 ];
 
@@ -85,6 +87,7 @@ const STATIC_TAIL: { to: string; label: string; icon: LucideIcon }[] = [
   { to: "/dashboard/assistant", label: "AI yordamchi", icon: Bot },
   { to: "/dashboard/crm-builder", label: "AI CRM sozlash", icon: Sparkles },
   { to: "/dashboard/telegram", label: "Telegram", icon: Send },
+  { to: "/dashboard/billing", label: "Tarif va to‘lov", icon: Wallet },
   { to: "/dashboard/settings", label: "Sozlamalar", icon: Settings },
 ];
 
@@ -181,8 +184,10 @@ export function DashboardShell({
     <div className="min-h-screen bg-background">
       <aside className="fixed inset-y-0 left-0 hidden w-64 flex-col border-r border-sidebar-border/60 bg-sidebar px-3 shadow-clay lg:flex">
         {brand}
-        <NavLinks />
-        <div className="mt-auto border-t border-sidebar-border py-4">
+        <div className="min-h-0 flex-1 overflow-y-auto pb-4">
+          <NavLinks />
+        </div>
+        <div className="shrink-0 border-t border-sidebar-border py-4">
           <p className="truncate px-3 pb-2 text-xs text-muted-foreground">{email ?? ""}</p>
           <Button variant="ghost" size="sm" className="w-full justify-start gap-2" onClick={signOut}>
             <LogOut className="size-4" /> {t("Chiqish")}
@@ -199,9 +204,11 @@ export function DashboardShell({
                   <Menu className="size-4" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="w-72 bg-sidebar px-3 shadow-clay-lg">
+              <SheetContent side="left" className="flex w-72 flex-col bg-sidebar px-3 shadow-clay-lg">
                 {brand}
-                <NavLinks onNavigate={() => setOpen(false)} />
+                <div className="min-h-0 flex-1 overflow-y-auto pb-4">
+                  <NavLinks onNavigate={() => setOpen(false)} />
+                </div>
               </SheetContent>
             </Sheet>
             <span className="font-display text-sm font-semibold lg:hidden">NEXORA CRM</span>

@@ -19,6 +19,8 @@ export const Route = createFileRoute("/_authenticated/dashboard/billing")({
       { name: "description", content: t("Tarifni tanlang va Payme yoki Click orqali to‘lang.") },
       { property: "og:title", content: t("Tarif va to‘lov — NEXORA CRM") },
       { property: "og:description", content: t("Tarifni tanlang va Payme yoki Click orqali to‘lang.") },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: BillingPage,

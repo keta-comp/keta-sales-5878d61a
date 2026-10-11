@@ -28,6 +28,8 @@ export const Route = createFileRoute("/_authenticated/dashboard/products")({
       { name: "description", content: t("AI savdo agentingiz taklif beradigan jonli mahsulotlar katalogi.") },
       { property: "og:title", content: t("Mahsulotlar — NEXORA CRM") },
       { property: "og:description", content: t("AI savdo agentini boshqaradigan katalog va narxlar.") },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: ProductsPage,

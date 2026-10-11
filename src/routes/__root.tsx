@@ -6,12 +6,14 @@ import {
   useRouter,
   HeadContent,
   Scripts,
+  type ErrorComponentProps,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { LanguageProvider } from "@/lib/i18n";
 import { t } from "@/lib/i18n";
@@ -38,7 +40,7 @@ function NotFoundComponent() {
   );
 }
 
-function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
+function ErrorComponent({ error, reset }: ErrorComponentProps) {
   console.error(error);
   const router = useRouter();
   useEffect(() => {
@@ -55,7 +57,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
           {t("Bizning tomonda xatolik yuz berdi. Sahifani yangilab ko‘ring yoki bosh sahifaga qayting.")}
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
-          <button
+          <Button
             onClick={() => {
               router.invalidate();
               reset();
@@ -63,7 +65,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
             className="inline-flex items-center justify-center rounded-2xl bg-primary px-5 py-2.5 shadow-clay-sm text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
             {t("Qayta urinish")}
-          </button>
+          </Button>
           <a
             href="/"
             className="inline-flex items-center justify-center rounded-2xl border border-input bg-card px-5 py-2.5 shadow-clay-sm text-sm font-medium text-foreground transition-colors hover:bg-accent"

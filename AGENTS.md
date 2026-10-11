@@ -8,3 +8,6 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+- Keep legacy CRM entry points in the shared dashboard navigation, deduplicate configured module links, and make navigation scroll independently so all sections stay reachable on short screens.
+- Use TanStack Router's exported error props for route error components so their signatures follow the installed router contract.
