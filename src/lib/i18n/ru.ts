@@ -1,5 +1,7 @@
 // Auto-generated UI translations. Keys are the Uzbek source strings.
 const table: Record<string, string> = {
+  "Byudjet": "Бюджет",
+  "Mijoz profili": "Профиль клиента",
   "Muloqotlar": "Переписки",
   "Tarif va to‘lov": "Тариф и оплата",
   "ta": "\u0448\u0442.",

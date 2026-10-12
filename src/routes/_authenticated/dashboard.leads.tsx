@@ -251,15 +251,28 @@ function LeadsPage() {
             <ErrorState error={detail.error} />
           ) : lead ? (
             <div className="space-y-5 px-4 pb-8">
+              <LeadStageBar
+                status={lead.status as LeadStatus}
+                disabled={mutation.isPending}
+                onChange={(next) => mutation.mutate({ id: lead.id, status: next })}
+              />
+              <LeadContact customer={lead.customers as Parameters<typeof LeadContact>[0]["customer"]} />
               <div className="clay-panel p-4 text-sm">
-                <p className="font-medium text-foreground">
-                   {(lead.customers as { full_name: string | null } | null)?.full_name ?? t("Telegram mijozi")}
-                </p>
+                {lead.requested_product ? (
+                  <p className="font-medium text-foreground">{t("Mahsulot")}: {lead.requested_product}</p>
+                ) : null}
                  <p className="text-xs text-muted-foreground">{lead.ai_summary ?? t("AI xulosasi hali yo'q")}</p>
                 {lead.handoff_reason ? (
                   <p className="mt-2 text-xs text-warning">{t("Uzatish sababi:")}{" "}{lead.handoff_reason}</p>
                 ) : null}
               </div>
+
+              <LeadFacts
+                key={`facts-${lead.id}`}
+                disabled={mutation.isPending}
+                initial={{ phone: lead.phone ?? "", budget: lead.budget ?? "", location: lead.location ?? "" }}
+                onSave={(facts) => mutation.mutate({ id: lead.id, ...facts })}
+              />
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
