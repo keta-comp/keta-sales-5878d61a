@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Columns3, List } from "lucide-react";
 import { LeadKanban } from "@/components/app/LeadKanban";
+import { LeadContact, LeadFacts, LeadStageBar } from "@/components/app/LeadCardDetails";
 import { LEAD_STATUS_LABELS } from "@/lib/lead-kanban";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -174,7 +175,7 @@ function LeadsPage() {
       ) : leads.error ? (
         <ErrorState error={leads.error} onRetry={() => void leads.refetch()} />
       ) : view === "kanban" ? (
-        <LeadKanban rows={leads.data} pending={mutation.isPending} movingId={mutation.isPending ? mutation.variables?.id : undefined} onOpen={setOpenId} onMove={(id, status) => mutation.mutate({ id, status })} />
+        <LeadKanban rows={leads.data} pending={mutation.isPending} {...(mutation.isPending && mutation.variables?.id ? { movingId: mutation.variables.id } : {})} onOpen={setOpenId} onMove={(id, status) => mutation.mutate({ id, status })} />
       ) : leads.data.length === 0 ? (
         <EmptyState
           title={t("Bu filtrga mos lid topilmadi")}
