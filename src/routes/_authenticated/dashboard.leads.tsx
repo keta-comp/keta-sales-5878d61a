@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Columns3, List } from "lucide-react";
 import { LeadKanban } from "@/components/app/LeadKanban";
+import { LeadContact, LeadFacts, LeadStageBar } from "@/components/app/LeadCardDetails";
 import { LEAD_STATUS_LABELS } from "@/lib/lead-kanban";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -24,6 +25,9 @@ import { t } from "@/lib/i18n";
 
 type LeadPatch = {
   id: string;
+  phone?: string;
+  budget?: string;
+  location?: string;
   status?: LeadStatus;
   score?: LeadScore;
   assigned_operator_id?: string | null;
@@ -174,7 +178,7 @@ function LeadsPage() {
       ) : leads.error ? (
         <ErrorState error={leads.error} onRetry={() => void leads.refetch()} />
       ) : view === "kanban" ? (
-        <LeadKanban rows={leads.data} pending={mutation.isPending} movingId={mutation.isPending ? mutation.variables?.id : undefined} onOpen={setOpenId} onMove={(id, status) => mutation.mutate({ id, status })} />
+        <LeadKanban rows={leads.data} pending={mutation.isPending} {...(mutation.isPending && mutation.variables?.id ? { movingId: mutation.variables.id } : {})} onOpen={setOpenId} onMove={(id, status) => mutation.mutate({ id, status })} />
       ) : leads.data.length === 0 ? (
         <EmptyState
           title={t("Bu filtrga mos lid topilmadi")}
@@ -251,15 +255,28 @@ function LeadsPage() {
             <ErrorState error={detail.error} />
           ) : lead ? (
             <div className="space-y-5 px-4 pb-8">
+              <LeadStageBar
+                status={lead.status as LeadStatus}
+                disabled={mutation.isPending}
+                onChange={(next) => mutation.mutate({ id: lead.id, status: next })}
+              />
+              <LeadContact customer={lead.customers as Parameters<typeof LeadContact>[0]["customer"]} />
               <div className="clay-panel p-4 text-sm">
-                <p className="font-medium text-foreground">
-                   {(lead.customers as { full_name: string | null } | null)?.full_name ?? t("Telegram mijozi")}
-                </p>
+                {lead.requested_product ? (
+                  <p className="font-medium text-foreground">{t("Mahsulot")}: {lead.requested_product}</p>
+                ) : null}
                  <p className="text-xs text-muted-foreground">{lead.ai_summary ?? t("AI xulosasi hali yo'q")}</p>
                 {lead.handoff_reason ? (
                   <p className="mt-2 text-xs text-warning">{t("Uzatish sababi:")}{" "}{lead.handoff_reason}</p>
                 ) : null}
               </div>
+
+              <LeadFacts
+                key={`facts-${lead.id}`}
+                disabled={mutation.isPending}
+                initial={{ phone: lead.phone ?? "", budget: lead.budget ?? "", location: lead.location ?? "" }}
+                onSave={(facts) => mutation.mutate({ id: lead.id, ...facts })}
+              />
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
