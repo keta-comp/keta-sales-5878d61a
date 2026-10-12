@@ -25,6 +25,9 @@ import { t } from "@/lib/i18n";
 
 type LeadPatch = {
   id: string;
+  phone?: string;
+  budget?: string;
+  location?: string;
   status?: LeadStatus;
   score?: LeadScore;
   assigned_operator_id?: string | null;
