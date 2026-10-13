@@ -1,5 +1,15 @@
 // Auto-generated UI translations. Keys are the Uzbek source strings.
 const table: Record<string, string> = {
+  "Vazifa qo‘shildi": "Wazıypa qosıldı",
+  "Vazifani saqlab bo‘lmadi": "Wazıypanı saqlaw múmkin bolmadı",
+  "Masalan: qo‘ng‘iroq qilish, narx yuborish…": "Mısalı: qońıraw etiw, baha jiberiw…",
+  "Ertaga": "Erteń",
+  "3 kun": "3 kún",
+  "Hafta": "Hápte",
+  "Qo‘shish": "Qosıw",
+  "Qayta ochish": "Qayta ashıw",
+  "Muddati o‘tgan": "Múddeti ótken",
+  "Bugungi vazifa": "Búgingi wazıypa",
   "Byudjet": "Byudjet",
   "Mijoz profili": "Klient profili",
   "Muloqotlar": "Sáwbetlesiwler",

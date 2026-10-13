@@ -1,5 +1,15 @@
 // Auto-generated UI translations. Keys are the Uzbek source strings.
 const table: Record<string, string> = {
+  "Vazifa qo‘shildi": "Task added",
+  "Vazifani saqlab bo‘lmadi": "Could not save task",
+  "Masalan: qo‘ng‘iroq qilish, narx yuborish…": "E.g. call back, send price…",
+  "Ertaga": "Tomorrow",
+  "3 kun": "3 days",
+  "Hafta": "Week",
+  "Qo‘shish": "Add",
+  "Qayta ochish": "Reopen",
+  "Muddati o‘tgan": "Overdue",
+  "Bugungi vazifa": "Task today",
   "Byudjet": "Budget",
   "Mijoz profili": "Customer profile",
   "Muloqotlar": "Conversations",
