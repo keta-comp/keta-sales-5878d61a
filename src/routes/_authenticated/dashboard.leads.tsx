@@ -8,6 +8,7 @@ import { LeadKanban } from "@/components/app/LeadKanban";
 import { LeadContact, LeadFacts, LeadStageBar } from "@/components/app/LeadCardDetails";
 import { LEAD_STATUS_LABELS, leadTaskStates } from "@/lib/lead-kanban";
 import { LeadTasks } from "@/components/app/LeadTasks";
+import { LeadToOrder } from "@/components/app/LeadToOrder";
 import { listTasks } from "@/lib/tasks.functions";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -273,6 +274,7 @@ function LeadsPage() {
                 operatorId={lead.assigned_operator_id ?? null}
               />
               <LeadContact customer={lead.customers as Parameters<typeof LeadContact>[0]["customer"]} />
+              <LeadToOrder key={`order-${lead.id}`} lead={lead} />
               <div className="clay-panel p-4 text-sm">
                 {lead.requested_product ? (
                   <p className="font-medium text-foreground">{t("Mahsulot")}: {lead.requested_product}</p>
