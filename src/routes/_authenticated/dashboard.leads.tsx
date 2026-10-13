@@ -6,7 +6,9 @@ import { toast } from "sonner";
 import { Columns3, List } from "lucide-react";
 import { LeadKanban } from "@/components/app/LeadKanban";
 import { LeadContact, LeadFacts, LeadStageBar } from "@/components/app/LeadCardDetails";
-import { LEAD_STATUS_LABELS } from "@/lib/lead-kanban";
+import { LEAD_STATUS_LABELS, leadTaskStates } from "@/lib/lead-kanban";
+import { LeadTasks } from "@/components/app/LeadTasks";
+import { listTasks } from "@/lib/tasks.functions";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { EmptyState, ErrorState, LoadingState, PageHeader, StatusBadge } from "@/components/app/primitives";
@@ -81,6 +83,10 @@ function LeadsPage() {
     },
     enabled: Boolean(openId),
   });
+
+  const fetchTasks = useServerFn(listTasks);
+  const tasks = useQuery({ queryKey: ["tasks", "all-leads"], queryFn: () => fetchTasks({ data: {} }) });
+  const taskStates = leadTaskStates(leads.data ?? [], tasks.data ?? []);
 
   const operators = useQuery({ queryKey: ["operators"], queryFn: () => fetchOperators() });
 
@@ -178,7 +184,7 @@ function LeadsPage() {
       ) : leads.error ? (
         <ErrorState error={leads.error} onRetry={() => void leads.refetch()} />
       ) : view === "kanban" ? (
-        <LeadKanban rows={leads.data} pending={mutation.isPending} {...(mutation.isPending && mutation.variables?.id ? { movingId: mutation.variables.id } : {})} onOpen={setOpenId} onMove={(id, status) => mutation.mutate({ id, status })} />
+        <LeadKanban rows={leads.data} taskStates={taskStates} pending={mutation.isPending} {...(mutation.isPending && mutation.variables?.id ? { movingId: mutation.variables.id } : {})} onOpen={setOpenId} onMove={(id, status) => mutation.mutate({ id, status })} />
       ) : leads.data.length === 0 ? (
         <EmptyState
           title={t("Bu filtrga mos lid topilmadi")}
@@ -259,6 +265,12 @@ function LeadsPage() {
                 status={lead.status as LeadStatus}
                 disabled={mutation.isPending}
                 onChange={(next) => mutation.mutate({ id: lead.id, status: next })}
+              />
+              <LeadTasks
+                key={`tasks-${lead.id}`}
+                leadId={lead.id}
+                customerId={lead.customer_id ?? null}
+                operatorId={lead.assigned_operator_id ?? null}
               />
               <LeadContact customer={lead.customers as Parameters<typeof LeadContact>[0]["customer"]} />
               <div className="clay-panel p-4 text-sm">

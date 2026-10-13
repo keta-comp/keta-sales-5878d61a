@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { t } from "@/lib/i18n";
-import { groupLeads, leadStatusChange, LEAD_STATUS_LABELS } from "@/lib/lead-kanban";
+import { groupLeads, leadStatusChange, LEAD_STATUS_LABELS, type LeadTaskState } from "@/lib/lead-kanban";
 import { LEAD_STATUSES, type LeadScore, type LeadStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -22,6 +22,7 @@ export type KanbanLead = {
 
 type Props = {
   rows: KanbanLead[];
+  taskStates?: Record<string, LeadTaskState>;
   pending: boolean;
   movingId?: string;
   onOpen: (id: string) => void;
@@ -29,8 +30,13 @@ type Props = {
 };
 
 const scoreLabels = { hot: "Issiq", warm: "Iliq", cold: "Sovuq" };
+const taskBadge: Partial<Record<LeadTaskState, { label: string; cls: string }>> = {
+  overdue: { label: "Muddati o‘tgan", cls: "border-destructive/50 text-destructive" },
+  today: { label: "Bugungi vazifa", cls: "border-foreground/40 text-foreground" },
+  none: { label: "Vazifa yo‘q", cls: "border-dashed border-muted-foreground/60 text-muted-foreground" },
+};
 
-function LeadCard({ row, pending, movingId, onOpen, onMove }: Omit<Props, "rows"> & { row: KanbanLead }) {
+function LeadCard({ row, pending, movingId, onOpen, onMove, taskStates }: Omit<Props, "rows"> & { row: KanbanLead }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: row.id, disabled: pending });
   return (
     <article ref={setNodeRef} aria-busy={movingId === row.id} className={cn("clay-raised min-w-0 rounded-lg border border-border bg-card p-3", isDragging && "opacity-40")}>
@@ -51,6 +57,9 @@ function LeadCard({ row, pending, movingId, onOpen, onMove }: Omit<Props, "rows"
         <span className="rounded border border-border bg-muted px-2 py-0.5">{t(scoreLabels[row.score])}</span>
         <span>{new Date(row.created_at).toLocaleDateString()}</span>
       </div>
+      {taskStates?.[row.id] && taskBadge[taskStates[row.id]] ? (
+        <p className={cn("mt-2 inline-block rounded border px-2 py-0.5 text-xs font-medium", taskBadge[taskStates[row.id]]!.cls)}>{t(taskBadge[taskStates[row.id]]!.label)}</p>
+      ) : null}
       <p className="mt-2 truncate text-xs text-muted-foreground" title={row.operators?.full_name}>{row.operators?.full_name ?? t("Biriktirilmagan")}</p>
       <Select value={row.status} disabled={pending} onValueChange={(value) => { const next = leadStatusChange(row.status, value); if (next) onMove(row.id, next); }}>
         <SelectTrigger className="mt-3 h-8 w-full text-xs" aria-label={t("Lid bosqichi")}><SelectValue /></SelectTrigger>
