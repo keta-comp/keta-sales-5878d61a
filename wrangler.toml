@@ -13,5 +13,5 @@ binding = "ASSETS"
 # Oddiy (maxfiy bo'lmagan) qiymatlar esa shu yerda:
 [vars]
 PUBLIC_APP_URL = "https://nexora-crm.uz"
-SUPABASE_URL = "https://pertsgqadpoaewihezhs.supabase.co"
-SUPABASE_PUBLISHABLE_KEY = "sb_publishable_EftWRQDGmz-zalY7Pyu-gA_J_Dom3Oa"
+SUPABASE_URL = "https://htydowzamirhpknppglu.supabase.co"
+SUPABASE_PUBLISHABLE_KEY = "sb_publishable_Y6lXkgoptUwAL3M-1UkmAA_sAf-w0YO"
