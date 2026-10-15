@@ -1,6 +1,6 @@
 # NEXORA CRM — mustaqil serverda ishga tushirish
 
-Baza allaqachon **sizning Supabase loyihangizga** (`pertsgqadpoaewihezhs`)
+Baza allaqachon **sizning Supabase loyihangizga** (`htydowzamirhpknppglu`)
 o'rnatildi: 33 jadval, xavfsizlik qoidalari (RLS), funksiyalar, triggerlar va
 realtime sozlamalari tayyor. Quyida qolgan bosqichlar.
 

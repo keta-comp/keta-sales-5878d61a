@@ -20,10 +20,10 @@ Production va Preview uchun quyidagilarni qo'shing:
 
 | Nom | Qiymat |
 | --- | --- |
-| `VITE_SUPABASE_URL` | `https://pertsgqadpoaewihezhs.supabase.co` |
+| `VITE_SUPABASE_URL` | `https://htydowzamirhpknppglu.supabase.co` |
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | `sb_publishable_...` (ochiq kalit) |
-| `VITE_SUPABASE_PROJECT_ID` | `pertsgqadpoaewihezhs` |
-| `SUPABASE_URL` | `https://pertsgqadpoaewihezhs.supabase.co` |
+| `VITE_SUPABASE_PROJECT_ID` | `htydowzamirhpknppglu` |
+| `SUPABASE_URL` | `https://htydowzamirhpknppglu.supabase.co` |
 | `SUPABASE_PUBLISHABLE_KEY` | `sb_publishable_...` |
 | `SUPABASE_SERVICE_ROLE_KEY` | `sb_secret_...` (maxfiy) |
 | `OPENROUTER_API_KEY` | `sk-or-...` (AI uchun) |
