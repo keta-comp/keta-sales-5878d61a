@@ -20,8 +20,11 @@ export type AccessInput = {
 };
 export type AccessState = "active" | "trial" | "expired";
 
+/** Temporary: every registered user gets unlimited access until billing is switched on. */
+export const UNLIMITED_ACCESS = true;
+
 export function computeAccess(s: AccessInput, now = Date.now()): AccessState {
-  if (s.is_super_admin) return "active";
+  if (UNLIMITED_ACCESS || s.is_super_admin) return "active";
   if (s.subscription_ends_at && new Date(s.subscription_ends_at).getTime() > now) return "active";
   if (s.trial_ends_at && new Date(s.trial_ends_at).getTime() > now) return "trial";
   return "expired";
@@ -30,7 +33,7 @@ export function computeAccess(s: AccessInput, now = Date.now()): AccessState {
 export function hasFeature(s: AccessInput, feature: Feature, now = Date.now()): boolean {
   const access = computeAccess(s, now);
   if (access === "expired") return false;
-  if (access === "trial" || s.is_super_admin) return true;
+  if (UNLIMITED_ACCESS || access === "trial" || s.is_super_admin) return true;
   const plan = PLANS[s.plan as PlanKey];
   return plan ? plan.features.includes(feature) : false;
 }
