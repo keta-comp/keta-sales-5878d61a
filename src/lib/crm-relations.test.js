@@ -14,7 +14,7 @@ describe("CRM relations", () => {
     expect(field("oquv", "guruhlar", "oqituvchi")?.targetModule).toBe("oqituvchilar");
   });
   test("saved configs with text fields get upgraded", () => {
-    const old = { modules: [{ key: "qabul", label: "Qabul", fields: [{ key: "bemor", label: "Bemor", type: "text" as const }] }], pipelineStages: [], terminology: {}, dashboardWidgets: [], automations: [] };
+    const old = { modules: [{ key: "qabul", label: "Qabul", fields: [{ key: "bemor", label: "Bemor", type: "text" }] }], pipelineStages: [], terminology: {}, dashboardWidgets: [], automations: [] };
     expect(applyRelations("klinika", old).modules[0]?.fields?.[0]?.type).toBe("relation");
   });
 });
