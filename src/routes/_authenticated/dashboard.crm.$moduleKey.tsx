@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
 import { Plus, Search, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 import { EmptyState, ErrorState, LoadingState, PageHeader } from "@/components/app/primitives";
 import { Button } from "@/components/ui/button";
@@ -25,7 +26,9 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { deleteCrmRecord, getMyCrmConfig, listCrmRecords, saveCrmRecord } from "@/lib/crm-config.functions";
-import type { CrmField } from "@/lib/crm-config";
+import { relationIdKey, type CrmField } from "@/lib/crm-config";
+import { RelationCombobox } from "@/components/app/RelationCombobox";
+import { Link } from "@tanstack/react-router";
 import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/dashboard/crm/$moduleKey")({
@@ -85,7 +88,10 @@ function CrmModulePage() {
 
   const openCreate = () => {
     const initial: Record<string, string> = {};
-    (module?.fields ?? []).forEach((f) => (initial[f.key] = ""));
+    (module?.fields ?? []).forEach((f) => {
+      initial[f.key] = "";
+      if (f.type === "relation") initial[relationIdKey(f.key)] = "";
+    });
     setForm(initial);
     setStage(module?.pipeline ? (config.data?.config?.pipelineStages[0] ?? "") : "");
     setEditing(null);
@@ -97,6 +103,10 @@ function CrmModulePage() {
     (module?.fields ?? []).forEach((f) => {
       const v = row.data?.[f.key];
       initial[f.key] = v === null || v === undefined ? "" : String(v);
+      if (f.type === "relation") {
+        const idv = row.data?.[relationIdKey(f.key)];
+        initial[relationIdKey(f.key)] = typeof idv === "string" ? idv : "";
+      }
     });
     setForm(initial);
     setStage(row.stage ?? "");
@@ -109,7 +119,14 @@ function CrmModulePage() {
     setSaving(true);
     try {
       const data: Record<string, unknown> = {};
-      (module.fields ?? []).forEach((f) => (data[f.key] = form[f.key] ?? ""));
+      for (const f of module.fields ?? []) {
+        if (f.required && !String(form[f.key] ?? "").trim()) {
+          toast.error(t("\"{v0}\" maydonini to‘ldiring", { v0: t(f.label) }));
+          return;
+        }
+        data[f.key] = form[f.key] ?? "";
+        if (f.type === "relation") data[relationIdKey(f.key)] = form[relationIdKey(f.key)] || null;
+      }
       const title = String(form[module.fields?.[0]?.key ?? ""] ?? "").trim() || "Nomsiz";
       await saveRecord({
         data: { id: editing?.id, moduleKey: module.key, title, stage: stage || null, data },
@@ -204,7 +221,7 @@ function CrmModulePage() {
                   >
                     {fields.slice(0, 5).map((f) => (
                       <td key={f.key} className="max-w-56 truncate px-4 py-3">
-                        {String(row.data?.[f.key] ?? "—")}
+                        <CellValue field={f} data={row.data} />
                       </td>
                     ))}
                     {module.pipeline && (
@@ -242,7 +259,15 @@ function CrmModulePage() {
                 key={field.key}
                 field={field}
                 value={form[field.key] ?? ""}
+                relationId={form[relationIdKey(field.key)] ?? ""}
                 onChange={(v) => setForm((prev) => ({ ...prev, [field.key]: v }))}
+                onRelationChange={(rel) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    [field.key]: rel?.label ?? "",
+                    [relationIdKey(field.key)]: rel?.id ?? "",
+                  }))
+                }
               />
             ))}
             {module.pipeline && (
@@ -279,14 +304,42 @@ function CrmModulePage() {
   );
 }
 
+function CellValue({ field, data }: { field: CrmField; data: Record<string, unknown> }) {
+  const text = String(data?.[field.key] ?? "") || "—";
+  const id = data?.[relationIdKey(field.key)];
+  if (field.type !== "relation" || typeof id !== "string" || !id) return <>{text}</>;
+  const stop = (e: React.MouseEvent) => e.stopPropagation();
+  if (field.targetModule === "customers") {
+    return (
+      <Link to="/dashboard/customers/$id" params={{ id }} onClick={stop} className="font-medium underline underline-offset-2">
+        {text}
+      </Link>
+    );
+  }
+  return (
+    <Link
+      to="/dashboard/crm/$moduleKey"
+      params={{ moduleKey: field.targetModule ?? "" }}
+      onClick={stop}
+      className="font-medium underline underline-offset-2"
+    >
+      {text}
+    </Link>
+  );
+}
+
 function FieldInput({
   field,
   value,
+  relationId,
   onChange,
+  onRelationChange,
 }: {
   field: CrmField;
   value: string;
+  relationId: string;
   onChange: (value: string) => void;
+  onRelationChange: (value: { id: string; label: string } | null) => void;
 }) {
   const label = (
     <Label>
@@ -294,6 +347,18 @@ function FieldInput({
       {field.required && <span className="text-destructive"> *</span>}
     </Label>
   );
+  if (field.type === "relation" && field.targetModule) {
+    return (
+      <div className="flex flex-col gap-2">
+        {label}
+        <RelationCombobox
+          targetModule={field.targetModule}
+          value={value ? { id: relationId, label: value } : null}
+          onChange={onRelationChange}
+        />
+      </div>
+    );
+  }
   if (field.type === "select") {
     return (
       <div className="flex flex-col gap-2">

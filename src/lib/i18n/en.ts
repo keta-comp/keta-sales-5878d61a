@@ -926,6 +926,18 @@ const table: Record<string, string> = {
   "Zaxira": "Stock",
   "Zaxira / Ombor": "Stock / Warehouse",
   "Zaxira yangilandi": "Stock updated",
+  "Hech narsa topilmadi": "Nothing found",
+  "Tozalash": "Clear",
+  "Usta": "Master",
+  "Sohaviy yozuvlar": "Linked records",
+  "Bog‘langan yozuvlar yo‘q": "No linked records",
+  "\"{v0}\" maydonini to‘ldiring": "Fill in \"{v0}\"",
+  "Buyurtmaga aylantirish": "Convert to order",
+  "Mahsulotni tanlang": "Select a product",
+  "Soni": "Quantity",
+  "Jami": "Total",
+  "Buyurtma yaratish": "Create order",
+  "Lidda mijoz yo'q": "Lead has no customer",
 };
 
 export default table;

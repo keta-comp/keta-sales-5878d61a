@@ -5,6 +5,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { resolveAiRuntime } from "./ai-gateway.server";
 import {
+  applyRelations,
   presetForIndustry,
   type CrmConfigData,
   type CrmField,
@@ -23,7 +24,7 @@ function normalizeField(raw: unknown): CrmField | null {
   if (!raw || typeof raw !== "object") return null;
   const r = raw as Record<string, unknown>;
   if (typeof r["key"] !== "string" || !r["key"].trim()) return null;
-  const types = ["text", "phone", "number", "money", "date", "select", "textarea"] as const;
+  const types = ["text", "phone", "number", "money", "date", "select", "textarea", "relation"] as const;
   const type = types.includes(r["type"] as (typeof types)[number]) ? (r["type"] as CrmField["type"]) : "text";
   return {
     key: r["key"].trim(),
@@ -33,6 +34,7 @@ function normalizeField(raw: unknown): CrmField | null {
     ...(Array.isArray(r["options"])
       ? { options: r["options"].filter((o) => typeof o === "string") as string[] }
       : {}),
+    ...(typeof r["targetModule"] === "string" && r["targetModule"] ? { targetModule: r["targetModule"] } : {}),
   };
 }
 
@@ -151,8 +153,96 @@ export const getMyCrmConfig = createServerFn({ method: "GET" })
       businessName: business?.name ?? null,
       industry: row?.industry ?? null,
       businessDescription: row?.business_description ?? null,
-      config: row ? (row.config as unknown as CrmConfigData) : null,
+      config: row ? applyRelations(row.industry, row.config as unknown as CrmConfigData) : null,
     };
+  });
+
+/** Relation search inside the caller's own business (RLS + explicit business filter). */
+export const searchRelatedRecords = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ targetModule: z.string().min(1), search: z.string().max(100).optional() }).parse(input ?? {}),
+  )
+  .handler(async ({ data, context }) => {
+    const businessId = await requireBusinessId(context.supabase);
+    const term = (data.search ?? "").replace(/[%,()]/g, " ").trim();
+    if (data.targetModule === "customers") {
+      let q = context.supabase
+        .from("customers")
+        .select("id, full_name, phone, telegram_username")
+        .eq("business_id", businessId)
+        .order("created_at", { ascending: false })
+        .limit(20);
+      if (term) q = q.or(`full_name.ilike.%${term}%,phone.ilike.%${term}%,telegram_username.ilike.%${term}%`);
+      const { data: rows, error } = await q;
+      if (error) throw new Error(error.message);
+      return (rows ?? []).map((r) => ({
+        id: r.id,
+        label: r.full_name || r.telegram_username || r.phone || "—",
+        hint: r.phone ?? null,
+      }));
+    }
+    let q = context.supabase
+      .from("crm_records")
+      .select("id, title")
+      .eq("business_id", businessId)
+      .eq("module_key", data.targetModule)
+      .order("created_at", { ascending: false })
+      .limit(20);
+    if (term) q = q.ilike("title", `%${term}%`);
+    const { data: rows, error } = await q;
+    if (error) throw new Error(error.message);
+    return (rows ?? []).map((r) => ({ id: r.id, label: r.title, hint: null as string | null }));
+  });
+
+/** Dynamic-module records linked to a customer (via any relation field). */
+export const listCustomerLinkedRecords = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ customerId: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const businessId = await requireBusinessId(context.supabase);
+    const { data: cfgRow } = await context.supabase
+      .from("crm_configs")
+      .select("industry, config")
+      .eq("business_id", businessId)
+      .maybeSingle();
+    if (!cfgRow) return [];
+    const cfg = applyRelations(cfgRow.industry, cfgRow.config as unknown as CrmConfigData);
+    const filters: { moduleKey: string; moduleLabel: string; idKey: string }[] = [];
+    for (const m of cfg.modules) {
+      if (m.link) continue;
+      for (const f of m.fields ?? []) {
+        if (f.type === "relation" && f.targetModule === "customers") {
+          filters.push({ moduleKey: m.key, moduleLabel: m.label, idKey: `${f.key}_id` });
+        }
+      }
+    }
+    if (filters.length === 0) return [];
+    const results = await Promise.all(
+      filters.map(async (f) => {
+        const { data: rows } = await context.supabase
+          .from("crm_records")
+          .select("id, title, stage, created_at, data")
+          .eq("business_id", businessId)
+          .eq("module_key", f.moduleKey)
+          .contains("data", { [f.idKey]: data.customerId } as never)
+          .order("created_at", { ascending: false })
+          .limit(50);
+        return (rows ?? []).map((r) => ({
+          id: r.id,
+          title: r.title,
+          stage: r.stage,
+          created_at: r.created_at,
+          moduleKey: f.moduleKey,
+          moduleLabel: f.moduleLabel,
+        }));
+      }),
+    );
+    const seen = new Set<string>();
+    return results
+      .flat()
+      .filter((r) => (seen.has(r.id) ? false : (seen.add(r.id), true)))
+      .sort((a, b) => b.created_at.localeCompare(a.created_at));
   });
 
 const generateInput = z.object({

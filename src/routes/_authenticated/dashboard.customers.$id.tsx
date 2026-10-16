@@ -9,6 +9,7 @@ import { ErrorState, LoadingState, StatCard, StatusBadge } from "@/components/ap
 import { CustomerDialog, PaymentDialog, TaskDialog } from "@/components/app/crm-dialogs";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CustomerLinkedRecords, useCustomerLinkedRecords } from "@/components/app/CustomerLinkedRecords";
 import { crmLabel } from "@/lib/crm-core";
 import { deleteCrmCustomer, getCustomerProfile } from "@/lib/customers.functions";
 import { formatMoney } from "@/lib/types";
@@ -38,6 +39,7 @@ function CustomerProfile() {
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [taskOpen, setTaskOpen] = useState(false);
 
+  const linked = useCustomerLinkedRecords(id);
   const query = useQuery({
     queryKey: ["customer-profile", id],
     queryFn: () => fetchProfile({ data: { id } }),
@@ -124,6 +126,7 @@ function CustomerProfile() {
           <TabsTrigger value="orders">{t("Buyurtmalar (")}{orders.length})</TabsTrigger>
           <TabsTrigger value="payments">{t("To‘lovlar (")}{payments.length})</TabsTrigger>
           <TabsTrigger value="tasks">{t("Vazifalar (")}{tasks.length})</TabsTrigger>
+          <TabsTrigger value="linked">{t("Sohaviy yozuvlar")} ({linked.data?.length ?? 0})</TabsTrigger>
           <TabsTrigger value="activity">{t("Tarix")}</TabsTrigger>
         </TabsList>
 
@@ -235,6 +238,9 @@ function CustomerProfile() {
           )}
         </TabsContent>
 
+        <TabsContent value="linked" className="mt-3 space-y-2">
+          <CustomerLinkedRecords customerId={id} />
+        </TabsContent>
         <TabsContent value="activity" className="mt-3 space-y-2">
           {activities.length === 0 ? (
             <Empty text="Tarix bo‘sh." />

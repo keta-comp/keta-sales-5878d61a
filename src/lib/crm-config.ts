@@ -11,14 +11,22 @@ export type CrmFieldType =
   | "money"
   | "date"
   | "select"
-  | "textarea";
+  | "textarea"
+  | "relation";
 
+/** Relation target: "customers" (core customers table) or a dynamic module key. */
 export interface CrmField {
   key: string;
   label: string;
   type: CrmFieldType;
   required?: boolean;
   options?: string[];
+  targetModule?: string;
+}
+
+/** Relation values are stored as data[key] = display name, data[key + "_id"] = record id. */
+export function relationIdKey(fieldKey: string): string {
+  return `${fieldKey}_id`;
 }
 
 /** Legacy dashboard routes a module can map onto (existing functionality, kept). */
@@ -178,7 +186,7 @@ export const GENERIC_PRESET: CrmConfigData = preset({
   dashboardWidgets: [W_TODAY_ORDERS],
 });
 
-export const INDUSTRY_PRESETS: Record<string, CrmConfigData> = {
+const BASE_PRESETS: Record<string, CrmConfigData> = {
   stomatologiya: preset({
     modules: [
       { key: "murojaatlar", label: "Murojaatlar", icon: "target", link: "/dashboard/leads", pipeline: true },
@@ -431,7 +439,7 @@ export const INDUSTRY_PRESETS: Record<string, CrmConfigData> = {
           textField("mijoz", "Mijoz ismi"),
           phoneField(),
           textField("xizmat", "Xizmat"),
-          textField("usta", "Usta / mijoz bo‘lmasa — xodim"),
+          textField("usta", "Usta"),
           dateField("sana", "Qabul sanasi"),
           moneyField("tolov", "To‘lov"),
           noteField(),
@@ -446,6 +454,12 @@ export const INDUSTRY_PRESETS: Record<string, CrmConfigData> = {
           moneyField("narxi", "Narxi"),
           { key: "davomiylik", label: "Davomiyligi (daqiqa)", type: "number" },
         ],
+      },
+      {
+        key: "ustalar",
+        label: "Ustalar",
+        icon: "user",
+        fields: [textField("ism", "Ism"), phoneField(), textField("mutaxassislik", "Mutaxassislik"), noteField()],
       },
       paymentModule(),
     ],
@@ -590,6 +604,62 @@ export const INDUSTRY_PRESETS: Record<string, CrmConfigData> = {
     ],
   }),
 };
+
+/** Which preset fields link to other modules, per industry → module → field → target. */
+export const RELATION_MAP: Record<string, Record<string, Record<string, string>>> = {
+  stomatologiya: {
+    qabul: { bemor: "customers", shifokor: "shifokorlar" },
+    davolash: { bemor: "customers" },
+    tolovlar: { kim: "customers" },
+  },
+  klinika: { qabul: { bemor: "customers", shifokor: "shifokorlar" }, tolovlar: { kim: "customers" } },
+  oquv: {
+    kurslar: { oqituvchi: "oqituvchilar" },
+    guruhlar: { kurs: "kurslar", oqituvchi: "oqituvchilar" },
+    davomat: { oquvchi: "customers", guruh: "guruhlar" },
+    tolovlar: { kim: "customers" },
+  },
+  avtoservis: {
+    avtomobillar: { mijoz: "customers" },
+    servis: { mijoz: "customers", avtomobil: "avtomobillar", usta: "ustalar" },
+    tolovlar: { kim: "customers" },
+  },
+  kochmas_mulk: {
+    korishlar: { mijoz: "customers", obyekt: "obyekt" },
+    bitimlar: { mijoz: "customers", obyekt: "obyekt" },
+  },
+  beauty: { qabul: { mijoz: "customers", xizmat: "xizmatlar", usta: "ustalar" }, tolovlar: { kim: "customers" } },
+  qurilish: { loyihalar: { mijoz: "customers" }, tolovlar: { kim: "customers" } },
+  smm: { loyihalar: { mijoz: "customers" }, tolovlar: { kim: "customers" } },
+  xizmat: { tolovlar: { kim: "customers" } },
+};
+
+/** Turns mapped text fields into relation fields; also upgrades saved configs. */
+export function applyRelations(industry: string | null | undefined, config: CrmConfigData): CrmConfigData {
+  const map = RELATION_MAP[industry ?? ""];
+  if (!map) return config;
+  const keys = new Set(config.modules.map((m) => m.key));
+  return {
+    ...config,
+    modules: config.modules.map((m) => {
+      const fm = map[m.key];
+      if (!fm || !m.fields) return m;
+      return {
+        ...m,
+        fields: m.fields.map((f) => {
+          const target = fm[f.key];
+          if (!target || f.type === "relation") return f;
+          if (target !== "customers" && !keys.has(target)) return f;
+          return { ...f, type: "relation" as const, targetModule: target };
+        }),
+      };
+    }),
+  };
+}
+
+export const INDUSTRY_PRESETS: Record<string, CrmConfigData> = Object.fromEntries(
+  Object.entries(BASE_PRESETS).map(([k, v]) => [k, applyRelations(k, v)]),
+);
 
 /** Preset for a chosen industry ("boshqa" → generic, refined by AI). */
 export function presetForIndustry(industryKey: string): CrmConfigData {
