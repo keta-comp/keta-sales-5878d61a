@@ -926,6 +926,18 @@ const table: Record<string, string> = {
   "Zaxira": "Zapas",
   "Zaxira / Ombor": "Zapas / Saqlaw ornı",
   "Zaxira yangilandi": "Zapas jańalandı",
+  "Hech narsa topilmadi": "Hesh nárse tabılmadı",
+  "Tozalash": "Tazalaw",
+  "Usta": "Usta",
+  "Sohaviy yozuvlar": "Tarawlıq jazbalar",
+  "Bog‘langan yozuvlar yo‘q": "Baylanıslı jazbalar joq",
+  "\"{v0}\" maydonini to‘ldiring": "\"{v0}\" maydanın toltırıń",
+  "Buyurtmaga aylantirish": "Buyırtpaǵa aylandırıw",
+  "Mahsulotni tanlang": "Ónimdi tańlań",
+  "Soni": "Sanı",
+  "Jami": "Jámi",
+  "Buyurtma yaratish": "Buyırtpa jaratıw",
+  "Lidda mijoz yo'q": "Lidte klient joq",
 };
 
 export default table;
