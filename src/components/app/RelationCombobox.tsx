@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Check, ChevronsUpDown, X } from "lucide-react";
+import { Check, ChevronsUpDown, Plus, X } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { searchRelatedRecords } from "@/lib/crm-config.functions";
+import { saveCrmRecord, searchRelatedRecords } from "@/lib/crm-config.functions";
+import { saveCrmCustomer } from "@/lib/customers.functions";
 import { t } from "@/lib/i18n";
 
 export interface RelationValue {
@@ -39,6 +41,31 @@ export function RelationCombobox({
     enabled: open,
   });
 
+  const saveCustomer = useServerFn(saveCrmCustomer);
+  const saveRecord = useServerFn(saveCrmRecord);
+  const queryClient = useQueryClient();
+  const [adding, setAdding] = useState(false);
+  const quickAdd = async () => {
+    const name = term.trim();
+    if (!name) return;
+    setAdding(true);
+    try {
+      const created =
+        targetModule === "customers"
+          ? await saveCustomer({ data: { full_name: name } })
+          : await saveRecord({ data: { moduleKey: targetModule, title: name, stage: null, data: {} } });
+      onChange({ id: created.id, label: name });
+      void queryClient.invalidateQueries({ queryKey: ["relation-search", targetModule] });
+      setTerm("");
+      setOpen(false);
+      toast.success(t("Qo‘shildi"));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : t("Xatolik"));
+    } finally {
+      setAdding(false);
+    }
+  };
+
   return (
     <div className="flex items-center gap-2">
       <Popover open={open} onOpenChange={setOpen}>
@@ -54,7 +81,14 @@ export function RelationCombobox({
             {results.isPending ? (
               <p className="p-2 text-sm text-muted-foreground">{t("Yuklanmoqda…")}</p>
             ) : (results.data ?? []).length === 0 ? (
-              <p className="p-2 text-sm text-muted-foreground">{t("Hech narsa topilmadi")}</p>
+              <div className="p-2 text-sm text-muted-foreground">
+                <p>{t("Hech narsa topilmadi")}</p>
+                {term.trim() && (
+                  <Button type="button" size="sm" className="mt-2 w-full" disabled={adding} onClick={() => void quickAdd()}>
+                    <Plus className="size-4" /> {t("\"{v0}\" ni qo‘shish", { v0: term.trim() })}
+                  </Button>
+                )}
+              </div>
             ) : (
               (results.data ?? []).map((r) => (
                 <button
