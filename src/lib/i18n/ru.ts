@@ -938,6 +938,8 @@ const table: Record<string, string> = {
   "Jami": "Итого",
   "Buyurtma yaratish": "Создать заказ",
   "Lidda mijoz yo'q": "У лида нет клиента",
+  "\"{v0}\" ni qo‘shish": "Добавить «{v0}»",
+  "Qo‘shildi": "Добавлено",
 };
 
 export default table;
