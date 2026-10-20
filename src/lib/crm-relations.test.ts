@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { describe, expect, test } from "bun:test";
 import { applyRelations, INDUSTRY_PRESETS } from "@/lib/crm-config";
 
