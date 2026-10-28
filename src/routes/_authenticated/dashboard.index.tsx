@@ -16,7 +16,7 @@ import {
 import { ErrorState, LoadingState, PageHeader, StatCard, StatusBadge } from "@/components/app/primitives";
 import { QuickNewButton } from "@/components/app/crm-dialogs";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { LIVE_REFETCH_MS } from "@/lib/polling";
 import { getBookingSummary } from "@/lib/appointments.functions";
 import { getMyCrmConfig, getWidgetStats } from "@/lib/crm-config.functions";
 import { getDashboardKpis } from "@/lib/workspace.functions";
@@ -49,43 +49,28 @@ function Overview() {
   const fetchWidgets = useServerFn(getWidgetStats);
   const fetchBookings = useServerFn(getBookingSummary);
 
-  const kpis = useQuery({ queryKey: ["kpis"], queryFn: () => fetchKpis() });
-  const bookings = useQuery({ queryKey: ["booking-summary"], queryFn: () => fetchBookings() });
-  const leads = useQuery({ queryKey: ["leads", "recent"], queryFn: () => fetchLeads({ data: {} }) });
-  const orders = useQuery({ queryKey: ["orders", "recent"], queryFn: () => fetchOrders({ data: {} }) });
+  const kpis = useQuery({ queryKey: ["kpis"], queryFn: () => fetchKpis(), refetchInterval: LIVE_REFETCH_MS });
+  const bookings = useQuery({
+    queryKey: ["booking-summary"],
+    queryFn: () => fetchBookings(),
+    refetchInterval: LIVE_REFETCH_MS,
+  });
+  const leads = useQuery({
+    queryKey: ["leads", "recent"],
+    queryFn: () => fetchLeads({ data: {} }),
+    refetchInterval: LIVE_REFETCH_MS,
+  });
+  const orders = useQuery({
+    queryKey: ["orders", "recent"],
+    queryFn: () => fetchOrders({ data: {} }),
+    refetchInterval: LIVE_REFETCH_MS,
+  });
   const crmConfig = useQuery({ queryKey: ["crm-config"], queryFn: () => fetchConfig() });
   const widgetStats = useQuery({
     queryKey: ["crm-widgets"],
     queryFn: () => fetchWidgets(),
     enabled: !!crmConfig.data?.hasConfig,
   });
-
-  useEffect(() => {
-    const channel = supabase
-      .channel("workspace-live")
-      .on("postgres_changes", { event: "*", schema: "public", table: "leads" }, () => {
-        void kpis.refetch();
-        void leads.refetch();
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, () => {
-        void kpis.refetch();
-        void orders.refetch();
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "payments" }, () => {
-        void kpis.refetch();
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, () => {
-        void kpis.refetch();
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "appointments" }, () => {
-        void bookings.refetch();
-      })
-      .subscribe();
-    return () => {
-      void supabase.removeChannel(channel);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   if (kpis.isPending) return <LoadingState label={t("Ko‘rsatkichlar yuklanmoqda…")} />;
   if (kpis.error) return <ErrorState error={kpis.error} onRetry={() => void kpis.refetch()} />;

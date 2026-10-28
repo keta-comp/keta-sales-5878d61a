@@ -3,8 +3,7 @@ import { Download, Paperclip, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
-import { ATTACHMENT_BUCKET, getCrmAttachmentUrl, issueCrmAttachmentPath } from "@/lib/crm-config.functions";
+import { getCrmAttachmentUrl, issueCrmAttachmentPath } from "@/lib/crm-config.functions";
 import { t } from "@/lib/i18n";
 
 /** Objects are stored under `{business}/{module}/{uuid}/{name}` — the last segment is the display name. */
@@ -66,13 +65,15 @@ export function AttachmentField({
     if (!file) return;
     setBusy(true);
     try {
-      const { path } = await issueCrmAttachmentPath({
+      const { path, uploadUrl } = await issueCrmAttachmentPath({
         data: { moduleKey, filename: file.name, contentType: file.type, size: file.size },
       });
-      const { error } = await supabase.storage
-        .from(ATTACHMENT_BUCKET)
-        .upload(path, file, { contentType: file.type });
-      if (error) throw new Error(error.message);
+      const response = await fetch(uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+      if (!response.ok) throw new Error(t("Yuklash amalga oshmadi"));
       onChange(path);
       toast.success(t("Fayl biriktirildi"));
     } catch (error) {

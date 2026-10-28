@@ -1,10 +1,9 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { DbClient } from "./pg-rest.server";
 
-import type { Database } from "@/integrations/supabase/types";
 import { assigneeNameMap } from "./assignee.server";
 import { requireBusinessId } from "./tenant.server";
 
-type Client = SupabaseClient<Database>;
+type Client = DbClient;
 
 export function dayStart(offsetDays = 0) {
   const d = new Date();

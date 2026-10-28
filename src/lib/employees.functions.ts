@@ -1,13 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { DbClient } from "./pg-rest.server";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import type { Database } from "@/integrations/supabase/types";
 import { can, type MemberRole } from "./roles";
 import { requireBusinessId } from "./tenant.server";
 
-type Client = SupabaseClient<Database>;
+type Client = DbClient;
 
 /** Staff records are managed by owner/admin/manager (catalog.manage gate). */
 async function requireStaffAdmin(supabase: Client): Promise<string> {

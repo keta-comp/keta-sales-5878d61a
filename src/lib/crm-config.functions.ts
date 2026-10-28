@@ -928,7 +928,7 @@ export function attachmentObjectPath(input: {
 export const issueCrmAttachmentPath = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => attachmentPathInput.parse(input))
-  .handler(async ({ data, context }): Promise<{ path: string; name: string }> => {
+  .handler(async ({ data, context }): Promise<{ path: string; name: string; uploadUrl: string }> => {
     const { businessId, config } = await tenantCrm(context.supabase);
     await requireModuleAccess(context.supabase, businessId, config, data.moduleKey, true);
     if (data.size > MAX_ATTACHMENT_BYTES) throw new Error("Fayl hajmi 15 MB dan oshmasin.");
@@ -940,7 +940,9 @@ export const issueCrmAttachmentPath = createServerFn({ method: "POST" })
       id: crypto.randomUUID(),
     });
     if (!path) throw new Error("Faqat PDF, PNG, JPG, WEBP yoki TIFF fayl biriktirish mumkin.");
-    return { path, name: path.split("/").pop() ?? path };
+    const { signedUploadUrl } = await import("./storage.server");
+    const uploadUrl = await signedUploadUrl(ATTACHMENT_BUCKET, path, data.contentType);
+    return { path, name: path.split("/").pop() ?? path, uploadUrl };
   });
 
 const attachmentUrlInput = z.object({ moduleKey: z.string().min(1), path: z.string().min(1).max(600) });
@@ -953,13 +955,29 @@ export const getCrmAttachmentUrl = createServerFn({ method: "GET" })
     const { businessId, config } = await tenantCrm(context.supabase);
     await requireModuleAccess(context.supabase, businessId, config, data.moduleKey);
     if (!data.path.startsWith(`${businessId}/`)) throw new Error("Bu fayl sizning biznesingizga tegishli emas.");
-    const { data: signed, error } = await context.supabase.storage
-      .from(ATTACHMENT_BUCKET)
-      .createSignedUrl(data.path, 120);
-    if (error) throw new Error(error.message);
-    if (!signed?.signedUrl) throw new Error("Fayl havolasi olinmadi.");
+    const { signedDownloadUrl } = await import("./storage.server");
+    const url = await signedDownloadUrl(ATTACHMENT_BUCKET, data.path, 120);
     auditMedicalAccess(config, businessId, data.moduleKey, "medical.file_opened", { path: data.path });
-    return { url: signed.signedUrl, name: data.path.split("/").pop() ?? data.path };
+    return { url, name: data.path.split("/").pop() ?? data.path };
+  });
+
+const attachmentRemoveInput = z.object({
+  moduleKey: z.string().min(1),
+  paths: z.array(z.string().min(1).max(600)).max(20),
+});
+
+/** Deletes replaced or orphaned attachments; the module gate and tenant prefix are re-checked. */
+export const removeCrmAttachments = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => attachmentRemoveInput.parse(input))
+  .handler(async ({ data, context }): Promise<{ removed: number }> => {
+    const { businessId, config } = await tenantCrm(context.supabase);
+    await requireModuleAccess(context.supabase, businessId, config, data.moduleKey, true);
+    const owned = data.paths.filter((path) => path.startsWith(`${businessId}/`));
+    if (!owned.length) return { removed: 0 };
+    const { deleteObjects } = await import("./storage.server");
+    await deleteObjects(ATTACHMENT_BUCKET, owned);
+    return { removed: owned.length };
   });
 
 export interface MedicalAuditEvent {

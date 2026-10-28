@@ -46,7 +46,7 @@ CREATE TABLE IF NOT EXISTS public.payroll_statements (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   CHECK (period_end >= period_start),
-  UNIQUE payroll_statement_period (business_id, employee_id, period_start)
+  CONSTRAINT payroll_statement_period UNIQUE (business_id, employee_id, period_start)
 );
 CREATE INDEX IF NOT EXISTS idx_payroll_statements_business_period
   ON public.payroll_statements (business_id, period_start);

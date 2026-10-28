@@ -1509,6 +1509,9 @@ const table: Record<string, string> = {
   "Parolni tiklash havolasi yuborildi. Email kelmasa SMTP sozlamalarini tekshiring.": "Paroldı tiklew siltesi jiberildi. Email kelmesa, SMTP parametrlerin tekseriń.",
   "Rollar organization bo‘yicha belgilanadi": "Rollar shólkem boyınsha belgilenedi",
   "Hech bir organization’ga a’zo emas": "Hesh bir shólkemge aǵza emes",
+  "Chiqishda xatolik": "Shıǵıwda qátelik",
+  "Parol yangilandi. Endi yangi parol bilan kiring.": "Parol jańalandı. Endi jańa parol menen kiriń.",
+  "Kamida 8 belgi": "Keminde 8 belgi",
 };
 
 export default table;

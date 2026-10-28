@@ -1,15 +1,14 @@
 import { createServerFn } from "@tanstack/react-start";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { DbClient } from "./pg-rest.server";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import type { Database } from "@/integrations/supabase/types";
 import { logActivity } from "./activity.server";
 import { can, type MemberRole } from "./roles";
 import { requireBusinessId } from "./tenant.server";
 import { buildPayrollExpense, computeStatement, dateBoundsIso, roundMoney } from "./payroll";
 
-type Client = SupabaseClient<Database>;
+type Client = DbClient;
 
 /** Payroll is a finance concern: owner/admin/manager only (finance.view gate). */
 async function requirePayrollAdmin(supabase: Client): Promise<string> {

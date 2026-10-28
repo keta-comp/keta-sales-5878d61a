@@ -6,7 +6,7 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 
 import { ErrorState, LoadingState, PageHeader } from "@/components/app/primitives";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { LIVE_REFETCH_MS } from "@/lib/polling";
 import { getMyCrmConfig, listCrmRecords, saveCrmRecord } from "@/lib/crm-config.functions";
 import { t } from "@/lib/i18n";
 
@@ -46,20 +46,8 @@ function PipelinePage() {
       return results.flat().map((r) => ({ ...r, moduleLabel: labels.get(r.module_key) ?? r.module_key }));
     },
     enabled: pipelineModules.length > 0,
+    refetchInterval: LIVE_REFETCH_MS,
   });
-
-  useEffect(() => {
-    const channel = supabase
-      .channel("crm-pipeline-live")
-      .on("postgres_changes", { event: "*", schema: "public", table: "crm_records" }, () => {
-        void allRecords.refetch();
-      })
-      .subscribe();
-    return () => {
-      void supabase.removeChannel(channel);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pipelineModules.length]);
 
   const move = async (row: RecordRow, direction: -1 | 1) => {
     const stages = config.data?.config?.pipelineStages ?? [];

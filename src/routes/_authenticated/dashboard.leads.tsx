@@ -20,7 +20,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { supabase } from "@/integrations/supabase/client";
+import { LIVE_REFETCH_MS } from "@/lib/polling";
 import { getLead, listLeads, updateLead } from "@/lib/crm.functions";
 import { listAssignees } from "@/lib/members.functions";
 import { notifyLeadStaff } from "@/lib/settings.functions";
@@ -91,6 +91,7 @@ function LeadsPage() {
   const leads = useQuery({
     queryKey: ["leads", status, score, search],
     queryFn: () => fetchLeads({ data: { status, score, search } }),
+    refetchInterval: LIVE_REFETCH_MS,
   });
 
   const detail = useQuery({
@@ -107,19 +108,6 @@ function LeadsPage() {
   const taskStates = leadTaskStates(leads.data ?? [], tasks.data ?? []);
 
   const assignees = useQuery({ queryKey: ["assignees"], queryFn: () => fetchAssignees() });
-
-  useEffect(() => {
-    const channel = supabase
-      .channel("leads-live")
-      .on("postgres_changes", { event: "*", schema: "public", table: "leads" }, () => {
-        void queryClient.invalidateQueries({ queryKey: ["leads"] });
-        void queryClient.invalidateQueries({ queryKey: ["lead"] });
-      })
-      .subscribe();
-    return () => {
-      void supabase.removeChannel(channel);
-    };
-  }, [queryClient]);
 
   const mutation = useMutation({
     mutationFn: (input: LeadPatch) => saveLead({ data: input }),

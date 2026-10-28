@@ -1,13 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { DbClient } from "./pg-rest.server";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import type { Database } from "@/integrations/supabase/types";
 import { requireBusinessId } from "./tenant.server";
 import { ASSIGNABLE_ROLES, isAdminRole, isDemotionBelow, ROLE_LABELS, type MemberRole } from "./roles";
 
-type AuthedContext = { supabase: SupabaseClient<Database>; userId: string };
+type AuthedContext = { supabase: DbClient; userId: string };
 
 export type TeamMember = {
   id: string;

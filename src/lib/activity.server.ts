@@ -1,8 +1,7 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { DbClient } from "./pg-rest.server";
 
-import type { Database } from "@/integrations/supabase/types";
 
-type Client = SupabaseClient<Database>;
+type Client = DbClient;
 
 /** Appends one row to the CRM activity history. Never throws — history must not break writes. */
 export async function logActivity(

@@ -10,15 +10,16 @@ export const Route = createFileRoute("/api/health")({
     handlers: {
       GET: async () => {
         const checks: Record<string, string> = {
-          supabaseUrl: process.env["VITE_SUPABASE_URL"] || process.env["SUPABASE_URL"] ? "ok" : "missing",
-          supabaseKey: process.env["VITE_SUPABASE_PUBLISHABLE_KEY"] || process.env["SUPABASE_PUBLISHABLE_KEY"] ? "ok" : "missing",
+          databaseUrl: process.env["NEON_DATABASE_URL"] ? "ok" : "missing",
+          authIssuer: process.env["NEON_AUTH_ISSUER"] ? "ok" : "missing",
         };
 
         let database = "unchecked";
         try {
-          const { supabase } = await import("@/integrations/supabase/client");
-          const { error } = await supabase.from("businesses").select("id", { count: "exact", head: true });
-          // RLS-filtered anon reads succeed with zero rows; only real failures carry an error.
+          const { serviceClient } = await import("@/lib/pg-rest.server");
+          const { error } = await serviceClient()
+            .from("businesses")
+            .select("id", { count: "exact", head: true });
           database = error ? `error:${error.code || "unreachable"}` : "ok";
         } catch {
           database = "error:unreachable";

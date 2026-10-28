@@ -1,9 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { DbClient } from "./pg-rest.server";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import type { Database } from "@/integrations/supabase/types";
 import {
   DEFAULT_BUSINESS_TZ,
   APPOINTMENT_STATUSES,
@@ -16,7 +15,7 @@ import {
 } from "./booking";
 import { requireBusinessId } from "./tenant.server";
 
-type Client = SupabaseClient<Database>;
+type Client = DbClient;
 
 /** Booking is open to every workspace member; RLS keeps rows tenant-scoped. */
 async function requireBookingBusiness(supabase: Client): Promise<string> {

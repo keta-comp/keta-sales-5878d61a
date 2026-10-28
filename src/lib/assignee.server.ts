@@ -1,9 +1,8 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { DbClient } from "./pg-rest.server";
 
-import type { Database } from "@/integrations/supabase/types";
 import { requireBusinessId } from "./tenant.server";
 
-type Client = SupabaseClient<Database>;
+type Client = DbClient;
 
 export type AssigneeRow = { assigned_member_id: string | null };
 

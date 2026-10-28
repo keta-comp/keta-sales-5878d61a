@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { supabase } from "@/integrations/supabase/client";
+import { LIVE_REFETCH_MS } from "@/lib/polling";
 import { listAssignees } from "@/lib/members.functions";
 import { listOrders, updateOrder } from "@/lib/orders.functions";
 import {
@@ -91,20 +91,9 @@ function OrdersPage() {
     queryKey: ["orders", status, search, customerId],
     queryFn: () =>
       fetchOrders({ data: { status, search, ...(customerId ? { customerId } : {}) } }),
+    refetchInterval: LIVE_REFETCH_MS,
   });
   const assignees = useQuery({ queryKey: ["assignees"], queryFn: () => fetchAssignees() });
-
-  useEffect(() => {
-    const channel = supabase
-      .channel("orders-live")
-      .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, () => {
-        void queryClient.invalidateQueries({ queryKey: ["orders"] });
-      })
-      .subscribe();
-    return () => {
-      void supabase.removeChannel(channel);
-    };
-  }, [queryClient]);
 
   const mutation = useMutation({
     mutationFn: (input: OrderPatch) => save({ data: input }),

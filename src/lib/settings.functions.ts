@@ -1,13 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { DbClient } from "./pg-rest.server";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import type { Database } from "@/integrations/supabase/types";
 import { compact } from "./compact";
 
 /** Settings writes are admin-only (enforced by RLS too — this gives a clear message). */
-async function requireBusinessAdmin(supabase: SupabaseClient<Database>): Promise<string> {
+async function requireBusinessAdmin(supabase: DbClient): Promise<string> {
   const { requireBusinessId } = await import("./tenant.server");
   const businessId = await requireBusinessId(supabase);
   const { data, error } = await supabase.rpc("is_business_admin", { _business_id: businessId });
@@ -88,8 +87,52 @@ export const saveBranding = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-export const saveAiSettings = createServerFn({ method: "POST" })  .middleware([requireSupabaseAuth])
+const LOGO_SUFFIX: Record<string, string> = {
+  "image/png": "png",
+  "image/jpeg": "jpg",
+  "image/webp": "webp",
+};
+
+/** The logo key always starts with the caller's business id, so an upload cannot target another tenant. */
+export const issueLogoUploadUrl = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
+    z.object({ contentType: z.string().min(1).max(80) }).parse(input),
+  )
+  .handler(async ({ data, context }): Promise<{ path: string; uploadUrl: string }> => {
+    const businessId = await requireBusinessAdmin(context.supabase);
+    const suffix = LOGO_SUFFIX[data.contentType];
+    if (!suffix) throw new Error("Faqat PNG, JPG yoki WEBP rasm yuklang.");
+    const path = `${businessId}/logo.${suffix}`;
+    const { signedUploadUrl } = await import("./storage.server");
+    return { path, uploadUrl: await signedUploadUrl("branding", path, data.contentType) };
+  });
+
+/** Public booking shows the logo over a CDN base URL; without one a short signed link is used. */
+export const getBrandingLogoUrl = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ path: z.string().min(1).max(300) }).parse(input))
+  .handler(async ({ data, context }): Promise<{ url: string }> => {
+    const { requireBusinessId } = await import("./tenant.server");
+    const businessId = await requireBusinessId(context.supabase);
+    if (!data.path.startsWith(`${businessId}/`)) throw new Error("Bu fayl sizning biznesingizga tegishli emas.");
+    const { publicObjectUrl, signedDownloadUrl } = await import("./storage.server");
+    return { url: publicObjectUrl("branding", data.path) ?? (await signedDownloadUrl("branding", data.path, 600)) };
+  });
+
+export const removeBrandingLogo = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ path: z.string().min(1).max(300) }).parse(input))
+  .handler(async ({ data, context }): Promise<{ ok: true }> => {
+    const businessId = await requireBusinessAdmin(context.supabase);
+    if (!data.path.startsWith(`${businessId}/`)) throw new Error("Bu fayl sizning biznesingizga tegishli emas.");
+    const { deleteObjects } = await import("./storage.server");
+    await deleteObjects("branding", [data.path]);
+    return { ok: true };
+  });
+
+export const saveAiSettings = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])  .inputValidator((input: unknown) =>
     z
       .object({
         id: z.string(),

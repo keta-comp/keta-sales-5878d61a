@@ -7,7 +7,13 @@ import { BrandMark } from "@/components/app/brand";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  applyPasswordReset,
+  getAuthSession,
+  sendPasswordReset,
+  signIn,
+  signUp,
+} from "@/lib/auth.functions";
 import { recordFailedLogin, recordLogin, recordRegistration } from "@/lib/session.functions";
 import { t } from "@/lib/i18n";
 import { LanguageSwitcher } from "@/components/app/LanguageSwitcher";
@@ -16,19 +22,26 @@ const TITLE = "Kabinaga kirish — KetaOne";
 const DESCRIPTION =
   "KetaOne kabinasiga kiring yoki bepul ro‘yxatdan o‘tib biznesingiz uchun CRM tizimini sozlang.";
 
+export type AuthSearch = {
+  mode: "login" | "register" | "recover";
+  redirect?: string | undefined;
+  // Parolni tiklash havolasi tokenni shu parametrda qaytaradi.
+  token?: string | undefined;
+};
+
 export const Route = createFileRoute("/auth")({
-  validateSearch: (search: Record<string, unknown>) => ({
-    // "recover" is set by the password-reset link itself; ?code=… arrives on the same
-    // URL and is read from window.location, so it never becomes a linkable param.
-    mode:
-      search["mode"] === "register" || search["mode"] === "recover"
-        ? (search["mode"] as "register" | "recover")
-        : ("login" as const),
-    redirect:
-      typeof search['redirect'] === "string" && search['redirect'].startsWith("/")
-        ? (search['redirect'] as string)
-        : undefined,
-  }),
+  ssr: false,
+  validateSearch: (search: Record<string, unknown>): AuthSearch => {
+    const raw = search["mode"];
+    const result: AuthSearch = {
+      mode: raw === "register" || raw === "recover" ? raw : "login",
+    };
+    const redirect = search["redirect"];
+    if (typeof redirect === "string" && redirect.startsWith("/")) result.redirect = redirect;
+    const token = search["token"];
+    if (typeof token === "string" && token) result.token = token;
+    return result;
+  },
   head: () => ({
     meta: [
       { title: TITLE },
@@ -44,10 +57,10 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
-  const { mode: initialMode, redirect: redirectTo } = Route.useSearch();
+  const { mode: initialMode, redirect: redirectTo, token: resetToken } = Route.useSearch();
   const adminOnly = (redirectTo ?? "").startsWith("/super-admin");
   const [mode, setMode] = useState<"login" | "register" | "recover">(
-    adminOnly ? "login" : initialMode,
+    resetToken ? "recover" : adminOnly ? "login" : initialMode,
   );
   const [fullName, setFullName] = useState("");
   const [businessName, setBusinessName] = useState("");
@@ -56,70 +69,51 @@ function AuthPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
-  // A recovery link is only usable once Supabase has handed the browser a session;
-  // until then the form explains what went wrong instead of failing cryptically.
-  const [recoverySession, setRecoverySession] = useState(false);
 
   useEffect(() => {
-    const recoveryRequested =
-      mode === "recover" ||
-      (typeof window !== "undefined" &&
-        (window.location.hash.includes("type=recovery") || window.location.search.includes("code=")));
-
-    const { data } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "PASSWORD_RECOVERY") {
-        setMode("recover");
-        setRecoverySession(!!session);
-        return;
-      }
-      if (recoveryRequested && session) {
-        setMode("recover");
-        setRecoverySession(true);
-      }
-    });
-
-    void supabase.auth.getSession().then(({ data: current }) => {
-      if (current.session && recoveryRequested) {
-        setMode("recover");
-        setRecoverySession(true);
-        return;
-      }
-      if (current.session && !recoveryRequested) void navigate({ to: redirectTo ?? "/dashboard" });
-    });
-
-    return () => data.subscription.unsubscribe();
-  }, [navigate, redirectTo, mode]);
+    if (resetToken) return;
+    void getAuthSession()
+      .then((session) => {
+        if (session) void navigate({ to: redirectTo ?? "/dashboard" });
+      })
+      .catch(() => undefined);
+  }, [navigate, redirectTo, resetToken]);
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     setBusy(true);
     try {
       if (mode === "recover") {
-        if (!recoverySession) {
-          throw new Error(t("Tiklash havolasi topilmadi. Emaildagi havolani shu brauzerda qayta oching."));
+        if (!resetToken) {
+          throw new Error(
+            t("Tiklash havolasi topilmadi. Emaildagi havolani shu brauzerda qayta oching."),
+          );
         }
         if (password !== confirmPassword) throw new Error(t("Parollar mos kelmadi"));
-        const { error } = await supabase.auth.updateUser({ password });
-        if (error) throw error;
-        toast.success(t("Parol yangilandi"));
-        navigate({ to: redirectTo ?? "/dashboard" });
+        await applyPasswordReset({ data: { token: resetToken, password } });
+        toast.success(t("Parol yangilandi. Endi yangi parol bilan kiring."));
+        setPassword("");
+        setConfirmPassword("");
+        setMode("login");
+        void navigate({ to: "/auth", search: { mode: "login" } });
         return;
       }
       if (mode === "register") {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: { full_name: fullName.trim(), business_name: businessName.trim() || undefined },
+        await signUp({
+          data: {
+            email,
+            password,
+            fullName: fullName.trim(),
+            businessName: businessName.trim() || undefined,
           },
         });
-        if (error) throw error;
         void recordRegistration().catch(() => undefined);
         navigate({ to: redirectTo ?? "/dashboard" });
         return;
       }
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) {
+      try {
+        await signIn({ data: { email, password } });
+      } catch (error) {
         void recordFailedLogin({ data: { email } }).catch(() => undefined);
         throw error;
       }
@@ -139,10 +133,9 @@ function AuthPage() {
     }
     setBusy(true);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: `${window.location.origin}/auth?mode=recover`,
+      await sendPasswordReset({
+        data: { email: email.trim(), redirectTo: `${window.location.origin}/auth?mode=recover` },
       });
-      if (error) throw error;
       toast.success(t("Tiklash havolasi yuborildi. Kelmasa spam papkini tekshiring."));
     } catch (error) {
       toast.error(error instanceof Error ? error.message : t("Havola yuborilmadi"));
@@ -226,18 +219,20 @@ function AuthPage() {
               </div>
             </>
           )}
-          <div className="space-y-2">
-            <Label htmlFor="email">{t("Email")}</Label>
-            <Input
-              id="email"
-              type="email"
-              autoComplete="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder={t("siz@kompaniya.uz")}
-              required={mode !== "recover"}
-            />
-          </div>
+          {mode !== "recover" && (
+            <div className="space-y-2">
+              <Label htmlFor="email">{t("Email")}</Label>
+              <Input
+                id="email"
+                type="email"
+                autoComplete="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder={t("siz@kompaniya.uz")}
+                required
+              />
+            </div>
+          )}
           <div className="space-y-2">
             <Label htmlFor="password">
               {mode === "recover" ? t("Yangi parol") : t("Parol")}
@@ -246,10 +241,10 @@ function AuthPage() {
               <Input
                 id="password"
                 type={showPassword ? "text" : "password"}
-                autoComplete={mode === "recover" ? "new-password" : mode === "login" ? "current-password" : "new-password"}
+                autoComplete={mode === "login" ? "current-password" : "new-password"}
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                minLength={6}
+                minLength={mode === "login" ? undefined : 8}
                 required
                 className="pr-10"
               />
@@ -262,6 +257,9 @@ function AuthPage() {
                 {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
               </button>
             </div>
+            {mode !== "login" && (
+              <p className="text-xs text-muted-foreground">{t("Kamida 8 belgi")}</p>
+            )}
           </div>
           {mode === "recover" && (
             <div className="space-y-2">
@@ -272,10 +270,15 @@ function AuthPage() {
                 autoComplete="new-password"
                 value={confirmPassword}
                 onChange={(event) => setConfirmPassword(event.target.value)}
-                minLength={6}
+                minLength={8}
                 required
               />
             </div>
+          )}
+          {mode === "recover" && !resetToken && (
+            <p className="text-sm text-destructive">
+              {t("Tiklash havolasi topilmadi. Emaildagi havolani shu brauzerda qayta oching.")}
+            </p>
           )}
           <Button type="submit" className="w-full" disabled={busy}>
             {busy

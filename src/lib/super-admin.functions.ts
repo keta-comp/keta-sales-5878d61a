@@ -292,12 +292,9 @@ export const sendPasswordResetFor = createServerFn({ method: "POST" })
     // The link has to land on the app's own recovery screen, otherwise the user
     // receives a token they cannot use.
     const { requestOrigin } = await import("./request.server");
-    const origin = requestOrigin();
-    const { error } = await supabaseAdmin.auth.resetPasswordForEmail(
-      target.email,
-      origin ? { redirectTo: `${origin}/auth?mode=recover` } : undefined,
-    );
-    if (error) throw new Error(error.message);
+    const { requestPasswordReset } = await import("./auth.server");
+    const origin = requestOrigin() || "http://localhost:8080";
+    await requestPasswordReset(target.email, `${origin}/auth?mode=recover`);
 
     await logAudit({
       actorUserId: context.userId,

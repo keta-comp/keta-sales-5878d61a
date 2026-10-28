@@ -23,9 +23,16 @@ import {
 } from "@/lib/presets";
 import { medicalAuditLabel } from "@/lib/medical-audit";
 import { fmtDate } from "@/components/app/super-admin-ui";
-import { getSettings, saveAiSettings, saveBranding, saveBusinessSettings } from "@/lib/settings.functions";
+import {
+  getBrandingLogoUrl,
+  getSettings,
+  issueLogoUploadUrl,
+  removeBrandingLogo,
+  saveAiSettings,
+  saveBranding,
+  saveBusinessSettings,
+} from "@/lib/settings.functions";
 import { cn } from "@/lib/utils";
-import { supabase } from "@/integrations/supabase/client";
 import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/dashboard/settings")({
@@ -106,7 +113,6 @@ function SettingsPage() {
       {business ? (
         <BrandingCard
           key={`${settings.data.businessId}-${business.logo_path}`}
-          businessId={settings.data.businessId}
           initialPhone={business.phone}
           initialLogoPath={business.logo_path}
         />
@@ -436,11 +442,9 @@ const LOGO_TYPES: Record<string, string> = {
 };
 
 function BrandingCard({
-  businessId,
   initialPhone,
   initialLogoPath,
 }: {
-  businessId: string;
   initialPhone: string;
   initialLogoPath: string;
 }) {
@@ -451,7 +455,11 @@ function BrandingCard({
   const [previewKey, setPreviewKey] = useState(() => Date.now());
   const [busy, setBusy] = useState(false);
 
-  const publicUrl = (path: string) => supabase.storage.from("branding").getPublicUrl(path).data.publicUrl;
+  const logoUrl = useQuery({
+    queryKey: ["branding-logo", logoPath, previewKey],
+    queryFn: () => getBrandingLogoUrl({ data: { path: logoPath } }),
+    enabled: Boolean(logoPath),
+  });
 
   const persist = async (patch: { phone?: string; logo_path?: string }) => {
     setBusy(true);
@@ -467,8 +475,7 @@ function BrandingCard({
   };
 
   const uploadLogo = async (file: File) => {
-    const extension = LOGO_TYPES[file.type];
-    if (!extension) {
+    if (!LOGO_TYPES[file.type]) {
       toast.error(t("Faqat PNG, JPG yoki WEBP rasm yuklang"));
       return;
     }
@@ -477,27 +484,31 @@ function BrandingCard({
       return;
     }
     setBusy(true);
-    const path = `${businessId}/logo.${extension}`;
     const previous = logoPath;
-    const { error } = await supabase.storage.from("branding").upload(path, file, {
-      contentType: file.type,
-      upsert: true,
-    });
-    if (error) {
+    try {
+      const { path, uploadUrl } = await issueLogoUploadUrl({ data: { contentType: file.type } });
+      const response = await fetch(uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+      if (!response.ok) throw new Error(t("Yuklash amalga oshmadi"));
+      if (previous && previous !== path) {
+        await removeBrandingLogo({ data: { path: previous } }).catch(() => undefined);
+      }
+      setLogoPath(path);
+      setPreviewKey(Date.now());
       setBusy(false);
-      toast.error(error.message);
-      return;
+      void persist({ logo_path: path });
+    } catch (error) {
+      setBusy(false);
+      toast.error(error instanceof Error ? error.message : t("Yuklash amalga oshmadi"));
     }
-    if (previous && previous !== path) await supabase.storage.from("branding").remove([previous]);
-    setBusy(false);
-    setLogoPath(path);
-    setPreviewKey(Date.now());
-    void persist({ logo_path: path });
   };
 
   const removeLogo = async () => {
     setBusy(true);
-    await supabase.storage.from("branding").remove([logoPath]);
+    await removeBrandingLogo({ data: { path: logoPath } }).catch(() => undefined);
     setBusy(false);
     setLogoPath("");
     void persist({ logo_path: "" });
@@ -514,9 +525,9 @@ function BrandingCard({
 
       <div className="flex flex-wrap items-center gap-4">
         <div className="flex size-16 items-center justify-center overflow-hidden rounded-2xl bg-muted">
-          {logoPath ? (
+          {logoPath && logoUrl.data?.url ? (
             <img
-              src={`${publicUrl(logoPath)}?v=${previewKey}`}
+              src={logoUrl.data.url}
               alt={t("Logotip")}
               className="size-full object-contain"
             />

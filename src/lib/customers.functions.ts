@@ -1,15 +1,14 @@
 import { createServerFn } from "@tanstack/react-start";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { DbClient } from "./pg-rest.server";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import type { Database } from "@/integrations/supabase/types";
 import { withAssigneeName, withAssigneeNames } from "./assignee.server";
 import { compact } from "./compact";
 import { can, isAdminRole, type MemberRole } from "./roles";
 import { requireBusinessId } from "./tenant.server";
 
-type Client = SupabaseClient<Database>;
+type Client = DbClient;
 
 /** Tenant and role resolved server-side; the database re-checks both through RLS. */
 async function memberContext(supabase: Client): Promise<{ businessId: string; role: MemberRole | null }> {

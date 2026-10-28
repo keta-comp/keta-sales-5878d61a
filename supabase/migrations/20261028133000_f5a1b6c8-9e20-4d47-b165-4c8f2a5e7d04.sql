@@ -101,7 +101,7 @@ ALTER TABLE public.lead_assignments
   REFERENCES public.business_members(id) ON DELETE CASCADE;
 
 -- 6) The human-handoff Telegram group is staff, not operators.
-ALTER TABLE public.businesses RENAME COLUMN operator_group_chat_id TO staff_group_chat_id;
+ALTER TABLE public.business_settings RENAME COLUMN operator_group_chat_id TO staff_group_chat_id;
 
 -- 7) Activity feeds labelled staff writes as 'operator'.
 UPDATE public.activities SET actor = 'staff' WHERE actor = 'operator';

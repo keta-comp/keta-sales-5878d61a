@@ -27,7 +27,7 @@ import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { LoadingState } from "@/components/app/primitives";
 import { amISuperAdmin, superAdminSearch } from "@/lib/super-admin.functions";
-import { supabase } from "@/integrations/supabase/client";
+import { signOut as endSession } from "@/lib/auth.functions";
 import { cn } from "@/lib/utils";
 import { t } from "@/lib/i18n";
 import { LanguageSwitcher } from "@/components/app/LanguageSwitcher";
@@ -170,7 +170,7 @@ function SuperAdminLayout() {
   );
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    await endSession().catch(() => undefined);
     navigate({ to: "/" });
   };
 

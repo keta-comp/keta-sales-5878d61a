@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { supabase } from "@/integrations/supabase/client";
+import { LIVE_REFETCH_MS } from "@/lib/polling";
 import {
   getConversation,
   listConversations,
@@ -66,29 +66,15 @@ function ConversationsPage() {
   const conversations = useQuery({
     queryKey: ["conversations", mode, search],
     queryFn: () => fetchList({ data: { mode, search } }),
+    refetchInterval: LIVE_REFETCH_MS,
   });
 
   const thread = useQuery({
     queryKey: ["conversation", activeId],
     queryFn: () => fetchOne({ data: { id: activeId! } }),
     enabled: Boolean(activeId),
+    refetchInterval: LIVE_REFETCH_MS,
   });
-
-  useEffect(() => {
-    const channel = supabase
-      .channel("inbox-live")
-      .on("postgres_changes", { event: "*", schema: "public", table: "messages" }, () => {
-        void queryClient.invalidateQueries({ queryKey: ["conversation"] });
-        void queryClient.invalidateQueries({ queryKey: ["conversations"] });
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "conversations" }, () => {
-        void queryClient.invalidateQueries({ queryKey: ["conversations"] });
-      })
-      .subscribe();
-    return () => {
-      void supabase.removeChannel(channel);
-    };
-  }, [queryClient]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: "end" });

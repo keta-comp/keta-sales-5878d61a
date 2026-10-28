@@ -56,7 +56,7 @@ import { getPlatformNotice } from "@/lib/notifications.functions";
 import { buildNavItems } from "@/lib/nav";
 import type { PresetSection } from "@/lib/presets";
 import { cn } from "@/lib/utils";
-import { supabase } from "@/integrations/supabase/client";
+import { signOut as endSession } from "@/lib/auth.functions";
 import { t } from "@/lib/i18n";
 
 const ICONS: Record<string, LucideIcon> = {
@@ -188,9 +188,10 @@ export function DashboardShell({
   const fetchConfig = useServerFn(getMyCrmConfig);
   const { data: crm } = useQuery({ queryKey: ["crm-config"], queryFn: () => fetchConfig() });
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      toast.error(error.message);
+    try {
+      await endSession();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t("Chiqishda xatolik"));
       return;
     }
     navigate({ to: "/" });

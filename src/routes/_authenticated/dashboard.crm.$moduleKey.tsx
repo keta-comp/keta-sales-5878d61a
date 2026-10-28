@@ -24,14 +24,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { supabase } from "@/integrations/supabase/client";
 import {
   deleteCrmRecord,
   getMyCrmConfig,
   listCrmRecords,
   saveCrmRecord,
-  ATTACHMENT_BUCKET,
+  removeCrmAttachments,
 } from "@/lib/crm-config.functions";
+import { LIVE_REFETCH_MS } from "@/lib/polling";
 import { relationIdKey, type CrmField } from "@/lib/crm-config";
 import { AttachmentCell, AttachmentField } from "@/components/app/CrmAttachment";
 import { RelationCombobox } from "@/components/app/RelationCombobox";
@@ -66,21 +66,8 @@ function CrmModulePage() {
   const records = useQuery({
     queryKey: ["crm-records", moduleKey],
     queryFn: () => fetchRecords({ data: { moduleKey } }),
+    refetchInterval: LIVE_REFETCH_MS,
   });
-
-  useEffect(() => {
-    const channel = supabase
-      .channel(`crm-records-${moduleKey}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "crm_records" }, () => {
-        void records.refetch();
-        void queryClient.invalidateQueries({ queryKey: ["crm-widgets"] });
-      })
-      .subscribe();
-    return () => {
-      void supabase.removeChannel(channel);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [moduleKey]);
 
   const module = useMemo(() => {
     const cfg = config.data?.config;
@@ -139,7 +126,11 @@ function CrmModulePage() {
         data: { id: editing?.id, moduleKey: module.key, title, stage: stage || null, data },
       });
       const dropped = replacedAttachments(module.fields ?? [], editing?.data, form);
-      if (dropped.length) await supabase.storage.from(ATTACHMENT_BUCKET).remove(dropped);
+      if (dropped.length) {
+        await removeCrmAttachments({ data: { moduleKey: module.key, paths: dropped } }).catch(
+          () => undefined,
+        );
+      }
       await records.refetch();
       void queryClient.invalidateQueries({ queryKey: ["crm-widgets"] });
       setCreating(false);
@@ -155,7 +146,9 @@ function CrmModulePage() {
     try {
       const files = recordAttachments(module?.fields ?? [], editing.data);
       await removeRecord({ data: { id: editing.id } });
-      if (files.length) await supabase.storage.from(ATTACHMENT_BUCKET).remove(files);
+      if (files.length) {
+        await removeCrmAttachments({ data: { moduleKey, paths: files } }).catch(() => undefined);
+      }
       await records.refetch();
       void queryClient.invalidateQueries({ queryKey: ["crm-widgets"] });
       setEditing(null);

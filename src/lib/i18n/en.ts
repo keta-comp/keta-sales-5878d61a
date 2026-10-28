@@ -1509,6 +1509,9 @@ const table: Record<string, string> = {
   "Parolni tiklash havolasi yuborildi. Email kelmasa SMTP sozlamalarini tekshiring.": "Password reset link sent. If the email does not arrive, check the SMTP settings.",
   "Rollar organization bo‘yicha belgilanadi": "Roles are set per organization",
   "Hech bir organization’ga a’zo emas": "Not a member of any organization",
+  "Chiqishda xatolik": "Sign-out failed",
+  "Parol yangilandi. Endi yangi parol bilan kiring.": "Password updated. Sign in with your new password.",
+  "Kamida 8 belgi": "At least 8 characters",
 };
 
 export default table;
