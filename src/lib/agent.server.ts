@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { gatewayErrorMessage, resolveAiRuntime } from "./ai-gateway.server";
+import { logAiUsage } from "./audit.server";
 import { getActiveBot } from "./bots.server";
 import { getCrmAgentContext, type CrmAgentContext } from "./crm-config.server";
 import { createTimer, runBackground, withTimeout, type Timings } from "./perf.server";
@@ -38,7 +39,7 @@ type BusinessSettingsRow = {
   payment_methods: string | null;
   return_policy: string | null;
   currency: string | null;
-  operator_group_chat_id: string | null;
+  staff_group_chat_id: string | null;
 };
 
 type AiSettingsRow = {
@@ -69,7 +70,7 @@ export async function getSettings(businessId: string, useCache = true): Promise<
     supabaseAdmin
       .from("business_settings")
       .select(
-        "business_name, business_description, working_hours, delivery_info, payment_methods, return_policy, currency, operator_group_chat_id",
+        "business_name, business_description, working_hours, delivery_info, payment_methods, return_policy, currency, staff_group_chat_id",
       )
       .eq("business_id", businessId)
       .maybeSingle(),
@@ -170,10 +171,10 @@ export async function getOrCreateConversation(
 export async function saveMessage(input: {
   businessId: string;
   conversationId: string;
-  role: "customer" | "ai" | "operator" | "system";
+  role: "customer" | "ai" | "staff" | "system";
   content: string;
   telegramMessageId?: number | null;
-  operatorId?: string | null;
+  memberId?: string | null;
   metadata?: Json;
 }) {
   // Both writes are independent — run them concurrently and skip the read-back.
@@ -184,7 +185,7 @@ export async function saveMessage(input: {
       role: input.role,
       content: input.content,
       telegram_message_id: input.telegramMessageId ?? null,
-      operator_id: input.operatorId ?? null,
+      member_id: input.memberId ?? null,
       metadata: (input.metadata ?? {}) as never,
     }),
     supabaseAdmin
@@ -209,10 +210,10 @@ function isSmallTalk(text: string | undefined): boolean {
   return trimmed.length <= 30 && SIMPLE_PATTERNS.test(trimmed);
 }
 
-export async function notifyOperatorGroup(businessId: string, leadId: string, reason: string) {
+export async function notifyStaffGroup(businessId: string, leadId: string, reason: string) {
   const { business } = await getSettings(businessId);
-  const chatId = business?.operator_group_chat_id;
-  if (!chatId) return { sent: false, reason: "operator_group_chat_id is not configured" };
+  const chatId = business?.staff_group_chat_id;
+  if (!chatId) return { sent: false, reason: "staff_group_chat_id is not configured" };
 
   const bot = await getActiveBot(businessId);
   if (!bot) return { sent: false, reason: "no active Telegram bot for this business" };
@@ -257,13 +258,13 @@ export async function notifyOperatorGroup(businessId: string, leadId: string, re
     await supabaseAdmin.from("lead_events").insert({
       business_id: businessId,
       lead_id: leadId,
-      event_type: "operator_notified",
-      detail: "Lead sent to operator group",
+      event_type: "staff_notified",
+      detail: "Lead sent to the staff Telegram group",
       actor: "system",
     });
     return { sent: true };
   } catch (error) {
-    console.error("[operator-notify]", error);
+    console.error("[staff-notify]", error);
     return { sent: false, reason: error instanceof Error ? error.message : "telegram error" };
   }
 }
@@ -363,8 +364,9 @@ function buildSystemPrompt(
     "- Answer in ONE turn whenever possible. Do not chain tool calls you do not need.",
     "- Call create_lead (or update_lead) once you know what the customer wants; skip it for pure small talk.",
     "- Set lead score: hot when the customer signals buying (olaman, buyurtma, payment/delivery questions, gives phone), warm when interested, cold when just browsing.",
-    "- Call request_human_operator when the customer asks for a human, negotiates a discount above the allowed maximum, complains, has a payment/delivery problem, or is a high-value ready buyer.",
+    "- Call request_human_help when the customer asks for a human, negotiates a discount above the allowed maximum, complains, has a payment/delivery problem, or is a high-value ready buyer.",
     "- Only call create_order after the customer confirmed the product, quantity, phone and delivery address.",
+    "- In a medical business (clinic, dental) you only handle visits, prices and service descriptions. NEVER suggest a diagnosis, treatment or medicine and never phrase anything as an approved medical decision — a doctor writes that into the record.",
     "",
     `Known customer info: name=${customer.full_name ?? "unknown"}, phone=${customer.phone ?? "unknown"}, location=${customer.location ?? "unknown"}.`,
     prefetched.length
@@ -469,7 +471,25 @@ export async function runSalesAgent(params: {
       } as never)
       .select("id")
       .single();
-    if (error) throw error;
+    if (error) {
+      // Unique open-lead index (leads_open_dedup_uidx): fall back to updating the existing one.
+      if (error.code === "23505") {
+        const { data: existing } = await supabaseAdmin
+          .from("leads")
+          .select("id")
+          .eq("business_id", params.businessId)
+          .eq("customer_id", params.customerId)
+          .not("status", "in", "(won,lost)")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (existing) {
+          leadId = existing.id;
+          return upsertLead(input);
+        }
+      }
+      throw error;
+    }
     leadId = data.id;
     return data.id;
   };
@@ -632,7 +652,7 @@ export async function runSalesAgent(params: {
       description: "Update the existing lead status, score or summary.",
       inputSchema: z.object({
         score: z.enum(["hot", "warm", "cold"]).optional(),
-        status: z.enum(["new", "needs_operator", "contacted", "negotiating", "won", "lost"]).optional(),
+        status: z.enum(["new", "needs_attention", "contacted", "negotiating", "won", "lost"]).optional(),
         ai_summary: z.string().optional(),
         notes: z.string().optional(),
       }),
@@ -703,7 +723,7 @@ export async function runSalesAgent(params: {
         if (itemsError) return { error: itemsError.message };
 
         escalated = true;
-        // Customer never waits for CRM side effects or the operator notification.
+        // Customer never waits for CRM side effects or the staff notification.
         runBackground(async () => {
           await Promise.all([
             supabaseAdmin
@@ -717,7 +737,7 @@ export async function runSalesAgent(params: {
               detail: `Order ${order.order_number} created by AI`,
             }),
           ]);
-          await notifyOperatorGroup(
+          await notifyStaffGroup(
             params.businessId,
             leadRef,
             `New order ${order.order_number} needs confirmation.`,
@@ -730,8 +750,8 @@ export async function runSalesAgent(params: {
         };
       },
     }),
-    request_human_operator: tool({
-      description: "Hand the conversation over to a human operator and notify the operator group.",
+    request_human_help: tool({
+      description: "Hand the conversation over to a team member and notify the staff group.",
       inputSchema: z.object({
         reason: z.string(),
         summary: z.string(),
@@ -739,7 +759,7 @@ export async function runSalesAgent(params: {
       }),
       execute: async ({ reason, summary, score }) => {
         const id = await upsertLead({
-          status: "needs_operator",
+          status: "needs_attention",
           handoff_reason: reason,
           ai_summary: summary,
           ...(score ? { score } : {}),
@@ -756,9 +776,9 @@ export async function runSalesAgent(params: {
             event_type: "handoff_requested",
             detail: reason,
           });
-          await notifyOperatorGroup(params.businessId, id, reason);
+          await notifyStaffGroup(params.businessId, id, reason);
         }, "handoff-notify");
-        return { ok: true, lead_id: id, operator_notified: true };
+        return { ok: true, lead_id: id, staff_notified: true };
       },
     }),
   } as const;
@@ -799,6 +819,13 @@ export async function runSalesAgent(params: {
     );
     timer.set("llm_total_ms", Date.now() - llmStart);
     timer.set("llm_steps", result.steps?.length ?? 1);
+    void logAiUsage({
+      businessId: params.businessId,
+      feature: "sales_agent",
+      model,
+      inputTokens: result.usage?.inputTokens ?? null,
+      outputTokens: result.usage?.outputTokens ?? null,
+    });
 
     const reply = result.text.trim();
     return {

@@ -15,27 +15,35 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as AuthenticatedSuperAdminRouteImport } from './routes/_authenticated/super-admin'
+import { Route as ApiHealthRouteImport } from './routes/api/health'
+import { Route as BSlugRouteImport } from './routes/b.$slug'
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard.index'
 import { Route as AuthenticatedDashboardAnalyticsRouteImport } from './routes/_authenticated/dashboard.analytics'
+import { Route as AuthenticatedDashboardAppointmentsRouteImport } from './routes/_authenticated/dashboard.appointments'
 import { Route as AuthenticatedDashboardAssistantRouteImport } from './routes/_authenticated/dashboard.assistant'
 import { Route as AuthenticatedDashboardBillingRouteImport } from './routes/_authenticated/dashboard.billing'
+import { Route as AuthenticatedDashboardBranchesRouteImport } from './routes/_authenticated/dashboard.branches'
 import { Route as AuthenticatedDashboardConversationsRouteImport } from './routes/_authenticated/dashboard.conversations'
 import { Route as AuthenticatedDashboardCrmBuilderRouteImport } from './routes/_authenticated/dashboard.crm-builder'
 import { Route as AuthenticatedDashboardCustomersRouteImport } from './routes/_authenticated/dashboard.customers'
+import { Route as AuthenticatedDashboardEmployeesRouteImport } from './routes/_authenticated/dashboard.employees'
+import { Route as AuthenticatedDashboardFinanceRouteImport } from './routes/_authenticated/dashboard.finance'
 import { Route as AuthenticatedDashboardInventoryRouteImport } from './routes/_authenticated/dashboard.inventory'
 import { Route as AuthenticatedDashboardLeadsRouteImport } from './routes/_authenticated/dashboard.leads'
-import { Route as AuthenticatedDashboardOperatorsRouteImport } from './routes/_authenticated/dashboard.operators'
 import { Route as AuthenticatedDashboardOrdersRouteImport } from './routes/_authenticated/dashboard.orders'
 import { Route as AuthenticatedDashboardPaymentsRouteImport } from './routes/_authenticated/dashboard.payments'
+import { Route as AuthenticatedDashboardPayrollRouteImport } from './routes/_authenticated/dashboard.payroll'
 import { Route as AuthenticatedDashboardPipelineRouteImport } from './routes/_authenticated/dashboard.pipeline'
 import { Route as AuthenticatedDashboardProductsRouteImport } from './routes/_authenticated/dashboard.products'
 import { Route as AuthenticatedDashboardSettingsRouteImport } from './routes/_authenticated/dashboard.settings'
 import { Route as AuthenticatedDashboardTasksRouteImport } from './routes/_authenticated/dashboard.tasks'
+import { Route as AuthenticatedDashboardTeamRouteImport } from './routes/_authenticated/dashboard.team'
 import { Route as AuthenticatedDashboardTelegramRouteImport } from './routes/_authenticated/dashboard.telegram'
 import { Route as AuthenticatedSuperAdminIndexRouteImport } from './routes/_authenticated/super-admin.index'
 import { Route as AuthenticatedSuperAdminAiUsageRouteImport } from './routes/_authenticated/super-admin.ai-usage'
 import { Route as AuthenticatedSuperAdminAnalyticsRouteImport } from './routes/_authenticated/super-admin.analytics'
 import { Route as AuthenticatedSuperAdminAuditRouteImport } from './routes/_authenticated/super-admin.audit'
+import { Route as AuthenticatedSuperAdminErrorsRouteImport } from './routes/_authenticated/super-admin.errors'
 import { Route as AuthenticatedSuperAdminFlagsRouteImport } from './routes/_authenticated/super-admin.flags'
 import { Route as AuthenticatedSuperAdminIndustriesRouteImport } from './routes/_authenticated/super-admin.industries'
 import { Route as AuthenticatedSuperAdminNotificationsRouteImport } from './routes/_authenticated/super-admin.notifications'
@@ -82,6 +90,16 @@ const AuthenticatedSuperAdminRoute = AuthenticatedSuperAdminRouteImport.update({
   path: '/super-admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiHealthRoute = ApiHealthRouteImport.update({
+  id: '/api/health',
+  path: '/api/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BSlugRoute = BSlugRouteImport.update({
+  id: '/b/$slug',
+  path: '/b/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedDashboardIndexRoute =
   AuthenticatedDashboardIndexRouteImport.update({
     id: '/',
@@ -94,6 +112,12 @@ const AuthenticatedDashboardAnalyticsRoute =
     path: '/analytics',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
+const AuthenticatedDashboardAppointmentsRoute =
+  AuthenticatedDashboardAppointmentsRouteImport.update({
+    id: '/appointments',
+    path: '/appointments',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
 const AuthenticatedDashboardAssistantRoute =
   AuthenticatedDashboardAssistantRouteImport.update({
     id: '/assistant',
@@ -104,6 +128,12 @@ const AuthenticatedDashboardBillingRoute =
   AuthenticatedDashboardBillingRouteImport.update({
     id: '/billing',
     path: '/billing',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
+const AuthenticatedDashboardBranchesRoute =
+  AuthenticatedDashboardBranchesRouteImport.update({
+    id: '/branches',
+    path: '/branches',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
 const AuthenticatedDashboardConversationsRoute =
@@ -124,6 +154,18 @@ const AuthenticatedDashboardCustomersRoute =
     path: '/customers',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
+const AuthenticatedDashboardEmployeesRoute =
+  AuthenticatedDashboardEmployeesRouteImport.update({
+    id: '/employees',
+    path: '/employees',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
+const AuthenticatedDashboardFinanceRoute =
+  AuthenticatedDashboardFinanceRouteImport.update({
+    id: '/finance',
+    path: '/finance',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
 const AuthenticatedDashboardInventoryRoute =
   AuthenticatedDashboardInventoryRouteImport.update({
     id: '/inventory',
@@ -136,12 +178,6 @@ const AuthenticatedDashboardLeadsRoute =
     path: '/leads',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
-const AuthenticatedDashboardOperatorsRoute =
-  AuthenticatedDashboardOperatorsRouteImport.update({
-    id: '/operators',
-    path: '/operators',
-    getParentRoute: () => AuthenticatedDashboardRoute,
-  } as any)
 const AuthenticatedDashboardOrdersRoute =
   AuthenticatedDashboardOrdersRouteImport.update({
     id: '/orders',
@@ -152,6 +188,12 @@ const AuthenticatedDashboardPaymentsRoute =
   AuthenticatedDashboardPaymentsRouteImport.update({
     id: '/payments',
     path: '/payments',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
+const AuthenticatedDashboardPayrollRoute =
+  AuthenticatedDashboardPayrollRouteImport.update({
+    id: '/payroll',
+    path: '/payroll',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
 const AuthenticatedDashboardPipelineRoute =
@@ -176,6 +218,12 @@ const AuthenticatedDashboardTasksRoute =
   AuthenticatedDashboardTasksRouteImport.update({
     id: '/tasks',
     path: '/tasks',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
+const AuthenticatedDashboardTeamRoute =
+  AuthenticatedDashboardTeamRouteImport.update({
+    id: '/team',
+    path: '/team',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
 const AuthenticatedDashboardTelegramRoute =
@@ -206,6 +254,12 @@ const AuthenticatedSuperAdminAuditRoute =
   AuthenticatedSuperAdminAuditRouteImport.update({
     id: '/audit',
     path: '/audit',
+    getParentRoute: () => AuthenticatedSuperAdminRoute,
+  } as any)
+const AuthenticatedSuperAdminErrorsRoute =
+  AuthenticatedSuperAdminErrorsRouteImport.update({
+    id: '/errors',
+    path: '/errors',
     getParentRoute: () => AuthenticatedSuperAdminRoute,
   } as any)
 const AuthenticatedSuperAdminFlagsRoute =
@@ -309,25 +363,33 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/super-admin': typeof AuthenticatedSuperAdminRouteWithChildren
+  '/api/health': typeof ApiHealthRoute
+  '/b/$slug': typeof BSlugRoute
   '/dashboard/analytics': typeof AuthenticatedDashboardAnalyticsRoute
+  '/dashboard/appointments': typeof AuthenticatedDashboardAppointmentsRoute
   '/dashboard/assistant': typeof AuthenticatedDashboardAssistantRoute
   '/dashboard/billing': typeof AuthenticatedDashboardBillingRoute
+  '/dashboard/branches': typeof AuthenticatedDashboardBranchesRoute
   '/dashboard/conversations': typeof AuthenticatedDashboardConversationsRoute
   '/dashboard/crm-builder': typeof AuthenticatedDashboardCrmBuilderRoute
   '/dashboard/customers': typeof AuthenticatedDashboardCustomersRouteWithChildren
+  '/dashboard/employees': typeof AuthenticatedDashboardEmployeesRoute
+  '/dashboard/finance': typeof AuthenticatedDashboardFinanceRoute
   '/dashboard/inventory': typeof AuthenticatedDashboardInventoryRoute
   '/dashboard/leads': typeof AuthenticatedDashboardLeadsRoute
-  '/dashboard/operators': typeof AuthenticatedDashboardOperatorsRoute
   '/dashboard/orders': typeof AuthenticatedDashboardOrdersRoute
   '/dashboard/payments': typeof AuthenticatedDashboardPaymentsRoute
+  '/dashboard/payroll': typeof AuthenticatedDashboardPayrollRoute
   '/dashboard/pipeline': typeof AuthenticatedDashboardPipelineRoute
   '/dashboard/products': typeof AuthenticatedDashboardProductsRoute
   '/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
   '/dashboard/tasks': typeof AuthenticatedDashboardTasksRoute
+  '/dashboard/team': typeof AuthenticatedDashboardTeamRoute
   '/dashboard/telegram': typeof AuthenticatedDashboardTelegramRoute
   '/super-admin/ai-usage': typeof AuthenticatedSuperAdminAiUsageRoute
   '/super-admin/analytics': typeof AuthenticatedSuperAdminAnalyticsRoute
   '/super-admin/audit': typeof AuthenticatedSuperAdminAuditRoute
+  '/super-admin/errors': typeof AuthenticatedSuperAdminErrorsRoute
   '/super-admin/flags': typeof AuthenticatedSuperAdminFlagsRoute
   '/super-admin/industries': typeof AuthenticatedSuperAdminIndustriesRoute
   '/super-admin/notifications': typeof AuthenticatedSuperAdminNotificationsRoute
@@ -351,24 +413,32 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/api/health': typeof ApiHealthRoute
+  '/b/$slug': typeof BSlugRoute
   '/dashboard/analytics': typeof AuthenticatedDashboardAnalyticsRoute
+  '/dashboard/appointments': typeof AuthenticatedDashboardAppointmentsRoute
   '/dashboard/assistant': typeof AuthenticatedDashboardAssistantRoute
   '/dashboard/billing': typeof AuthenticatedDashboardBillingRoute
+  '/dashboard/branches': typeof AuthenticatedDashboardBranchesRoute
   '/dashboard/conversations': typeof AuthenticatedDashboardConversationsRoute
   '/dashboard/crm-builder': typeof AuthenticatedDashboardCrmBuilderRoute
+  '/dashboard/employees': typeof AuthenticatedDashboardEmployeesRoute
+  '/dashboard/finance': typeof AuthenticatedDashboardFinanceRoute
   '/dashboard/inventory': typeof AuthenticatedDashboardInventoryRoute
   '/dashboard/leads': typeof AuthenticatedDashboardLeadsRoute
-  '/dashboard/operators': typeof AuthenticatedDashboardOperatorsRoute
   '/dashboard/orders': typeof AuthenticatedDashboardOrdersRoute
   '/dashboard/payments': typeof AuthenticatedDashboardPaymentsRoute
+  '/dashboard/payroll': typeof AuthenticatedDashboardPayrollRoute
   '/dashboard/pipeline': typeof AuthenticatedDashboardPipelineRoute
   '/dashboard/products': typeof AuthenticatedDashboardProductsRoute
   '/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
   '/dashboard/tasks': typeof AuthenticatedDashboardTasksRoute
+  '/dashboard/team': typeof AuthenticatedDashboardTeamRoute
   '/dashboard/telegram': typeof AuthenticatedDashboardTelegramRoute
   '/super-admin/ai-usage': typeof AuthenticatedSuperAdminAiUsageRoute
   '/super-admin/analytics': typeof AuthenticatedSuperAdminAnalyticsRoute
   '/super-admin/audit': typeof AuthenticatedSuperAdminAuditRoute
+  '/super-admin/errors': typeof AuthenticatedSuperAdminErrorsRoute
   '/super-admin/flags': typeof AuthenticatedSuperAdminFlagsRoute
   '/super-admin/industries': typeof AuthenticatedSuperAdminIndustriesRoute
   '/super-admin/notifications': typeof AuthenticatedSuperAdminNotificationsRoute
@@ -396,25 +466,33 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
   '/_authenticated/super-admin': typeof AuthenticatedSuperAdminRouteWithChildren
+  '/api/health': typeof ApiHealthRoute
+  '/b/$slug': typeof BSlugRoute
   '/_authenticated/dashboard/analytics': typeof AuthenticatedDashboardAnalyticsRoute
+  '/_authenticated/dashboard/appointments': typeof AuthenticatedDashboardAppointmentsRoute
   '/_authenticated/dashboard/assistant': typeof AuthenticatedDashboardAssistantRoute
   '/_authenticated/dashboard/billing': typeof AuthenticatedDashboardBillingRoute
+  '/_authenticated/dashboard/branches': typeof AuthenticatedDashboardBranchesRoute
   '/_authenticated/dashboard/conversations': typeof AuthenticatedDashboardConversationsRoute
   '/_authenticated/dashboard/crm-builder': typeof AuthenticatedDashboardCrmBuilderRoute
   '/_authenticated/dashboard/customers': typeof AuthenticatedDashboardCustomersRouteWithChildren
+  '/_authenticated/dashboard/employees': typeof AuthenticatedDashboardEmployeesRoute
+  '/_authenticated/dashboard/finance': typeof AuthenticatedDashboardFinanceRoute
   '/_authenticated/dashboard/inventory': typeof AuthenticatedDashboardInventoryRoute
   '/_authenticated/dashboard/leads': typeof AuthenticatedDashboardLeadsRoute
-  '/_authenticated/dashboard/operators': typeof AuthenticatedDashboardOperatorsRoute
   '/_authenticated/dashboard/orders': typeof AuthenticatedDashboardOrdersRoute
   '/_authenticated/dashboard/payments': typeof AuthenticatedDashboardPaymentsRoute
+  '/_authenticated/dashboard/payroll': typeof AuthenticatedDashboardPayrollRoute
   '/_authenticated/dashboard/pipeline': typeof AuthenticatedDashboardPipelineRoute
   '/_authenticated/dashboard/products': typeof AuthenticatedDashboardProductsRoute
   '/_authenticated/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
   '/_authenticated/dashboard/tasks': typeof AuthenticatedDashboardTasksRoute
+  '/_authenticated/dashboard/team': typeof AuthenticatedDashboardTeamRoute
   '/_authenticated/dashboard/telegram': typeof AuthenticatedDashboardTelegramRoute
   '/_authenticated/super-admin/ai-usage': typeof AuthenticatedSuperAdminAiUsageRoute
   '/_authenticated/super-admin/analytics': typeof AuthenticatedSuperAdminAnalyticsRoute
   '/_authenticated/super-admin/audit': typeof AuthenticatedSuperAdminAuditRoute
+  '/_authenticated/super-admin/errors': typeof AuthenticatedSuperAdminErrorsRoute
   '/_authenticated/super-admin/flags': typeof AuthenticatedSuperAdminFlagsRoute
   '/_authenticated/super-admin/industries': typeof AuthenticatedSuperAdminIndustriesRoute
   '/_authenticated/super-admin/notifications': typeof AuthenticatedSuperAdminNotificationsRoute
@@ -442,25 +520,33 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/onboarding'
     | '/super-admin'
+    | '/api/health'
+    | '/b/$slug'
     | '/dashboard/analytics'
+    | '/dashboard/appointments'
     | '/dashboard/assistant'
     | '/dashboard/billing'
+    | '/dashboard/branches'
     | '/dashboard/conversations'
     | '/dashboard/crm-builder'
     | '/dashboard/customers'
+    | '/dashboard/employees'
+    | '/dashboard/finance'
     | '/dashboard/inventory'
     | '/dashboard/leads'
-    | '/dashboard/operators'
     | '/dashboard/orders'
     | '/dashboard/payments'
+    | '/dashboard/payroll'
     | '/dashboard/pipeline'
     | '/dashboard/products'
     | '/dashboard/settings'
     | '/dashboard/tasks'
+    | '/dashboard/team'
     | '/dashboard/telegram'
     | '/super-admin/ai-usage'
     | '/super-admin/analytics'
     | '/super-admin/audit'
+    | '/super-admin/errors'
     | '/super-admin/flags'
     | '/super-admin/industries'
     | '/super-admin/notifications'
@@ -484,24 +570,32 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/onboarding'
+    | '/api/health'
+    | '/b/$slug'
     | '/dashboard/analytics'
+    | '/dashboard/appointments'
     | '/dashboard/assistant'
     | '/dashboard/billing'
+    | '/dashboard/branches'
     | '/dashboard/conversations'
     | '/dashboard/crm-builder'
+    | '/dashboard/employees'
+    | '/dashboard/finance'
     | '/dashboard/inventory'
     | '/dashboard/leads'
-    | '/dashboard/operators'
     | '/dashboard/orders'
     | '/dashboard/payments'
+    | '/dashboard/payroll'
     | '/dashboard/pipeline'
     | '/dashboard/products'
     | '/dashboard/settings'
     | '/dashboard/tasks'
+    | '/dashboard/team'
     | '/dashboard/telegram'
     | '/super-admin/ai-usage'
     | '/super-admin/analytics'
     | '/super-admin/audit'
+    | '/super-admin/errors'
     | '/super-admin/flags'
     | '/super-admin/industries'
     | '/super-admin/notifications'
@@ -528,25 +622,33 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/onboarding'
     | '/_authenticated/super-admin'
+    | '/api/health'
+    | '/b/$slug'
     | '/_authenticated/dashboard/analytics'
+    | '/_authenticated/dashboard/appointments'
     | '/_authenticated/dashboard/assistant'
     | '/_authenticated/dashboard/billing'
+    | '/_authenticated/dashboard/branches'
     | '/_authenticated/dashboard/conversations'
     | '/_authenticated/dashboard/crm-builder'
     | '/_authenticated/dashboard/customers'
+    | '/_authenticated/dashboard/employees'
+    | '/_authenticated/dashboard/finance'
     | '/_authenticated/dashboard/inventory'
     | '/_authenticated/dashboard/leads'
-    | '/_authenticated/dashboard/operators'
     | '/_authenticated/dashboard/orders'
     | '/_authenticated/dashboard/payments'
+    | '/_authenticated/dashboard/payroll'
     | '/_authenticated/dashboard/pipeline'
     | '/_authenticated/dashboard/products'
     | '/_authenticated/dashboard/settings'
     | '/_authenticated/dashboard/tasks'
+    | '/_authenticated/dashboard/team'
     | '/_authenticated/dashboard/telegram'
     | '/_authenticated/super-admin/ai-usage'
     | '/_authenticated/super-admin/analytics'
     | '/_authenticated/super-admin/audit'
+    | '/_authenticated/super-admin/errors'
     | '/_authenticated/super-admin/flags'
     | '/_authenticated/super-admin/industries'
     | '/_authenticated/super-admin/notifications'
@@ -571,6 +673,8 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ApiHealthRoute: typeof ApiHealthRoute
+  BSlugRoute: typeof BSlugRoute
   ApiPublicPaymeRoute: typeof ApiPublicPaymeRoute
   ApiPublicClickActionRoute: typeof ApiPublicClickActionRoute
   ApiPublicInstagramWebhookRoute: typeof ApiPublicInstagramWebhookRoute
@@ -622,6 +726,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSuperAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/health': {
+      id: '/api/health'
+      path: '/api/health'
+      fullPath: '/api/health'
+      preLoaderRoute: typeof ApiHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/b/$slug': {
+      id: '/b/$slug'
+      path: '/b/$slug'
+      fullPath: '/b/$slug'
+      preLoaderRoute: typeof BSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/dashboard/': {
       id: '/_authenticated/dashboard/'
       path: '/'
@@ -636,6 +754,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardAnalyticsRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
+    '/_authenticated/dashboard/appointments': {
+      id: '/_authenticated/dashboard/appointments'
+      path: '/appointments'
+      fullPath: '/dashboard/appointments'
+      preLoaderRoute: typeof AuthenticatedDashboardAppointmentsRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
     '/_authenticated/dashboard/assistant': {
       id: '/_authenticated/dashboard/assistant'
       path: '/assistant'
@@ -648,6 +773,13 @@ declare module '@tanstack/react-router' {
       path: '/billing'
       fullPath: '/dashboard/billing'
       preLoaderRoute: typeof AuthenticatedDashboardBillingRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
+    '/_authenticated/dashboard/branches': {
+      id: '/_authenticated/dashboard/branches'
+      path: '/branches'
+      fullPath: '/dashboard/branches'
+      preLoaderRoute: typeof AuthenticatedDashboardBranchesRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
     '/_authenticated/dashboard/conversations': {
@@ -671,6 +803,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardCustomersRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
+    '/_authenticated/dashboard/employees': {
+      id: '/_authenticated/dashboard/employees'
+      path: '/employees'
+      fullPath: '/dashboard/employees'
+      preLoaderRoute: typeof AuthenticatedDashboardEmployeesRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
+    '/_authenticated/dashboard/finance': {
+      id: '/_authenticated/dashboard/finance'
+      path: '/finance'
+      fullPath: '/dashboard/finance'
+      preLoaderRoute: typeof AuthenticatedDashboardFinanceRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
     '/_authenticated/dashboard/inventory': {
       id: '/_authenticated/dashboard/inventory'
       path: '/inventory'
@@ -685,13 +831,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardLeadsRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
-    '/_authenticated/dashboard/operators': {
-      id: '/_authenticated/dashboard/operators'
-      path: '/operators'
-      fullPath: '/dashboard/operators'
-      preLoaderRoute: typeof AuthenticatedDashboardOperatorsRouteImport
-      parentRoute: typeof AuthenticatedDashboardRoute
-    }
     '/_authenticated/dashboard/orders': {
       id: '/_authenticated/dashboard/orders'
       path: '/orders'
@@ -704,6 +843,13 @@ declare module '@tanstack/react-router' {
       path: '/payments'
       fullPath: '/dashboard/payments'
       preLoaderRoute: typeof AuthenticatedDashboardPaymentsRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
+    '/_authenticated/dashboard/payroll': {
+      id: '/_authenticated/dashboard/payroll'
+      path: '/payroll'
+      fullPath: '/dashboard/payroll'
+      preLoaderRoute: typeof AuthenticatedDashboardPayrollRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
     '/_authenticated/dashboard/pipeline': {
@@ -732,6 +878,13 @@ declare module '@tanstack/react-router' {
       path: '/tasks'
       fullPath: '/dashboard/tasks'
       preLoaderRoute: typeof AuthenticatedDashboardTasksRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
+    '/_authenticated/dashboard/team': {
+      id: '/_authenticated/dashboard/team'
+      path: '/team'
+      fullPath: '/dashboard/team'
+      preLoaderRoute: typeof AuthenticatedDashboardTeamRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
     '/_authenticated/dashboard/telegram': {
@@ -767,6 +920,13 @@ declare module '@tanstack/react-router' {
       path: '/audit'
       fullPath: '/super-admin/audit'
       preLoaderRoute: typeof AuthenticatedSuperAdminAuditRouteImport
+      parentRoute: typeof AuthenticatedSuperAdminRoute
+    }
+    '/_authenticated/super-admin/errors': {
+      id: '/_authenticated/super-admin/errors'
+      path: '/errors'
+      fullPath: '/super-admin/errors'
+      preLoaderRoute: typeof AuthenticatedSuperAdminErrorsRouteImport
       parentRoute: typeof AuthenticatedSuperAdminRoute
     }
     '/_authenticated/super-admin/flags': {
@@ -904,20 +1064,25 @@ const AuthenticatedDashboardCustomersRouteWithChildren =
 
 interface AuthenticatedDashboardRouteChildren {
   AuthenticatedDashboardAnalyticsRoute: typeof AuthenticatedDashboardAnalyticsRoute
+  AuthenticatedDashboardAppointmentsRoute: typeof AuthenticatedDashboardAppointmentsRoute
   AuthenticatedDashboardAssistantRoute: typeof AuthenticatedDashboardAssistantRoute
   AuthenticatedDashboardBillingRoute: typeof AuthenticatedDashboardBillingRoute
+  AuthenticatedDashboardBranchesRoute: typeof AuthenticatedDashboardBranchesRoute
   AuthenticatedDashboardConversationsRoute: typeof AuthenticatedDashboardConversationsRoute
   AuthenticatedDashboardCrmBuilderRoute: typeof AuthenticatedDashboardCrmBuilderRoute
   AuthenticatedDashboardCustomersRoute: typeof AuthenticatedDashboardCustomersRouteWithChildren
+  AuthenticatedDashboardEmployeesRoute: typeof AuthenticatedDashboardEmployeesRoute
+  AuthenticatedDashboardFinanceRoute: typeof AuthenticatedDashboardFinanceRoute
   AuthenticatedDashboardInventoryRoute: typeof AuthenticatedDashboardInventoryRoute
   AuthenticatedDashboardLeadsRoute: typeof AuthenticatedDashboardLeadsRoute
-  AuthenticatedDashboardOperatorsRoute: typeof AuthenticatedDashboardOperatorsRoute
   AuthenticatedDashboardOrdersRoute: typeof AuthenticatedDashboardOrdersRoute
   AuthenticatedDashboardPaymentsRoute: typeof AuthenticatedDashboardPaymentsRoute
+  AuthenticatedDashboardPayrollRoute: typeof AuthenticatedDashboardPayrollRoute
   AuthenticatedDashboardPipelineRoute: typeof AuthenticatedDashboardPipelineRoute
   AuthenticatedDashboardProductsRoute: typeof AuthenticatedDashboardProductsRoute
   AuthenticatedDashboardSettingsRoute: typeof AuthenticatedDashboardSettingsRoute
   AuthenticatedDashboardTasksRoute: typeof AuthenticatedDashboardTasksRoute
+  AuthenticatedDashboardTeamRoute: typeof AuthenticatedDashboardTeamRoute
   AuthenticatedDashboardTelegramRoute: typeof AuthenticatedDashboardTelegramRoute
   AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
   AuthenticatedDashboardCrmModuleKeyRoute: typeof AuthenticatedDashboardCrmModuleKeyRoute
@@ -926,23 +1091,29 @@ interface AuthenticatedDashboardRouteChildren {
 const AuthenticatedDashboardRouteChildren: AuthenticatedDashboardRouteChildren =
   {
     AuthenticatedDashboardAnalyticsRoute: AuthenticatedDashboardAnalyticsRoute,
+    AuthenticatedDashboardAppointmentsRoute:
+      AuthenticatedDashboardAppointmentsRoute,
     AuthenticatedDashboardAssistantRoute: AuthenticatedDashboardAssistantRoute,
     AuthenticatedDashboardBillingRoute: AuthenticatedDashboardBillingRoute,
+    AuthenticatedDashboardBranchesRoute: AuthenticatedDashboardBranchesRoute,
     AuthenticatedDashboardConversationsRoute:
       AuthenticatedDashboardConversationsRoute,
     AuthenticatedDashboardCrmBuilderRoute:
       AuthenticatedDashboardCrmBuilderRoute,
     AuthenticatedDashboardCustomersRoute:
       AuthenticatedDashboardCustomersRouteWithChildren,
+    AuthenticatedDashboardEmployeesRoute: AuthenticatedDashboardEmployeesRoute,
+    AuthenticatedDashboardFinanceRoute: AuthenticatedDashboardFinanceRoute,
     AuthenticatedDashboardInventoryRoute: AuthenticatedDashboardInventoryRoute,
     AuthenticatedDashboardLeadsRoute: AuthenticatedDashboardLeadsRoute,
-    AuthenticatedDashboardOperatorsRoute: AuthenticatedDashboardOperatorsRoute,
     AuthenticatedDashboardOrdersRoute: AuthenticatedDashboardOrdersRoute,
     AuthenticatedDashboardPaymentsRoute: AuthenticatedDashboardPaymentsRoute,
+    AuthenticatedDashboardPayrollRoute: AuthenticatedDashboardPayrollRoute,
     AuthenticatedDashboardPipelineRoute: AuthenticatedDashboardPipelineRoute,
     AuthenticatedDashboardProductsRoute: AuthenticatedDashboardProductsRoute,
     AuthenticatedDashboardSettingsRoute: AuthenticatedDashboardSettingsRoute,
     AuthenticatedDashboardTasksRoute: AuthenticatedDashboardTasksRoute,
+    AuthenticatedDashboardTeamRoute: AuthenticatedDashboardTeamRoute,
     AuthenticatedDashboardTelegramRoute: AuthenticatedDashboardTelegramRoute,
     AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,
     AuthenticatedDashboardCrmModuleKeyRoute:
@@ -958,6 +1129,7 @@ interface AuthenticatedSuperAdminRouteChildren {
   AuthenticatedSuperAdminAiUsageRoute: typeof AuthenticatedSuperAdminAiUsageRoute
   AuthenticatedSuperAdminAnalyticsRoute: typeof AuthenticatedSuperAdminAnalyticsRoute
   AuthenticatedSuperAdminAuditRoute: typeof AuthenticatedSuperAdminAuditRoute
+  AuthenticatedSuperAdminErrorsRoute: typeof AuthenticatedSuperAdminErrorsRoute
   AuthenticatedSuperAdminFlagsRoute: typeof AuthenticatedSuperAdminFlagsRoute
   AuthenticatedSuperAdminIndustriesRoute: typeof AuthenticatedSuperAdminIndustriesRoute
   AuthenticatedSuperAdminNotificationsRoute: typeof AuthenticatedSuperAdminNotificationsRoute
@@ -975,6 +1147,7 @@ const AuthenticatedSuperAdminRouteChildren: AuthenticatedSuperAdminRouteChildren
     AuthenticatedSuperAdminAnalyticsRoute:
       AuthenticatedSuperAdminAnalyticsRoute,
     AuthenticatedSuperAdminAuditRoute: AuthenticatedSuperAdminAuditRoute,
+    AuthenticatedSuperAdminErrorsRoute: AuthenticatedSuperAdminErrorsRoute,
     AuthenticatedSuperAdminFlagsRoute: AuthenticatedSuperAdminFlagsRoute,
     AuthenticatedSuperAdminIndustriesRoute:
       AuthenticatedSuperAdminIndustriesRoute,
@@ -1014,6 +1187,8 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  ApiHealthRoute: ApiHealthRoute,
+  BSlugRoute: BSlugRoute,
   ApiPublicPaymeRoute: ApiPublicPaymeRoute,
   ApiPublicClickActionRoute: ApiPublicClickActionRoute,
   ApiPublicInstagramWebhookRoute: ApiPublicInstagramWebhookRoute,

@@ -1,29 +1,37 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useState, type ReactNode } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowLeft, Pencil, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Download, Pencil, Plus, ShieldAlert, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { ErrorState, LoadingState, StatCard, StatusBadge } from "@/components/app/primitives";
 import { CustomerDialog, PaymentDialog, TaskDialog } from "@/components/app/crm-dialogs";
+import { DentalChart, useOdontogrammaEnabled } from "@/components/app/DentalChart";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CustomerLinkedRecords, useCustomerLinkedRecords } from "@/components/app/CustomerLinkedRecords";
 import { crmLabel } from "@/lib/crm-core";
-import { deleteCrmCustomer, getCustomerProfile } from "@/lib/customers.functions";
+import {
+  eraseCrmCustomer,
+  exportCustomerData,
+  getCustomerProfile,
+  setCustomerConsent,
+} from "@/lib/customers.functions";
 import { formatMoney } from "@/lib/types";
 import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/dashboard/customers/$id")({
   head: () => ({
     meta: [
-      { title: t("Mijoz profili — NEXORA CRM") },
+      { title: t("Mijoz profili — KetaOne") },
       {
         name: "description",
         content: t("Mijozning murojaatlari, buyurtmalari, to‘lovlari, vazifalari va aloqa tarixi."),
       },
-      { property: "og:title", content: t("Mijoz profili — NEXORA CRM") },
+      { property: "og:title", content: t("Mijoz profili — KetaOne") },
       { property: "og:description", content: t("Bitta ekranda mijoz haqida hamma narsa.") },
     ],
   }),
@@ -32,14 +40,22 @@ export const Route = createFileRoute("/_authenticated/dashboard/customers/$id")(
 
 function CustomerProfile() {
   const { id } = Route.useParams();
-  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const fetchProfile = useServerFn(getCustomerProfile);
-  const remove = useServerFn(deleteCrmCustomer);
+  const exportData = useServerFn(exportCustomerData);
+  const erase = useServerFn(eraseCrmCustomer);
+  const saveConsent = useServerFn(setCustomerConsent);
   const [editOpen, setEditOpen] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [taskOpen, setTaskOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   const linked = useCustomerLinkedRecords(id);
+  const dental = useOdontogrammaEnabled();
+  const anamnesis = (linked.data ?? [])
+    .filter((r) => r.moduleKey === "bemor_kartasi")
+    .map((r) => r.data)
+    .find(Boolean);
   const query = useQuery({
     queryKey: ["customer-profile", id],
     queryFn: () => fetchProfile({ data: { id } }),
@@ -48,9 +64,75 @@ function CustomerProfile() {
   if (query.isPending) return <LoadingState label={t("Profil yuklanmoqda…")} />;
   if (query.error) return <ErrorState error={query.error} onRetry={() => void query.refetch()} />;
 
-  const { customer, leads, orders, payments, tasks, activities, conversations } = query.data;
-  const operator = customer.operators as { full_name: string | null } | null;
+  const {
+    customer,
+    leads,
+    orders,
+    payments,
+    tasks,
+    activities,
+    conversations,
+    canErase,
+    canConsent,
+  } = query.data;
+  const erasedAt = customer.erased_at ?? null;
+  const assignee = customer.assignee_name;
   const currency = "UZS";
+  const rowLink = "shrink-0 text-xs font-medium text-primary underline-offset-4 hover:underline";
+
+  const runPrivacyAction = async (action: () => Promise<void>) => {
+    setBusy(true);
+    try {
+      await action();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t("Xatolik"));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const downloadExport = () =>
+    void runPrivacyAction(async () => {
+      const payload = await exportData({ data: { id } });
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `mijoz-${id}.json`;
+      anchor.click();
+      URL.revokeObjectURL(url);
+      toast.success(t("Mijoz ma’lumotlari faylga saqlandi"));
+    });
+
+  const toggleConsent = (value: boolean) =>
+    void runPrivacyAction(async () => {
+      await saveConsent({ data: { id, marketing_consent: value } });
+      toast.success(value ? t("Rozilik qayd etildi") : t("Rozilik bekor qilindi"));
+      void queryClient.invalidateQueries({ queryKey: ["customer-profile", id] });
+    });
+
+  const eraseCustomer = () =>
+    void runPrivacyAction(async () => {
+      const phrase = t("O‘chirish");
+      if (
+        window.prompt(
+          t(
+            "Ism, telefon, aloqa tarixi va xabarlar o‘chiriladi. Moliyaviy yozuvlar qonun bo‘yicha saqlanadi. Davom etish uchun “{v0}” deb yozing.",
+            { v0: phrase },
+          ),
+        ) !== phrase
+      )
+        return;
+      const result = await erase({ data: { id, confirm: true } });
+      toast.success(
+        t("Ma'lumotlar o'chirildi — {v0} suhbat, {v1} faoliyat yozuvi olib tashlandi", {
+          v0: result.conversations_removed,
+          v1: result.activities_removed,
+        }),
+      );
+      void queryClient.invalidateQueries({ queryKey: ["customer-profile", id] });
+    });
+
   const paid = payments
     .filter((p) => p.status === "paid")
     .reduce((sum, p) => sum + Number(p.amount), 0);
@@ -76,8 +158,16 @@ function CustomerProfile() {
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <StatusBadge value={customer.status} />
               <span className="text-xs text-muted-foreground">{t("Manba:")}{" "}{crmLabel(customer.source)}</span>
-              {operator?.full_name ? (
-                <span className="text-xs text-muted-foreground">{t("Mas’ul:")}{" "}{operator.full_name}</span>
+              {assignee ? (
+                <span className="text-xs text-muted-foreground">
+                  {t("Mas’ul:")}
+                  <Link
+                    to="/dashboard/team"
+                    className="text-foreground underline-offset-4 hover:underline"
+                  >
+                    {" "}{assignee}
+                  </Link>
+                </span>
               ) : null}
             </div>
           </div>
@@ -94,29 +184,52 @@ function CustomerProfile() {
           </Button>
           <Button
             size="sm"
-            variant="ghost"
+            variant="outline"
             className="gap-1"
-            onClick={async () => {
-              if (!window.confirm(t("Mijozni o‘chirasizmi? Bu amalni qaytarib bo‘lmaydi."))) return;
-              try {
-                await remove({ data: { id } });
-                toast.success(t("Mijoz o‘chirildi"));
-                void navigate({ to: "/dashboard/customers" });
-              } catch (error) {
-                toast.error(error instanceof Error ? error.message : t("Xatolik"));
-              }
-            }}
+            disabled={busy}
+            onClick={downloadExport}
           >
-            <Trash2 className="size-4" />
+            <Download className="size-4" /> {t("Ma'lumotlarni yuklash")}
           </Button>
+          {canErase && !erasedAt ? (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="gap-1"
+              disabled={busy}
+              onClick={eraseCustomer}
+            >
+              <Trash2 className="size-4" />
+            </Button>
+          ) : null}
         </div>
       </div>
 
+      {erasedAt ? (
+        <div className="clay-panel flex items-center gap-2 p-4 text-sm text-destructive">
+          <ShieldAlert className="size-4 shrink-0" />
+          <span>
+            {t("Bu mijozning shaxsiy ma’lumotlari {v0} sana o‘chirilgan.", {
+              v0: new Date(erasedAt).toLocaleDateString("uz-UZ"),
+            })}
+          </span>
+          <Badge variant="secondary" className="ml-auto">{t("O‘chirilgan")}</Badge>
+        </div>
+      ) : null}
+
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label={t("Buyurtmalar")} value={customer.total_orders} />
-        <StatCard label={t("Umumiy xarid")} value={formatMoney(customer.total_spent, currency)} />
-        <StatCard label={t("To‘langan")} value={formatMoney(paid, currency)} />
-        <StatCard label={t("Qarzdorlik")} value={formatMoney(debt, currency)} />
+        <Link to="/dashboard/orders" search={{ customerId: id }} className="block">
+          <StatCard label={t("Buyurtmalar")} value={customer.total_orders} />
+        </Link>
+        <Link to="/dashboard/orders" search={{ customerId: id }} className="block">
+          <StatCard label={t("Umumiy xarid")} value={formatMoney(customer.total_spent, currency)} />
+        </Link>
+        <Link to="/dashboard/payments" search={{ customerId: id }} className="block">
+          <StatCard label={t("To‘langan")} value={formatMoney(paid, currency)} />
+        </Link>
+        <Link to="/dashboard/payments" search={{ customerId: id }} className="block">
+          <StatCard label={t("Qarzdorlik")} value={formatMoney(debt, currency)} />
+        </Link>
       </div>
 
       <Tabs defaultValue="overview">
@@ -126,6 +239,7 @@ function CustomerProfile() {
           <TabsTrigger value="orders">{t("Buyurtmalar (")}{orders.length})</TabsTrigger>
           <TabsTrigger value="payments">{t("To‘lovlar (")}{payments.length})</TabsTrigger>
           <TabsTrigger value="tasks">{t("Vazifalar (")}{tasks.length})</TabsTrigger>
+          {dental.enabled ? <TabsTrigger value="dental">{t("Odontogramma")}</TabsTrigger> : null}
           <TabsTrigger value="linked">{t("Sohaviy yozuvlar")} ({linked.data?.length ?? 0})</TabsTrigger>
           <TabsTrigger value="activity">{t("Tarix")}</TabsTrigger>
         </TabsList>
@@ -151,6 +265,7 @@ function CustomerProfile() {
                   <Link
                     key={conversation.id}
                     to="/dashboard/conversations"
+                    search={{ id: conversation.id }}
                     className="clay-inset clay-hover block rounded-2xl px-3 py-2 text-sm"
                   >
                     <span className="font-medium">{crmLabel(conversation.channel)}</span>
@@ -161,6 +276,40 @@ function CustomerProfile() {
                 ))
               )}
             </div>
+          </div>
+          {anamnesis ? (
+            <div className="clay-inset rounded-2xl px-4 py-3">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">{t("Bemor kartasi")}</p>
+              <div className="mt-2 grid gap-3 sm:grid-cols-2">
+                <Field label={t("Allergiya")} value={medicalCell(anamnesis["allergiya"])} />
+                <Field label={t("Qon guruhi")} value={medicalCell(anamnesis["qon_guruhi"])} />
+                <Field label={t("Anamnez")} value={medicalCell(anamnesis["anamnez"])} />
+                <Field label={t("Qabul qilinadigan dorilar")} value={medicalCell(anamnesis["dorilar"])} />
+              </div>
+              <Link
+                to="/dashboard/crm/$moduleKey"
+                params={{ moduleKey: "bemor_kartasi" }}
+                className="mt-2 inline-block text-xs font-medium text-primary underline-offset-4 hover:underline"
+              >
+                {t("Kartani to‘liq ochish")}
+              </Link>
+            </div>
+          ) : null}
+          <div className="clay-inset flex flex-wrap items-center justify-between gap-3 rounded-2xl px-4 py-3">
+            <div>
+              <p className="text-sm font-medium">{t("Marketing xabarlari uchun rozilik")}</p>
+              <p className="text-xs text-muted-foreground">
+                {customer.consent_updated_at
+                  ? t("O‘zgartirilgan: {v0}", { v0: new Date(customer.consent_updated_at).toLocaleDateString("uz-UZ") })
+                  : t("Rozilik hali kiritilmagan.")}
+              </p>
+            </div>
+            <Switch
+              checked={Boolean(customer.marketing_consent)}
+              disabled={!canConsent || busy || Boolean(erasedAt)}
+              onCheckedChange={toggleConsent}
+              aria-label={t("Marketing roziligi")}
+            />
           </div>
         </TabsContent>
 
@@ -180,6 +329,11 @@ function CustomerProfile() {
                   .filter(Boolean)
                   .join(" • ")}
                 badge={lead.status}
+                action={
+                  <Link to="/dashboard/leads" search={{ id: lead.id }} className={rowLink}>
+                    {t("Ochish")}
+                  </Link>
+                }
               />
             ))
           )}
@@ -197,6 +351,17 @@ function CustomerProfile() {
                   order.created_at,
                 ).toLocaleDateString("uz-UZ")}`}
                 badge={order.status}
+                action={
+                  order.order_number ? (
+                    <Link
+                      to="/dashboard/orders"
+                      search={{ search: order.order_number }}
+                      className={rowLink}
+                    >
+                      {t("Ochish")}
+                    </Link>
+                  ) : null
+                }
               />
             ))
           )}
@@ -206,16 +371,30 @@ function CustomerProfile() {
           {payments.length === 0 ? (
             <Empty text="To‘lov yo‘q." />
           ) : (
-            payments.map((payment) => (
-              <Row
-                key={payment.id}
-                title={formatMoney(payment.amount, currency)}
-                subtitle={`${crmLabel(payment.method)} • ${new Date(
-                  payment.paid_at ?? payment.created_at,
-                ).toLocaleDateString("uz-UZ")}${payment.note ? ` • ${payment.note}` : ""}`}
-                badge={payment.status}
-              />
-            ))
+            payments.map((payment) => {
+              const order = payment.orders as { order_number: string | null } | null;
+              return (
+                <Row
+                  key={payment.id}
+                  title={formatMoney(payment.amount, currency)}
+                  subtitle={`${crmLabel(payment.method)} • ${new Date(
+                    payment.paid_at ?? payment.created_at,
+                  ).toLocaleDateString("uz-UZ")}${payment.note ? ` • ${payment.note}` : ""}`}
+                  badge={payment.status}
+                  action={
+                    order?.order_number ? (
+                      <Link
+                        to="/dashboard/orders"
+                        search={{ search: order.order_number }}
+                        className={rowLink}
+                      >
+                        #{order.order_number}
+                      </Link>
+                    ) : null
+                  }
+                />
+              );
+            })
           )}
         </TabsContent>
 
@@ -233,9 +412,22 @@ function CustomerProfile() {
                     : t("Muddat belgilanmagan")
                 }
                 badge={task.status}
+                action={
+                  <Link
+                    to="/dashboard/tasks"
+                    search={{ customerId: id, search: task.title }}
+                    className={rowLink}
+                  >
+                    {t("Ochish")}
+                  </Link>
+                }
               />
             ))
           )}
+        </TabsContent>
+
+        <TabsContent value="dental" className="mt-3">
+          <DentalChart customerId={id} patientName={customer.full_name ?? ""} />
         </TabsContent>
 
         <TabsContent value="linked" className="mt-3 space-y-2">
@@ -267,7 +459,7 @@ function CustomerProfile() {
           location: customer.location,
           status: customer.status,
           source: customer.source,
-          assigned_operator_id: customer.assigned_operator_id,
+          assigned_member_id: customer.assigned_member_id,
           notes: customer.notes,
         }}
         title={t("Mijozni tahrirlash")}
@@ -287,6 +479,12 @@ function Field({ label, value }: { label: string; value: string }) {
   );
 }
 
+/** An empty medical field is rendered as a dash — the card never invents a diagnosis. */
+function medicalCell(value: unknown): string {
+  const text = typeof value === "string" ? value.trim() : "";
+  return text || "—";
+}
+
 function Empty({ text }: { text: string }) {
   return <p className="clay-panel p-5 text-sm text-muted-foreground">{text}</p>;
 }
@@ -295,10 +493,12 @@ function Row({
   title,
   subtitle,
   badge,
+  action,
 }: {
   title: string;
   subtitle?: string;
   badge?: string | null;
+  action?: ReactNode;
 }) {
   return (
     <div className="clay-panel flex items-center justify-between gap-3 p-4">
@@ -306,7 +506,10 @@ function Row({
         <p className="truncate text-sm font-medium">{title}</p>
         {subtitle ? <p className="truncate text-xs text-muted-foreground">{subtitle}</p> : null}
       </div>
-      {badge ? <StatusBadge value={badge} /> : null}
+      <div className="flex shrink-0 items-center gap-2">
+        {action}
+        {badge ? <StatusBadge value={badge} /> : null}
+      </div>
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
   Activity,
+  Banknote,
   BarChart3,
   Book,
   Bot,
@@ -12,9 +13,13 @@ import {
   Calendar,
   Car,
   Check,
+  ClipboardList,
   Eye,
+  FileText,
+  FlaskConical,
   Handshake,
   Home,
+  Landmark,
   LayoutDashboard,
   LayoutGrid,
   Layers,
@@ -29,6 +34,7 @@ import {
   Sparkles,
   Stethoscope,
   Target,
+  UserCog,
   UserRound,
   Users,
   Wallet,
@@ -37,14 +43,18 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 
-import logoUrl from "@/assets/nexora-logo.webp";
+import logoUrl from "@/assets/ketaone-logo.webp";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { GlobalSearch } from "@/components/app/GlobalSearch";
 import { NotificationsBell } from "@/components/app/NotificationsBell";
+import { BRAND_TAGLINE } from "@/components/app/brand";
 import { LanguageSwitcher } from "@/components/app/LanguageSwitcher";
 import { QuickNewButton } from "@/components/app/crm-dialogs";
 import { getMyCrmConfig } from "@/lib/crm-config.functions";
+import { getPlatformNotice } from "@/lib/notifications.functions";
+import { buildNavItems } from "@/lib/nav";
+import type { PresetSection } from "@/lib/presets";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { t } from "@/lib/i18n";
@@ -61,89 +71,108 @@ const ICONS: Record<string, LucideIcon> = {
   layers: Layers,
   user: UserRound,
   check: Check,
+  clipboard: ClipboardList,
   car: Car,
   wrench: Wrench,
   stethoscope: Stethoscope,
   activity: Activity,
+  flask: FlaskConical,
+  file: FileText,
   home: Home,
   eye: Eye,
   handshake: Handshake,
   building: Building,
+  // Preset registry icons (lib/presets.ts).
+  dashboard: LayoutDashboard,
+  pipeline: LayoutGrid,
+  tasks: ListChecks,
+  wallet: Wallet,
+  finance: Landmark,
+  payroll: Banknote,
+  team: UserCog,
+  chart: BarChart3,
+  bot: Bot,
+  sparkles: Sparkles,
+  send: Send,
+  settings: Settings,
 };
 
-const CORE_LINKS: { to: string; label: string; icon: LucideIcon }[] = [
-  { to: "/dashboard/customers", label: "Mijozlar", icon: Users },
-  { to: "/dashboard/leads", label: "Murojaatlar", icon: Target },
-  { to: "/dashboard/conversations", label: "Muloqotlar", icon: MessagesSquare },
-  { to: "/dashboard/products", label: "Mahsulotlar", icon: Package },
-  { to: "/dashboard/orders", label: "Buyurtmalar", icon: ShoppingCart },
-];
+const SECTION_ORDER: PresetSection[] = ["core", "operations", "industry", "money", "team", "admin"];
 
-const STATIC_TAIL: { to: string; label: string; icon: LucideIcon }[] = [
-  { to: "/dashboard/payments", label: "To‘lovlar", icon: Wallet },
-  { to: "/dashboard/tasks", label: "Vazifalar", icon: ListChecks },
-  { to: "/dashboard/operators", label: "Jamoa", icon: UserRound },
-  { to: "/dashboard/analytics", label: "Hisobotlar", icon: BarChart3 },
-  { to: "/dashboard/assistant", label: "AI yordamchi", icon: Bot },
-  { to: "/dashboard/crm-builder", label: "AI CRM sozlash", icon: Sparkles },
-  { to: "/dashboard/telegram", label: "Telegram", icon: Send },
-  { to: "/dashboard/billing", label: "Tarif va to‘lov", icon: Wallet },
-  { to: "/dashboard/settings", label: "Sozlamalar", icon: Settings },
-];
-
-type NavItem = { to: string; label: string; icon: LucideIcon };
-
-function buildNav(crm: Awaited<ReturnType<typeof getMyCrmConfig>> | undefined): NavItem[] {
-  const items: NavItem[] = [{ to: "/dashboard", label: "Umumiy ko‘rinish", icon: LayoutDashboard }];
-  const hasPipeline = crm?.config?.modules.some((m) => m.pipeline && !m.link);
-  if (crm?.config?.pipelineStages.length && hasPipeline) {
-    items.push({ to: "/dashboard/pipeline", label: "Pipeline", icon: LayoutGrid });
-  }
-  const seen = new Set<string>();
-  for (const module of crm?.config?.modules ?? []) {
-    const to = module.link ?? `/dashboard/crm/${module.key}`;
-    seen.add(to);
-    items.push({ to, label: module.label, icon: ICONS[module.icon ?? ""] ?? LayoutGrid });
-  }
-  // The CRM core is always reachable, even when the industry config renames modules.
-  for (const core of CORE_LINKS) {
-    if (!seen.has(core.to)) items.push(core);
-  }
-  items.push(...STATIC_TAIL);
-  return items;
-}
-
+const SECTION_LABELS: Record<PresetSection, string> = {
+  core: "Asosiy",
+  operations: "Amaliyot",
+  industry: "Soha modullari",
+  money: "Moliya",
+  team: "Jamoa",
+  admin: "Boshqaruv",
+};
 
 function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const fetchConfig = useServerFn(getMyCrmConfig);
   const { data: crm } = useQuery({ queryKey: ["crm-config"], queryFn: () => fetchConfig() });
-  const nav = buildNav(crm);
+  const items = buildNavItems(crm);
+  const groups = SECTION_ORDER.map((section) => ({
+    section,
+    items: items.filter((item) => item.section === section),
+  })).filter((group) => group.items.length > 0);
 
   return (
     <nav className="flex flex-col gap-1">
-      {nav.map((item) => {
-        const active =
-          item.to === "/dashboard" ? pathname === "/dashboard" : pathname.startsWith(item.to);
-        const Icon = item.icon;
-        return (
-          <Link
-            key={item.to}
-            to={item.to}
-            onClick={onNavigate}
-            className={cn(
-              "flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium transition-all",
-              active
-                ? "clay-raised bg-sidebar-accent text-sidebar-accent-foreground"
-                : "text-muted-foreground hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground hover:shadow-clay-sm",
-            )}
-          >
-            <Icon className="size-4" />
-            {t(item.label)}
-          </Link>
-        );
-      })}
+      {groups.map((group) => (
+        <div key={group.section} className="flex flex-col gap-1">
+          <p className="px-3 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            {t(SECTION_LABELS[group.section])}
+          </p>
+          {group.items.map((item) => {
+            const active =
+              item.to === "/dashboard" ? pathname === "/dashboard" : pathname.startsWith(item.to);
+            const Icon = ICONS[item.icon] ?? LayoutGrid;
+            return (
+              <Link
+                key={item.to}
+                to={item.to}
+                onClick={onNavigate}
+                className={cn(
+                  "flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium transition-all",
+                  active
+                    ? "clay-raised bg-sidebar-accent text-sidebar-accent-foreground"
+                    : "text-muted-foreground hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground hover:shadow-clay-sm",
+                )}
+              >
+                <Icon className="size-4" />
+                {t(item.label)}
+              </Link>
+            );
+          })}
+        </div>
+      ))}
     </nav>
+  );
+}
+
+/** Shown when the Control Center closed the workspace (maintenance or a blocked account). */
+function PlatformNoticeBanner() {
+  const fetchNotice = useServerFn(getPlatformNotice);
+  const { data } = useQuery({
+    queryKey: ["platform-notice"],
+    queryFn: () => fetchNotice(),
+    refetchInterval: 120_000,
+  });
+  if (!data) return null;
+  return (
+    <div className="clay-panel flex items-start gap-3 border border-destructive/30 bg-destructive/5 p-4">
+      <span className="clay-inset grid size-9 shrink-0 place-items-center">
+        <Wrench className="size-4 text-destructive" />
+      </span>
+      <div>
+        <p className="font-display text-sm font-semibold">
+          {data.kind === "maintenance" ? t("Texnik ishlar rejimi") : t("Hisob vaqtincha bloklangan")}
+        </p>
+        <p className="mt-0.5 text-xs text-muted-foreground">{data.message}</p>
+      </div>
+    </div>
   );
 }
 
@@ -158,7 +187,6 @@ export function DashboardShell({
   const [open, setOpen] = useState(false);
   const fetchConfig = useServerFn(getMyCrmConfig);
   const { data: crm } = useQuery({ queryKey: ["crm-config"], queryFn: () => fetchConfig() });
-
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) {
@@ -171,11 +199,11 @@ export function DashboardShell({
   const brand = (
     <div className="flex items-center gap-2 px-3 py-4">
       <span className="clay-raised grid size-10 place-items-center overflow-hidden rounded-2xl bg-card">
-        <img src={logoUrl} alt={t("NEXORA CRM logotipi")} className="size-8 object-contain" />
+        <img src={logoUrl} alt={t("KetaOne logotipi")} className="size-8 object-contain" />
       </span>
       <div className="leading-tight">
-        <p className="font-display text-sm font-semibold">NEXORA CRM</p>
-        <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">{t("Qoraqalpog‘iston uchun")}</p>
+        <p className="font-display text-sm font-semibold">KetaOne</p>
+        <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">{BRAND_TAGLINE}</p>
       </div>
     </div>
   );
@@ -211,7 +239,7 @@ export function DashboardShell({
                 </div>
               </SheetContent>
             </Sheet>
-            <span className="font-display text-sm font-semibold lg:hidden">NEXORA CRM</span>
+            <span className="font-display text-sm font-semibold lg:hidden">KetaOne</span>
           </div>
           <div className="flex items-center gap-2">
             <GlobalSearch />
@@ -225,7 +253,10 @@ export function DashboardShell({
             </Button>
           </div>
         </header>
-        <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 lg:px-8">{children}</main>
+        <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 lg:px-8">
+          <PlatformNoticeBanner />
+          {children}
+        </main>
       </div>
     </div>
   );

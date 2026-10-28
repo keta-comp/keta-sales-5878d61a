@@ -69,7 +69,7 @@
 
 :root {
   --radius: 1.25rem;
-  /* NEXORA CRM palette: white + black + metallic silver only (zero chroma). */
+  /* KetaOne palette: white + black + metallic silver only (zero chroma). */
   --background: oklch(0.975 0 0);
   --foreground: oklch(0.17 0 0);
   --card: oklch(1 0 0);

@@ -17,9 +17,9 @@ import { t } from "@/lib/i18n";
 export const Route = createFileRoute("/_authenticated/super-admin/analytics")({
   head: () => ({
     meta: [
-      { title: t("Analitika — NEXORA CRM Control Center") },
+      { title: t("Analitika — KetaOne Control Center") },
       { name: "description", content: t("Platforma o‘sishi: yangi organizationlar, foydalanuvchilar, faollik va churn.") },
-      { property: "og:title", content: t("Analitika — NEXORA CRM Control Center") },
+      { property: "og:title", content: t("Analitika — KetaOne Control Center") },
       { property: "og:description", content: t("Platforma o‘sishi va faollik ko‘rsatkichlari.") },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

@@ -28,6 +28,7 @@ export interface TelegramLinkRow {
   notify_payment: boolean;
   notify_lead: boolean;
   notify_low_stock: boolean;
+  notify_booking: boolean;
   linked_at: string;
 }
 
@@ -89,7 +90,7 @@ export async function findLink(telegramUserId: string): Promise<TelegramLinkRow 
   const { data } = await supabaseAdmin
     .from("telegram_links")
     .select(
-      "id, business_id, telegram_chat_id, telegram_username, timezone, report_time, daily_reports, notify_new_order, notify_payment, notify_lead, notify_low_stock, linked_at",
+      "id, business_id, telegram_chat_id, telegram_username, timezone, report_time, daily_reports, notify_new_order, notify_payment, notify_lead, notify_low_stock, notify_booking, linked_at",
     )
     .eq("telegram_user_id", telegramUserId)
     .eq("status", "active")
@@ -132,7 +133,7 @@ async function sendConnectPrompt(
     telegramUsername: username,
   });
   await sendMessage(token, chatId, intro, {
-    inline_keyboard: [[{ text: "🔗 NEXORA CRM akkauntini ulash", url: linkUrl(code) }]],
+    inline_keyboard: [[{ text: "🔗 KetaOne akkauntini ulash", url: linkUrl(code) }]],
   });
 }
 
@@ -144,7 +145,7 @@ const REPORT_TRIGGERS: { match: RegExp; kind: ReportKind }[] = [
 ];
 
 const HELP_TEXT = [
-  "ℹ️ <b>NEXORA CRM bot buyruqlari</b>",
+  "ℹ️ <b>KetaOne bot buyruqlari</b>",
   "",
   "/today — bugungi hisobot",
   "/yesterday — kechagi hisobot",
@@ -154,7 +155,7 @@ const HELP_TEXT = [
   "/settings — sozlamalar",
   "/help — yordam",
   "",
-  "Asosiy CRM ish joyi NEXORA CRM veb platformasida.",
+  "Asosiy CRM ish joyi KetaOne veb platformasida.",
 ].join("\n");
 
 export async function sendReport(
@@ -194,8 +195,9 @@ function settingsText(link: TelegramLinkRow): string {
     `To‘lov: ${onOff(link.notify_payment)}`,
     `Muhim lead: ${onOff(link.notify_lead)}`,
     `Ombor qoldig‘i: ${onOff(link.notify_low_stock)}`,
+    `Yangi bron: ${onOff(link.notify_booking)}`,
     "",
-    "Sozlamalarni NEXORA CRM → Sozlamalar → Telegram bo‘limida o‘zgartirishingiz mumkin.",
+    "Sozlamalarni KetaOne → Sozlamalar → Telegram bo‘limida o‘zgartirishingiz mumkin.",
   ].join("\n");
 }
 
@@ -213,8 +215,8 @@ export async function handleTelegramText(input: {
 
   if (!link) {
     const intro = /^\/start\b/.test(normalized)
-      ? "👋 NEXORA CRM'ga xush kelibsiz.\n\nTelegram akkauntingizni NEXORA CRM bilan ulang va biznesingiz hisobotlarini Telegram orqali oling."
-      : "Avval NEXORA CRM akkauntingizni ulang.";
+      ? "👋 KetaOne'ga xush kelibsiz.\n\nTelegram akkauntingizni KetaOne bilan ulang va biznesingiz hisobotlarini Telegram orqali oling."
+      : "Avval KetaOne akkauntingizni ulang.";
     await sendConnectPrompt(token, chatId, telegramUserId, username, intro);
     return;
   }
@@ -276,7 +278,7 @@ export async function handleTelegramCallback(input: {
   await telegramCall(token, "answerCallbackQuery", { callback_query_id: callbackId }).catch(() => {});
   const link = await findLink(telegramUserId);
   if (!link) {
-    await sendMessage(token, chatId, "Avval NEXORA CRM akkauntingizni ulang.");
+    await sendMessage(token, chatId, "Avval KetaOne akkauntingizni ulang.");
     return;
   }
   const match = /^excel:(today|yesterday|week|month)$/.exec(data);

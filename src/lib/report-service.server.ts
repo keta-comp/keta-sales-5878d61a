@@ -3,6 +3,7 @@
  * reports page, the Telegram report bot and any future channel (email, etc.).
  * Every number here is computed from real rows — no demo values anywhere.
  */
+import { assigneeNameMap } from "./assignee.server";
 import { buildWorkbookBase64 } from "./excel.server";
 
 export type ReportKind = "today" | "yesterday" | "week" | "month";
@@ -158,7 +159,7 @@ export interface BusinessReport {
   pendingPaymentsCount: number;
   pendingPaymentsAmount: number;
   topProducts: { name: string; quantity: number; revenue: number }[];
-  topOperator: { name: string; revenue: number } | null;
+  topMember: { name: string; revenue: number } | null;
   sources: { name: string; leads: number }[];
   rows: {
     orders: Record<string, unknown>[];
@@ -177,7 +178,7 @@ export async function buildBusinessReport(
   range: ReportRange,
 ): Promise<BusinessReport> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const [settings, orders, payments, customers, leads, operators, items] = await Promise.all([
+  const [settings, orders, payments, customers, leads, items] = await Promise.all([
     supabaseAdmin
       .from("business_settings")
       .select("currency, business_name")
@@ -185,7 +186,7 @@ export async function buildBusinessReport(
       .maybeSingle(),
     supabaseAdmin
       .from("orders")
-      .select("id, order_number, total, status, payment_status, created_at, assigned_operator_id, customer_id")
+      .select("id, order_number, total, status, payment_status, created_at, assigned_member_id, customer_id")
       .eq("business_id", businessId)
       .gte("created_at", range.from)
       .lte("created_at", range.to)
@@ -206,12 +207,11 @@ export async function buildBusinessReport(
       .limit(5000),
     supabaseAdmin
       .from("leads")
-      .select("id, status, source, value, created_at, customer_id, assigned_operator_id, requested_product")
+      .select("id, status, source, value, created_at, customer_id, assigned_member_id, requested_product")
       .eq("business_id", businessId)
       .gte("created_at", range.from)
       .lte("created_at", range.to)
       .limit(5000),
-    supabaseAdmin.from("operators").select("id, full_name").eq("business_id", businessId),
     supabaseAdmin
       .from("order_items")
       .select("order_id, product_name, quantity, line_total, created_at")
@@ -225,7 +225,7 @@ export async function buildBusinessReport(
   const paymentRows = payments.data ?? [];
   const leadRows = leads.data ?? [];
   const customerRows = customers.data ?? [];
-  const operatorNames = new Map((operators.data ?? []).map((o) => [o.id, o.full_name]));
+  const memberNames = await assigneeNameMap(businessId);
 
   const revenue = paymentRows
     .filter((p) => p.status === "paid" || p.status === "partial")
@@ -242,15 +242,15 @@ export async function buildBusinessReport(
     productMap.set(item.product_name, entry);
   }
 
-  const operatorRevenue = new Map<string, number>();
+  const memberRevenue = new Map<string, number>();
   for (const order of orderRows) {
-    if (!order.assigned_operator_id) continue;
-    operatorRevenue.set(
-      order.assigned_operator_id,
-      (operatorRevenue.get(order.assigned_operator_id) ?? 0) + num(order.total),
+    if (!order.assigned_member_id) continue;
+    memberRevenue.set(
+      order.assigned_member_id,
+      (memberRevenue.get(order.assigned_member_id) ?? 0) + num(order.total),
     );
   }
-  const topOperatorEntry = [...operatorRevenue.entries()].sort((a, b) => b[1] - a[1])[0];
+  const topMemberEntry = [...memberRevenue.entries()].sort((a, b) => b[1] - a[1])[0];
 
   const sourceMap = new Map<string, number>();
   for (const lead of leadRows) {
@@ -261,7 +261,7 @@ export async function buildBusinessReport(
   const customerNames = new Map(customerRows.map((c) => [c.id, c.full_name]));
 
   return {
-    businessName: settings.data?.business_name ?? "NEXORA CRM",
+    businessName: settings.data?.business_name ?? "KetaOne",
     currency: settings.data?.currency ?? "UZS",
     range,
     revenue,
@@ -274,8 +274,8 @@ export async function buildBusinessReport(
     pendingPaymentsCount: pending.length,
     pendingPaymentsAmount: pending.reduce((sum, p) => sum + num(p.amount), 0),
     topProducts: [...productMap.values()].sort((a, b) => b.revenue - a.revenue).slice(0, 5),
-    topOperator: topOperatorEntry
-      ? { name: operatorNames.get(topOperatorEntry[0]) ?? "Operator", revenue: topOperatorEntry[1] }
+    topMember: topMemberEntry
+      ? { name: memberNames.get(topMemberEntry[0]) ?? "Mas’ul", revenue: topMemberEntry[1] }
       : null,
     sources: [...sourceMap.entries()]
       .map(([name, leadCount]) => ({ name, leads: leadCount }))
@@ -288,7 +288,7 @@ export async function buildBusinessReport(
         Summa: num(order.total),
         Status: order.status,
         "To‘lov holati": order.payment_status,
-        Operator: order.assigned_operator_id ? (operatorNames.get(order.assigned_operator_id) ?? "") : "",
+        "Mas’ul": order.assigned_member_id ? (memberNames.get(order.assigned_member_id) ?? "") : "",
       })),
       payments: paymentRows.map((payment) => ({
         "To‘lov ID": payment.id.slice(0, 8),
@@ -339,7 +339,7 @@ export function formatReportMessage(
 ): string {
   const kind = (report.range.kind === "custom" ? "today" : report.range.kind) as ReportKind;
   const lines = [
-    `📊 <b>NEXORA CRM</b>`,
+    `📊 <b>KetaOne</b>`,
     `${TITLES[kind]}`,
     "",
     `📅 ${report.range.label}`,
@@ -373,8 +373,8 @@ export function formatReportMessage(
       lines.push(`• ${product.name} — ${product.quantity} ta`);
     }
   }
-  if (report.topOperator) {
-    lines.push("", `⭐ Eng samarali operator: ${report.topOperator.name}`);
+  if (report.topMember) {
+    lines.push("", `⭐ Eng samarali xodim: ${report.topMember.name}`);
   }
   if (report.sources.length) {
     lines.push("", `📌 Lead manbalari: ${report.sources.slice(0, 3).map((s) => `${s.name} (${s.leads})`).join(", ")}`);
@@ -409,7 +409,7 @@ export function buildReportExcel(report: BusinessReport): { base64: string; file
   ]);
   return {
     base64,
-    filename: `nexora-crm-hisobot-${report.range.from.slice(0, 10)}.xlsx`,
+    filename: `ketaone-hisobot-${report.range.from.slice(0, 10)}.xlsx`,
   };
 }
 

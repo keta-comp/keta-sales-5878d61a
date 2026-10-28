@@ -24,9 +24,9 @@ import { t } from "@/lib/i18n";
 export const Route = createFileRoute("/_authenticated/dashboard/products")({
   head: () => ({
     meta: [
-      { title: t("Mahsulotlar — NEXORA CRM") },
+      { title: t("Mahsulotlar — KetaOne") },
       { name: "description", content: t("AI savdo agentingiz taklif beradigan jonli mahsulotlar katalogi.") },
-      { property: "og:title", content: t("Mahsulotlar — NEXORA CRM") },
+      { property: "og:title", content: t("Mahsulotlar — KetaOne") },
       { property: "og:description", content: t("AI savdo agentini boshqaradigan katalog va narxlar.") },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

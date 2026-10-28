@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { PLAN_IDS } from "./billing";
 
 /** Every function here verifies platform-level authorization inside the handler.
  *  Frontend route guards are convenience only — this is the real boundary. */
@@ -61,7 +62,6 @@ export const getOrganization = createServerFn({ method: "GET" })
   });
 
 const ORG_STATUSES = ["active", "trial", "suspended", "cancelled"] as const;
-const PLANS = ["free", "starter", "business", "enterprise"] as const;
 
 export const setOrganizationStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -70,7 +70,7 @@ export const setOrganizationStatus = createServerFn({ method: "POST" })
       .object({
         id: z.string().uuid(),
         status: z.enum(ORG_STATUSES),
-        reason: z.string().max(400).optional(),
+        reason: z.string().max(400).nullish(),
       })
       .parse(input),
   )
@@ -79,11 +79,13 @@ export const setOrganizationStatus = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { logAudit } = await import("./audit.server");
 
-    const { data: business } = await supabaseAdmin
+    const { data: business, error: readError } = await supabaseAdmin
       .from("businesses")
       .select("name, status")
       .eq("id", data.id)
       .maybeSingle();
+    if (readError) throw new Error(readError.message);
+    if (!business) throw new Error("Organization topilmadi");
 
     const { error } = await supabaseAdmin
       .from("businesses")
@@ -112,18 +114,21 @@ export const setOrganizationStatus = createServerFn({ method: "POST" })
 export const setOrganizationPlan = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
-    z.object({ id: z.string().uuid(), plan: z.enum(PLANS) }).parse(input),
+    z.object({ id: z.string().uuid(), plan: z.enum(PLAN_IDS) }).parse(input),
   )
   .handler(async ({ data, context }) => {
     const actor = await requireSuperAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { logAudit } = await import("./audit.server");
 
-    const { data: business } = await supabaseAdmin
+    const { data: business, error: readError } = await supabaseAdmin
       .from("businesses")
       .select("name, plan")
       .eq("id", data.id)
       .maybeSingle();
+    if (readError) throw new Error(readError.message);
+    if (!business) throw new Error("Organization topilmadi");
+
     const { error } = await supabaseAdmin.from("businesses").update({ plan: data.plan }).eq("id", data.id);
     if (error) throw new Error(error.message);
 
@@ -174,11 +179,14 @@ export const setUserStatus = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { logAudit } = await import("./audit.server");
 
-    const { data: target } = await supabaseAdmin
+    const { data: target, error: readError } = await supabaseAdmin
       .from("profiles")
       .select("email, full_name, status")
       .eq("id", data.id)
       .maybeSingle();
+    if (readError) throw new Error(readError.message);
+    if (!target) throw new Error("Foydalanuvchi topilmadi");
+
     const { error } = await supabaseAdmin.from("profiles").update({ status: data.status }).eq("id", data.id);
     if (error) throw new Error(error.message);
 
@@ -189,19 +197,22 @@ export const setUserStatus = createServerFn({ method: "POST" })
       action: data.status === "suspended" ? "user_suspended" : "user_reactivated",
       targetType: "user",
       targetId: data.id,
-      targetLabel: target?.email ?? target?.full_name ?? null,
-      metadata: { from: target?.status ?? null, to: data.status },
+      targetLabel: target.email ?? target.full_name ?? null,
+      metadata: { from: target.status, to: data.status },
     });
     return { ok: true };
   });
 
+/** Changing a role is always scoped to one workspace: an unscoped update would rewrite
+ *  the role of this user in every organization they belong to. */
 export const setUserRole = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
     z
       .object({
         id: z.string().uuid(),
-        role: z.enum(["owner", "admin", "manager", "operator"]),
+        businessId: z.string().uuid(),
+        role: z.enum(["owner", "admin", "manager", "receptionist", "cashier"]),
       })
       .parse(input),
   )
@@ -210,20 +221,42 @@ export const setUserRole = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { logAudit } = await import("./audit.server");
 
-    const { data: target } = await supabaseAdmin
-      .from("profiles")
-      .select("email, full_name")
-      .eq("id", data.id)
+    const [{ data: target, error: profileError }, { data: adminRow, error: adminError }] = await Promise.all([
+      supabaseAdmin.from("profiles").select("email, full_name").eq("id", data.id).maybeSingle(),
+      supabaseAdmin.from("platform_admins").select("user_id").eq("user_id", data.id).maybeSingle(),
+    ]);
+    if (profileError) throw new Error(profileError.message);
+    if (adminError) throw new Error(adminError.message);
+    if (!target) throw new Error("Foydalanuvchi topilmadi");
+    if (adminRow) throw new Error("Platforma administratorining rolini o‘zgartirib bo‘lmaydi");
+
+    const { data: membership, error: membershipError } = await supabaseAdmin
+      .from("business_members")
+      .select("id, role")
+      .eq("user_id", data.id)
+      .eq("business_id", data.businessId)
       .maybeSingle();
+    if (membershipError) throw new Error(membershipError.message);
+    if (!membership) throw new Error("Foydalanuvchi bu organization’ning a’zosi emas");
 
     const { error } = await supabaseAdmin
       .from("business_members")
       .update({ role: data.role })
-      .eq("user_id", data.id);
+      .eq("id", membership.id);
     if (error) throw new Error(error.message);
 
-    await supabaseAdmin.from("user_roles").delete().eq("user_id", data.id);
-    await supabaseAdmin.from("user_roles").insert({ user_id: data.id, role: data.role });
+    // user_roles only feeds the platform-wide role label; drop the stale row first so
+    // a failed insert can never leave the account with two roles or none at all.
+    const { error: dropError } = await supabaseAdmin
+      .from("user_roles")
+      .delete()
+      .eq("user_id", data.id)
+      .neq("role", data.role);
+    if (dropError) throw new Error(dropError.message);
+    const { error: roleError } = await supabaseAdmin
+      .from("user_roles")
+      .upsert({ user_id: data.id, role: data.role }, { onConflict: "user_id,role" });
+    if (roleError) throw new Error(roleError.message);
 
     await logAudit({
       actorUserId: context.userId,
@@ -232,8 +265,9 @@ export const setUserRole = createServerFn({ method: "POST" })
       action: "role_changed",
       targetType: "user",
       targetId: data.id,
-      targetLabel: target?.email ?? target?.full_name ?? null,
-      metadata: { to: data.role },
+      targetLabel: target.email ?? target.full_name ?? null,
+      businessId: data.businessId,
+      metadata: { from: membership.role, to: data.role },
     });
     return { ok: true };
   });
@@ -246,15 +280,23 @@ export const sendPasswordResetFor = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { logAudit } = await import("./audit.server");
 
-    const { data: target } = await supabaseAdmin
+    const { data: target, error: readError } = await supabaseAdmin
       .from("profiles")
       .select("email")
       .eq("id", data.id)
       .maybeSingle();
+    if (readError) throw new Error(readError.message);
     if (!target?.email) throw new Error("Email topilmadi");
 
     // Password itself is never readable — only a reset link can be issued.
-    const { error } = await supabaseAdmin.auth.resetPasswordForEmail(target.email);
+    // The link has to land on the app's own recovery screen, otherwise the user
+    // receives a token they cannot use.
+    const { requestOrigin } = await import("./request.server");
+    const origin = requestOrigin();
+    const { error } = await supabaseAdmin.auth.resetPasswordForEmail(
+      target.email,
+      origin ? { redirectTo: `${origin}/auth?mode=recover` } : undefined,
+    );
     if (error) throw new Error(error.message);
 
     await logAudit({
@@ -434,13 +476,18 @@ export const listSystemNotifications = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await requireSuperAdmin(context);
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data } = await supabaseAdmin
-      .from("system_notifications")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(50);
-    return data ?? [];
+    const { listSentNotifications } = await import("./super-admin.server");
+    return listSentNotifications();
+  });
+
+/** The real choices the send form may offer: only plans/organizations/industries that
+ *  exist in the database, because those are exactly what the delivery policy matches on. */
+export const getNotificationTargets = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await requireSuperAdmin(context);
+    const { listNotificationTargets } = await import("./super-admin.server");
+    return listNotificationTargets();
   });
 
 export const sendSystemNotification = createServerFn({ method: "POST" })
@@ -448,11 +495,11 @@ export const sendSystemNotification = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) =>
     z
       .object({
-        title: z.string().min(2),
-        body: z.string().min(2),
+        title: z.string().min(2).max(120),
+        body: z.string().min(2).max(1000),
         kind: z.enum(["info", "warning", "maintenance"]),
         target_kind: z.enum(["all", "organization", "plan", "industry"]),
-        target_value: z.string().nullable().optional(),
+        target_value: z.string().max(200).nullable().optional(),
       })
       .parse(input),
   )
@@ -460,17 +507,42 @@ export const sendSystemNotification = createServerFn({ method: "POST" })
     const actor = await requireSuperAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { logAudit } = await import("./audit.server");
+    const { audienceCount, buildNotificationAudiences } = await import("./super-admin.server");
 
-    if (data.target_kind !== "all" && !data.target_value) throw new Error("Maqsadni tanlang");
+    if (data.target_kind === "all") {
+      data.target_value = null;
+    } else if (!data.target_value) {
+      throw new Error("Maqsadni tanlang");
+    }
 
-    const { error } = await supabaseAdmin.from("system_notifications").insert({
-      title: data.title,
-      body: data.body,
-      kind: data.kind,
-      target_kind: data.target_kind,
-      target_value: data.target_value ?? null,
-      created_by: context.userId,
-    });
+    // A target that matches nothing would deliver the announcement to zero people
+    // while the journal still says "sent" — so the value is resolved before inserting.
+    const audiences = await buildNotificationAudiences();
+    if (data.target_kind === "organization") {
+      if (!audiences.byBusiness.has(data.target_value as string)) {
+        throw new Error("Organization topilmadi yoki bloklangan.");
+      }
+    } else if (data.target_kind === "plan") {
+      if (!(PLAN_IDS as readonly string[]).includes(data.target_value as string)) {
+        throw new Error("Bunday plan mavjud emas.");
+      }
+    }
+
+    const audience = audienceCount(audiences, data.target_kind, data.target_value ?? null);
+    if (audience === 0) throw new Error("Bu maqsadga mos faol foydalanuvchi yo‘q — e’lon yuborilmadi.");
+
+    const { data: created, error } = await supabaseAdmin
+      .from("system_notifications")
+      .insert({
+        title: data.title,
+        body: data.body,
+        kind: data.kind,
+        target_kind: data.target_kind,
+        target_value: data.target_value ?? null,
+        created_by: context.userId,
+      })
+      .select("id")
+      .single();
     if (error) throw new Error(error.message);
 
     await logAudit({
@@ -479,8 +551,38 @@ export const sendSystemNotification = createServerFn({ method: "POST" })
       actorKind: "super_admin",
       action: "notification_sent",
       targetType: "notification",
+      targetId: created?.id ?? null,
       targetLabel: data.title,
-      metadata: { kind: data.kind, target: data.target_kind, value: data.target_value ?? null },
+      metadata: { kind: data.kind, target: data.target_kind, value: data.target_value ?? null, audience },
+    });
+    return { ok: true, id: created?.id ?? null, audience };
+  });
+
+/** Withdrawing an announcement also drops its read receipts (FK ON DELETE CASCADE). */
+export const deleteSystemNotification = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const actor = await requireSuperAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { logAudit } = await import("./audit.server");
+
+    const { data: removed, error } = await supabaseAdmin
+      .from("system_notifications")
+      .delete()
+      .eq("id", data.id)
+      .select("id, title");
+    if (error) throw new Error(error.message);
+    if ((removed ?? []).length === 0) throw new Error("E’lon topilmadi");
+
+    await logAudit({
+      actorUserId: context.userId,
+      actorEmail: actor.email,
+      actorKind: "super_admin",
+      action: "notification_revoked",
+      targetType: "notification",
+      targetId: data.id,
+      targetLabel: removed?.[0]?.title ?? null,
     });
     return { ok: true };
   });
@@ -600,4 +702,49 @@ export const exportPlatformExcel = createServerFn({ method: "POST" })
         },
       ]),
     };
+  });
+
+/* -------------------------------- errors ---------------------------------- */
+
+export const listErrorEventsFn = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        hours: z.number().int().min(1).max(720).default(24),
+        route: z.string().max(300).optional(),
+        limit: z.number().int().min(10).max(500).default(200),
+      })
+      .parse(input ?? {}),
+  )
+  .handler(async ({ data, context }) => {
+    await requireSuperAdmin(context);
+    const { listErrorEvents } = await import("./super-admin.server");
+    return listErrorEvents(data);
+  });
+
+export const clearErrorEventsFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        fingerprint: z.string().min(1).max(600).optional(),
+        olderThanDays: z.number().int().min(0).max(365).optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const actor = await requireSuperAdmin(context);
+    const { logAudit } = await import("./audit.server");
+    const { clearErrorEvents } = await import("./super-admin.server");
+    const result = await clearErrorEvents(data);
+    await logAudit({
+      actorUserId: context.userId,
+      actorEmail: actor.email,
+      actorKind: "super_admin",
+      action: "error_events_cleared",
+      targetType: "error_events",
+      metadata: { ...data, deleted: result.deleted },
+    });
+    return result;
   });

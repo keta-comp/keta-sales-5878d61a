@@ -2,18 +2,25 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireBusinessId } from "./tenant.server";
 
 /** Lightweight pickers used by quick-create dialogs (no heavy joins). */
 export const listPickers = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const [customers, operators, orders, products] = await Promise.all([
+    const businessId = await requireBusinessId(context.supabase);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const [customers, members, orders, products] = await Promise.all([
       context.supabase
         .from("customers")
         .select("id, full_name, phone")
         .order("last_interaction_at", { ascending: false })
         .limit(200),
-      context.supabase.from("operators").select("id, full_name").eq("is_active", true).limit(100),
+      supabaseAdmin
+        .from("business_members")
+        .select("id, user_id")
+        .eq("business_id", businessId)
+        .order("created_at", { ascending: true }),
       context.supabase
         .from("orders")
         .select("id, order_number, total, customer_id")
@@ -26,9 +33,21 @@ export const listPickers = createServerFn({ method: "GET" })
         .eq("is_archived", false)
         .limit(200),
     ]);
+
+    // Assignees are team members; names live on profiles, so they are joined here.
+    const userIds = (members.data ?? []).map((member) => member.user_id);
+    const { data: profiles } = userIds.length
+      ? await supabaseAdmin.from("profiles").select("id, full_name, email").in("id", userIds)
+      : { data: [] };
+    const nameBy = new Map((profiles ?? []).map((p) => [p.id, p.full_name || p.email || "A’zo"]));
+    const assignees = (members.data ?? []).map((member) => ({
+      id: member.id,
+      full_name: nameBy.get(member.user_id) ?? "A’zo",
+    }));
+
     return {
       customers: customers.data ?? [],
-      operators: operators.data ?? [],
+      assignees,
       orders: orders.data ?? [],
       products: products.data ?? [],
     };
@@ -47,7 +66,7 @@ export const createQuickLead = createServerFn({ method: "POST" })
         next_action: z.string().nullable().optional(),
         phone: z.string().nullable().optional(),
         notes: z.string().nullable().optional(),
-        assigned_operator_id: z.string().nullable().optional(),
+        assigned_member_id: z.string().nullable().optional(),
       })
       .parse(input),
   )
@@ -104,7 +123,7 @@ export const createQuickOrder = createServerFn({ method: "POST" })
         delivery_address: z.string().nullable().optional(),
         notes: z.string().nullable().optional(),
         discount: z.number().nonnegative().default(0),
-        assigned_operator_id: z.string().nullable().optional(),
+        assigned_member_id: z.string().nullable().optional(),
         items: z
           .array(
             z.object({
@@ -138,7 +157,7 @@ export const createQuickOrder = createServerFn({ method: "POST" })
         phone: data.phone ?? null,
         delivery_address: data.delivery_address ?? null,
         notes: data.notes ?? null,
-        assigned_operator_id: data.assigned_operator_id ?? null,
+        assigned_member_id: data.assigned_member_id ?? null,
         discount: data.discount,
         total,
       } as never)

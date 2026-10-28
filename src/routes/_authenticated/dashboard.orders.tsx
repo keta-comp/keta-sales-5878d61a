@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
+import { z } from "zod";
 
 import { EmptyState, ErrorState, LoadingState, PageHeader, StatusBadge } from "@/components/app/primitives";
 import { Button } from "@/components/ui/button";
@@ -10,7 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { listOperators, listOrders, updateOrder } from "@/lib/orders.functions";
+import { listAssignees } from "@/lib/members.functions";
+import { listOrders, updateOrder } from "@/lib/orders.functions";
 import {
   ORDER_STATUSES,
   PAYMENT_STATUSES,
@@ -36,12 +38,19 @@ const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
   refunded: "Qaytarilgan",
 };
 
+const searchSchema = z.object({
+  status: z.string().optional(),
+  search: z.string().optional(),
+  customerId: z.string().optional(),
+});
+
 export const Route = createFileRoute("/_authenticated/dashboard/orders")({
+  validateSearch: searchSchema,
   head: () => ({
     meta: [
-      { title: t("Buyurtmalar — NEXORA CRM") },
+      { title: t("Buyurtmalar — KetaOne") },
       { name: "description", content: t("AI agenti Telegramda yakunlagan buyurtmalarni kuzating va bajaring.") },
-      { property: "og:title", content: t("Buyurtmalar — NEXORA CRM") },
+      { property: "og:title", content: t("Buyurtmalar — KetaOne") },
       { property: "og:description", content: t("Avtomatik ombor zaxirasi bilan buyurtmalarni bajarish.") },
     ],
   }),
@@ -52,23 +61,38 @@ type OrderPatch = {
   id: string;
   status?: OrderStatus;
   payment_status?: PaymentStatus;
-  assigned_operator_id?: string | null;
+  assigned_member_id?: string | null;
 };
 
 function OrdersPage() {
+  const params = Route.useSearch();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const fetchOrders = useServerFn(listOrders);
-  const fetchOperators = useServerFn(listOperators);
+  const fetchAssignees = useServerFn(listAssignees);
   const save = useServerFn(updateOrder);
 
-  const [status, setStatus] = useState("all");
-  const [search, setSearch] = useState("");
+  const status = params.status ?? "all";
+  const search = params.search ?? "";
+  const customerId = params.customerId ?? null;
+
+  const setStatus = (next: string) =>
+    void navigate({
+      to: "/dashboard/orders",
+      search: (prev) => ({ ...prev, status: next === "all" ? undefined : next }),
+    });
+  const setSearch = (next: string) =>
+    void navigate({
+      to: "/dashboard/orders",
+      search: (prev) => ({ ...prev, search: next === "" ? undefined : next }),
+    });
 
   const orders = useQuery({
-    queryKey: ["orders", status, search],
-    queryFn: () => fetchOrders({ data: { status, search } }),
+    queryKey: ["orders", status, search, customerId],
+    queryFn: () =>
+      fetchOrders({ data: { status, search, ...(customerId ? { customerId } : {}) } }),
   });
-  const operators = useQuery({ queryKey: ["operators"], queryFn: () => fetchOperators() });
+  const assignees = useQuery({ queryKey: ["assignees"], queryFn: () => fetchAssignees() });
 
   useEffect(() => {
     const channel = supabase
@@ -125,6 +149,20 @@ function OrdersPage() {
             </SelectContent>
           </Select>
         </div>
+        {customerId ? (
+          <button
+            type="button"
+            onClick={() =>
+              void navigate({
+                to: "/dashboard/orders",
+                search: (prev) => ({ ...prev, customerId: undefined }),
+              })
+            }
+            className="clay-inset h-9 rounded-xl px-3 text-xs font-medium text-muted-foreground hover:text-foreground"
+          >
+            {t("Mijoz bo‘yicha filtr")} ✕
+          </button>
+        ) : null}
       </div>
 
       {orders.isPending ? (
@@ -132,11 +170,16 @@ function OrdersPage() {
       ) : orders.error ? (
         <ErrorState error={orders.error} onRetry={() => void orders.refetch()} />
       ) : orders.data.length === 0 ? (
-        <EmptyState title={t("Hali buyurtmalar yo'q")} description={t("AI agenti yoki operator savdoni yakunlaganda buyurtmalar shu yerda paydo bo'ladi.")} />
+        <EmptyState title={t("Hali buyurtmalar yo'q")} description={t("AI agenti yoki jamoa a'zosi savdoni yakunlaganda buyurtmalar shu yerda paydo bo'ladi.")} />
       ) : (
         <div className="space-y-4">
           {orders.data.map((order) => {
-            const customer = order.customers as { full_name: string | null; telegram_username: string | null } | null;
+            const customer = order.customers as {
+              id: string | null;
+              full_name: string | null;
+              telegram_username: string | null;
+            } | null;
+            const customerName = customer?.full_name ?? customer?.telegram_username ?? "Telegram mijozi";
             const items = (order.order_items ?? []) as {
               id: string;
               product_name: string;
@@ -153,8 +196,69 @@ function OrdersPage() {
                       <StatusBadge value={order.payment_status} />
                     </div>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      {customer?.full_name ?? customer?.telegram_username ?? "Telegram mijozi"} ·{" "}
-                      {order.phone ?? "telefon yo'q"} · {new Date(order.created_at).toLocaleString()}
+                      {customer?.id ? (
+                        <Link
+                          to="/dashboard/customers/$id"
+                          params={{ id: customer.id }}
+                          className="underline-offset-4 hover:underline"
+                        >
+                          {customerName}
+                        </Link>
+                      ) : (
+                        customerName
+                      )}{" "}
+                      · {order.phone ?? "telefon yo'q"} · {new Date(order.created_at).toLocaleString()}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {order.assignee_name ? (
+                        <>
+                          {`${t("Mas’ul")}: `}
+                          <Link
+                            to="/dashboard/team"
+                            className="text-foreground underline-offset-4 hover:underline"
+                          >
+                            {order.assignee_name}
+                          </Link>
+                        </>
+                      ) : (
+                        t("Biriktirilmagan")
+                      )}
+                      {order.lead_id ? (
+                        <>
+                          {" · "}
+                          <Link
+                            to="/dashboard/leads"
+                            search={{ id: order.lead_id }}
+                            className="underline-offset-4 hover:underline"
+                          >
+                            {t("Lid")}
+                          </Link>
+                        </>
+                      ) : null}
+                      {order.order_number ? (
+                        <>
+                          {" · "}
+                          <Link
+                            to="/dashboard/payments"
+                            search={{ search: order.order_number }}
+                            className="underline-offset-4 hover:underline"
+                          >
+                            {t("To‘lovlar")}
+                          </Link>
+                        </>
+                      ) : null}
+                      {order.customer_id ? (
+                        <>
+                          {" · "}
+                          <Link
+                            to="/dashboard/tasks"
+                            search={{ customerId: order.customer_id }}
+                            className="underline-offset-4 hover:underline"
+                          >
+                            {t("Vazifalar")}
+                          </Link>
+                        </>
+                      ) : null}
                     </p>
                     {order.delivery_address ? (
                       <p className="text-sm text-muted-foreground">{t("Yetkazib berish manzili:")}{" "}{order.delivery_address}</p>
@@ -216,13 +320,13 @@ function OrdersPage() {
                     </Select>
                   </div>
                   <div>
-                    <Label>{t("Operator")}</Label>
+                    <Label>{t("Mas’ul")}</Label>
                     <Select
-                      value={order.assigned_operator_id ?? "none"}
+                      value={order.assigned_member_id ?? "none"}
                       onValueChange={(value) =>
                         mutation.mutate({
                           id: order.id,
-                          assigned_operator_id: value === "none" ? null : value,
+                          assigned_member_id: value === "none" ? null : value,
                         })
                       }
                     >
@@ -231,9 +335,9 @@ function OrdersPage() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="none">{t("Biriktirilmagan")}</SelectItem>
-                        {(operators.data ?? []).map((operator) => (
-                          <SelectItem key={operator.id} value={operator.id}>
-                            {operator.full_name}
+                        {(assignees.data ?? []).map((member) => (
+                          <SelectItem key={member.id} value={member.id}>
+                            {member.full_name}
                           </SelectItem>
                         ))}
                       </SelectContent>

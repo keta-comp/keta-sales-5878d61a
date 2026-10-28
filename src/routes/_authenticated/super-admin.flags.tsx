@@ -8,14 +8,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ErrorState, LoadingState, PageHeader } from "@/components/app/primitives";
 import { NoData, Panel } from "@/components/app/super-admin-ui";
 import { getFeatureFlags, saveFeatureFlag } from "@/lib/super-admin.functions";
+import { PLAN_IDS } from "@/lib/billing";
 import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/super-admin/flags")({
   head: () => ({
     meta: [
-      { title: t("Funksiyalar — NEXORA CRM Control Center") },
-      { name: "description", content: t("NEXORA CRM funksiyalarini plan yoki organization bo‘yicha yoqish va o‘chirish.") },
-      { property: "og:title", content: t("Funksiyalar — NEXORA CRM Control Center") },
+      { title: t("Funksiyalar — KetaOne Control Center") },
+      { name: "description", content: t("KetaOne funksiyalarini plan yoki organization bo‘yicha yoqish va o‘chirish.") },
+      { property: "og:title", content: t("Funksiyalar — KetaOne Control Center") },
       { property: "og:description", content: t("Funksiya boshqaruvi: AI yordamchi, Telegram hisobotlar va boshqalar.") },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -24,7 +25,7 @@ export const Route = createFileRoute("/_authenticated/super-admin/flags")({
   component: FlagsPage,
 });
 
-const PLANS = ["free", "starter", "business", "enterprise"];
+const PLANS = PLAN_IDS;
 
 function FlagsPage() {
   const queryClient = useQueryClient();
@@ -62,6 +63,9 @@ function FlagsPage() {
         title={t("Funksiya boshqaruvi")}
         description={t("Har bir funksiyani umumiy, plan yoki bitta organization uchun yoqing.")}
       />
+      <p className="-mt-4 text-xs text-muted-foreground">
+        {t("Yoqilgan flag plan talabini yengadi, o‘chirilgan flag esa istalgan planda funksiyani o‘chiradi.")}
+      </p>
 
       {flags.length === 0 ? (
         <Panel><NoData label={t("Funksiyalar ro‘yxati bo‘sh")} /></Panel>
@@ -87,6 +91,9 @@ function FlagsPage() {
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-2">
+                  {/* Changing one restriction keeps the other: a flag can be scoped to
+                      a plan AND a business at once, and silently dropping the second
+                      would widen the change far past what was clicked. */}
                   <Select
                     value={flag.target_plan ?? "none"}
                     onValueChange={(v) =>
@@ -95,7 +102,7 @@ function FlagsPage() {
                         label: flag.label,
                         enabled: flag.enabled,
                         target_plan: v === "none" ? null : v,
-                        target_business_id: null,
+                        target_business_id: flag.target_business_id ?? null,
                       })
                     }
                   >
@@ -113,7 +120,7 @@ function FlagsPage() {
                         key: flag.key,
                         label: flag.label,
                         enabled: flag.enabled,
-                        target_plan: null,
+                        target_plan: flag.target_plan ?? null,
                         target_business_id: v === "none" ? null : v,
                       })
                     }
@@ -127,6 +134,13 @@ function FlagsPage() {
                     </SelectContent>
                   </Select>
                 </div>
+                <p className="text-xs text-muted-foreground">
+                  {flag.target_business_id
+                    ? `${t("Faqat shu organization")}: ${(data?.businesses ?? []).find((b) => b.id === flag.target_business_id)?.name ?? flag.target_business_id}`
+                    : flag.target_plan
+                      ? `${t("Faqat shu plan")}: ${flag.target_plan}`
+                      : t("Barcha organizationlarga ta’sir qiladi")}
+                </p>
               </div>
             </Panel>
           ))}

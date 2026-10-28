@@ -11,7 +11,7 @@ import { getMyCrmConfig, listCrmRecords, saveCrmRecord } from "@/lib/crm-config.
 import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/dashboard/pipeline")({
-  head: () => ({ meta: [{ title: t("Pipeline — NEXORA CRM") }] }),
+  head: () => ({ meta: [{ title: t("Pipeline — KetaOne") }] }),
   component: PipelinePage,
 });
 

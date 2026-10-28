@@ -25,14 +25,21 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
-import { deleteCrmRecord, getMyCrmConfig, listCrmRecords, saveCrmRecord } from "@/lib/crm-config.functions";
+import {
+  deleteCrmRecord,
+  getMyCrmConfig,
+  listCrmRecords,
+  saveCrmRecord,
+  ATTACHMENT_BUCKET,
+} from "@/lib/crm-config.functions";
 import { relationIdKey, type CrmField } from "@/lib/crm-config";
+import { AttachmentCell, AttachmentField } from "@/components/app/CrmAttachment";
 import { RelationCombobox } from "@/components/app/RelationCombobox";
 import { Link } from "@tanstack/react-router";
 import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/dashboard/crm/$moduleKey")({
-  head: () => ({ meta: [{ title: t("CRM moduli — NEXORA CRM") }] }),
+  head: () => ({ meta: [{ title: t("CRM moduli — KetaOne") }] }),
   component: CrmModulePage,
 });
 
@@ -131,6 +138,8 @@ function CrmModulePage() {
       await saveRecord({
         data: { id: editing?.id, moduleKey: module.key, title, stage: stage || null, data },
       });
+      const dropped = replacedAttachments(module.fields ?? [], editing?.data, form);
+      if (dropped.length) await supabase.storage.from(ATTACHMENT_BUCKET).remove(dropped);
       await records.refetch();
       void queryClient.invalidateQueries({ queryKey: ["crm-widgets"] });
       setCreating(false);
@@ -144,7 +153,9 @@ function CrmModulePage() {
     if (!editing) return;
     setSaving(true);
     try {
+      const files = recordAttachments(module?.fields ?? [], editing.data);
       await removeRecord({ data: { id: editing.id } });
+      if (files.length) await supabase.storage.from(ATTACHMENT_BUCKET).remove(files);
       await records.refetch();
       void queryClient.invalidateQueries({ queryKey: ["crm-widgets"] });
       setEditing(null);
@@ -221,7 +232,7 @@ function CrmModulePage() {
                   >
                     {fields.slice(0, 5).map((f) => (
                       <td key={f.key} className="max-w-56 truncate px-4 py-3">
-                        <CellValue field={f} data={row.data} />
+                        <CellValue field={f} data={row.data} moduleKey={module.key} />
                       </td>
                     ))}
                     {module.pipeline && (
@@ -258,6 +269,7 @@ function CrmModulePage() {
               <FieldInput
                 key={field.key}
                 field={field}
+                moduleKey={module.key}
                 value={form[field.key] ?? ""}
                 relationId={form[relationIdKey(field.key)] ?? ""}
                 onChange={(v) => setForm((prev) => ({ ...prev, [field.key]: v }))}
@@ -304,8 +316,19 @@ function CrmModulePage() {
   );
 }
 
-function CellValue({ field, data }: { field: CrmField; data: Record<string, unknown> }) {
+function CellValue({
+  field,
+  data,
+  moduleKey,
+}: {
+  field: CrmField;
+  data: Record<string, unknown>;
+  moduleKey: string;
+}) {
   const text = String(data?.[field.key] ?? "") || "—";
+  if (field.type === "file") {
+    return <AttachmentCell moduleKey={moduleKey} path={String(data?.[field.key] ?? "")} />;
+  }
   const id = data?.[relationIdKey(field.key)];
   if (field.type !== "relation" || typeof id !== "string" || !id) return <>{text}</>;
   const stop = (e: React.MouseEvent) => e.stopPropagation();
@@ -330,12 +353,14 @@ function CellValue({ field, data }: { field: CrmField; data: Record<string, unkn
 
 function FieldInput({
   field,
+  moduleKey,
   value,
   relationId,
   onChange,
   onRelationChange,
 }: {
   field: CrmField;
+  moduleKey: string;
   value: string;
   relationId: string;
   onChange: (value: string) => void;
@@ -347,6 +372,14 @@ function FieldInput({
       {field.required && <span className="text-destructive"> *</span>}
     </Label>
   );
+  if (field.type === "file") {
+    return (
+      <div className="flex flex-col gap-2">
+        {label}
+        <AttachmentField moduleKey={moduleKey} value={value} onChange={onChange} />
+      </div>
+    );
+  }
   if (field.type === "relation" && field.targetModule) {
     return (
       <div className="flex flex-col gap-2">
@@ -400,4 +433,26 @@ function FieldInput({
       <Input type={inputType} value={value} onChange={(e) => onChange(e.target.value)} />
     </div>
   );
+}
+
+/** Object paths the edit session replaced or detached — the stored files go with them. */
+function replacedAttachments(
+  fields: CrmField[],
+  before: Record<string, unknown> | undefined,
+  after: Record<string, string>,
+): string[] {
+  if (!before) return [];
+  return fields
+    .filter((f) => f.type === "file")
+    .map((f) => ({ old: String(before[f.key] ?? ""), next: after[f.key] ?? "" }))
+    .filter((pair) => pair.old && pair.old !== pair.next)
+    .map((pair) => pair.old);
+}
+
+/** Deleting a record must not leave its attachments behind. */
+function recordAttachments(fields: CrmField[], data: Record<string, unknown>): string[] {
+  return fields
+    .filter((f) => f.type === "file")
+    .map((f) => String(data[f.key] ?? ""))
+    .filter(Boolean);
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 
 import { BrandMark } from "@/components/app/brand";
@@ -12,13 +12,18 @@ import { recordFailedLogin, recordLogin, recordRegistration } from "@/lib/sessio
 import { t } from "@/lib/i18n";
 import { LanguageSwitcher } from "@/components/app/LanguageSwitcher";
 
-const TITLE = "Kabinaga kirish — NEXORA CRM";
+const TITLE = "Kabinaga kirish — KetaOne";
 const DESCRIPTION =
-  "NEXORA CRM kabinasiga kiring yoki bepul ro‘yxatdan o‘tib biznesingiz uchun CRM tizimini sozlang.";
+  "KetaOne kabinasiga kiring yoki bepul ro‘yxatdan o‘tib biznesingiz uchun CRM tizimini sozlang.";
 
 export const Route = createFileRoute("/auth")({
   validateSearch: (search: Record<string, unknown>) => ({
-    mode: search['mode'] === "register" ? ("register" as const) : ("login" as const),
+    // "recover" is set by the password-reset link itself; ?code=… arrives on the same
+    // URL and is read from window.location, so it never becomes a linkable param.
+    mode:
+      search["mode"] === "register" || search["mode"] === "recover"
+        ? (search["mode"] as "register" | "recover")
+        : ("login" as const),
     redirect:
       typeof search['redirect'] === "string" && search['redirect'].startsWith("/")
         ? (search['redirect'] as string)
@@ -41,23 +46,65 @@ function AuthPage() {
   const navigate = useNavigate();
   const { mode: initialMode, redirect: redirectTo } = Route.useSearch();
   const adminOnly = (redirectTo ?? "").startsWith("/super-admin");
-  const [mode, setMode] = useState<"login" | "register">(adminOnly ? "login" : initialMode);
+  const [mode, setMode] = useState<"login" | "register" | "recover">(
+    adminOnly ? "login" : initialMode,
+  );
   const [fullName, setFullName] = useState("");
   const [businessName, setBusinessName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
+  // A recovery link is only usable once Supabase has handed the browser a session;
+  // until then the form explains what went wrong instead of failing cryptically.
+  const [recoverySession, setRecoverySession] = useState(false);
 
   useEffect(() => {
-    void supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: redirectTo ?? "/dashboard" });
+    const recoveryRequested =
+      mode === "recover" ||
+      (typeof window !== "undefined" &&
+        (window.location.hash.includes("type=recovery") || window.location.search.includes("code=")));
+
+    const { data } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "PASSWORD_RECOVERY") {
+        setMode("recover");
+        setRecoverySession(!!session);
+        return;
+      }
+      if (recoveryRequested && session) {
+        setMode("recover");
+        setRecoverySession(true);
+      }
     });
-  }, [navigate, redirectTo]);
+
+    void supabase.auth.getSession().then(({ data: current }) => {
+      if (current.session && recoveryRequested) {
+        setMode("recover");
+        setRecoverySession(true);
+        return;
+      }
+      if (current.session && !recoveryRequested) void navigate({ to: redirectTo ?? "/dashboard" });
+    });
+
+    return () => data.subscription.unsubscribe();
+  }, [navigate, redirectTo, mode]);
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     setBusy(true);
     try {
+      if (mode === "recover") {
+        if (!recoverySession) {
+          throw new Error(t("Tiklash havolasi topilmadi. Emaildagi havolani shu brauzerda qayta oching."));
+        }
+        if (password !== confirmPassword) throw new Error(t("Parollar mos kelmadi"));
+        const { error } = await supabase.auth.updateUser({ password });
+        if (error) throw error;
+        toast.success(t("Parol yangilandi"));
+        navigate({ to: redirectTo ?? "/dashboard" });
+        return;
+      }
       if (mode === "register") {
         const { error } = await supabase.auth.signUp({
           email,
@@ -85,6 +132,25 @@ function AuthPage() {
     }
   };
 
+  const sendResetLink = async () => {
+    if (!email.trim()) {
+      toast.error(t("Avval emailingizni kiriting"));
+      return;
+    }
+    setBusy(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/auth?mode=recover`,
+      });
+      if (error) throw error;
+      toast.success(t("Tiklash havolasi yuborildi. Kelmasa spam papkini tekshiring."));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t("Havola yuborilmadi"));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <div className="flex min-h-screen flex-col items-center justify-center px-4 py-12">
       <div className="mb-6 flex justify-end">
@@ -96,17 +162,25 @@ function AuthPage() {
 
       <div className="clay-panel w-full max-w-md p-6 sm:p-8">
         <h1 className="font-display text-2xl font-semibold text-foreground">
-          {adminOnly ? t("Boshqaruv markaziga kirish") : mode === "login" ? "Kabinaga kirish" : "Bepul boshlash"}
+          {mode === "recover"
+            ? t("Parolni tiklash")
+            : adminOnly
+              ? t("Boshqaruv markaziga kirish")
+              : mode === "login"
+                ? "Kabinaga kirish"
+                : "Bepul boshlash"}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          {adminOnly
-            ? t("Bu bo‘lim faqat platforma administratorlari uchun.")
-            : mode === "login"
-              ? "Mijozlar, savdo va jamoangizni boshqarishni davom ettiring."
-              : "Hisob yarating — keyin sohangizni tanlab CRMni sozlaymiz."}
+          {mode === "recover"
+            ? t("Yangi parol kiriting — eski parol ishlamaydi.")
+            : adminOnly
+              ? t("Bu bo‘lim faqat platforma administratorlari uchun.")
+              : mode === "login"
+                ? "Mijozlar, savdo va jamoangizni boshqarishni davom ettiring."
+                : "Hisob yarating — keyin sohangizni tanlab CRMni sozlaymiz."}
         </p>
 
-        {!adminOnly && (
+        {!adminOnly && mode !== "recover" && (
           <div className="mt-6 grid grid-cols-2 gap-1 rounded-2xl bg-muted p-1 text-sm font-medium">
             <button
               type="button"
@@ -147,7 +221,7 @@ function AuthPage() {
                   id="business-name"
                   value={businessName}
                   onChange={(event) => setBusinessName(event.target.value)}
-                  placeholder={t("Masalan: Nexora klinikasi")}
+                  placeholder={t("Masalan: KetaOne klinikasi")}
                 />
               </div>
             </>
@@ -161,24 +235,67 @@ function AuthPage() {
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               placeholder={t("siz@kompaniya.uz")}
-              required
+              required={mode !== "recover"}
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password">{t("Parol")}</Label>
-            <Input
-              id="password"
-              type="password"
-              autoComplete={mode === "login" ? "current-password" : "new-password"}
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              minLength={6}
-              required
-            />
+            <Label htmlFor="password">
+              {mode === "recover" ? t("Yangi parol") : t("Parol")}
+            </Label>
+            <div className="relative">
+              <Input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                autoComplete={mode === "recover" ? "new-password" : mode === "login" ? "current-password" : "new-password"}
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                minLength={6}
+                required
+                className="pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((value) => !value)}
+                aria-label={showPassword ? t("Parolni yashirish") : t("Parolni ko‘rsatish")}
+                className="absolute right-1 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-md text-muted-foreground transition-colors hover:text-foreground"
+              >
+                {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+              </button>
+            </div>
           </div>
+          {mode === "recover" && (
+            <div className="space-y-2">
+              <Label htmlFor="confirm-password">{t("Parolni qayta kiriting")}</Label>
+              <Input
+                id="confirm-password"
+                type={showPassword ? "text" : "password"}
+                autoComplete="new-password"
+                value={confirmPassword}
+                onChange={(event) => setConfirmPassword(event.target.value)}
+                minLength={6}
+                required
+              />
+            </div>
+          )}
           <Button type="submit" className="w-full" disabled={busy}>
-            {busy ? t("Yuklanmoqda…") : mode === "login" ? "Kirish" : "Ro‘yxatdan o‘tish"}
+            {busy
+              ? t("Yuklanmoqda…")
+              : mode === "recover"
+                ? t("Parolni saqlash")
+                : mode === "login"
+                  ? t("Kirish")
+                  : t("Ro‘yxatdan o‘tish")}
           </Button>
+          {mode === "login" && !adminOnly && (
+            <button
+              type="button"
+              onClick={() => void sendResetLink()}
+              disabled={busy}
+              className="w-full text-center text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+            >
+              {t("Parolni unutdingizmi?")}
+            </button>
+          )}
         </form>
 
         <p className="mt-5 text-xs text-muted-foreground">

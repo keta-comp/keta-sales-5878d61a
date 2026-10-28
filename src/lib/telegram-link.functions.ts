@@ -10,7 +10,7 @@ export const getTelegramLink = createServerFn({ method: "GET" })
     const { data, error } = await context.supabase
       .from("telegram_links")
       .select(
-        "id, telegram_user_id, telegram_username, status, daily_reports, report_time, timezone, notify_new_order, notify_payment, notify_lead, notify_low_stock, linked_at",
+        "id, telegram_user_id, telegram_username, status, daily_reports, report_time, timezone, notify_new_order, notify_payment, notify_lead, notify_low_stock, notify_booking, linked_at",
       )
       .limit(1)
       .maybeSingle();
@@ -44,6 +44,8 @@ export const confirmTelegramLink = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { code: string }) => z.object({ code: z.string().min(10) }).parse(input))
   .handler(async ({ data, context }) => {
+    const { assertFeature } = await import("./billing.server");
+    await assertFeature(context.supabase, "telegram_reports");
     const { data: member, error: memberError } = await context.supabase
       .from("business_members")
       .select("business_id")
@@ -110,6 +112,7 @@ const settingsSchema = z.object({
   notifyPayment: z.boolean(),
   notifyLead: z.boolean(),
   notifyLowStock: z.boolean(),
+  notifyBooking: z.boolean(),
 });
 
 export const updateTelegramSettings = createServerFn({ method: "POST" })
@@ -128,6 +131,7 @@ export const updateTelegramSettings = createServerFn({ method: "POST" })
         notify_payment: data.notifyPayment,
         notify_lead: data.notifyLead,
         notify_low_stock: data.notifyLowStock,
+        notify_booking: data.notifyBooking,
       })
       .eq("id", link.id);
     if (error) throw new Error(error.message);

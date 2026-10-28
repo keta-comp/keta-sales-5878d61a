@@ -12,9 +12,9 @@ import { t } from "@/lib/i18n";
 export const Route = createFileRoute("/_authenticated/super-admin/ai-usage")({
   head: () => ({
     meta: [
-      { title: t("AI ishlatilishi — NEXORA CRM Control Center") },
+      { title: t("AI ishlatilishi — KetaOne Control Center") },
       { name: "description", content: t("Platformada AI so‘rovlari: organization, foydalanuvchi va funksiya bo‘yicha.") },
-      { property: "og:title", content: t("AI ishlatilishi — NEXORA CRM Control Center") },
+      { property: "og:title", content: t("AI ishlatilishi — KetaOne Control Center") },
       { property: "og:description", content: t("AI so‘rovlari statistikasi va tokenlar.") },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

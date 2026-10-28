@@ -1,4 +1,5 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { audienceCount, countAudiences, type NotificationAudiences } from "./notification-targets";
 
 /** Platform-level data layer for the Super Admin Control Center.
  *  Every value here comes from the live database — no demo numbers anywhere. */
@@ -95,10 +96,11 @@ export async function buildOverview(): Promise<PlatformOverview> {
     countRows("messages"),
   ]);
 
-  const { data: paidAll } = await supabaseAdmin
+  const { data: paidAll, error: paymentsError } = await supabaseAdmin
     .from("payments")
     .select("amount, paid_at, created_at")
     .eq("status", "paid");
+  if (paymentsError) throw new Error(paymentsError.message);
 
   const rows = paidAll ?? [];
   const crmTurnoverTotal: number = sum(rows.map((r) => r.amount));
@@ -169,19 +171,19 @@ export async function listOrganizations(filters: {
   status?: string | undefined;
   sort?: string | undefined;
 }) {
-  const [{ data: businesses, error }, { data: members }, { data: profiles }, { data: configs }, { data: acts }] =
-    await Promise.all([
-      supabaseAdmin.from("businesses").select("id, name, owner_id, plan, status, created_at"),
-      supabaseAdmin.from("business_members").select("business_id, user_id"),
-      supabaseAdmin.from("profiles").select("id, full_name, email, phone"),
-      supabaseAdmin.from("crm_configs").select("business_id, industry"),
-      supabaseAdmin
-        .from("activities")
-        .select("business_id, created_at")
-        .order("created_at", { ascending: false })
-        .limit(4000),
-    ]);
-  if (error) throw new Error(error.message);
+  const results = await Promise.all([
+    supabaseAdmin.from("businesses").select("id, name, owner_id, plan, status, created_at"),
+    supabaseAdmin.from("business_members").select("business_id, user_id"),
+    supabaseAdmin.from("profiles").select("id, full_name, email, phone"),
+    supabaseAdmin.from("crm_configs").select("business_id, industry"),
+    supabaseAdmin
+      .from("activities")
+      .select("business_id, created_at")
+      .order("created_at", { ascending: false })
+      .limit(4000),
+  ]);
+  for (const res of results) if (res.error) throw new Error(res.error.message);
+  const [{ data: businesses }, { data: members }, { data: profiles }, { data: configs }, { data: acts }] = results;
 
   const memberCount = new Map<string, number>();
   for (const m of members ?? []) memberCount.set(m.business_id, (memberCount.get(m.business_id) ?? 0) + 1);
@@ -233,15 +235,7 @@ export async function listOrganizations(filters: {
 export async function getOrganizationDetail(businessId: string) {
   const monthStart = iso(startOfMonthUtc());
 
-  const [
-    { data: business, error },
-    { data: members },
-    { data: config },
-    { data: payments },
-    { data: activities },
-    { data: audit },
-    { data: aiEvents },
-  ] = await Promise.all([
+  const results = await Promise.all([
     supabaseAdmin.from("businesses").select("*").eq("id", businessId).maybeSingle(),
     supabaseAdmin.from("business_members").select("user_id, role, created_at").eq("business_id", businessId),
     supabaseAdmin
@@ -267,16 +261,26 @@ export async function getOrganizationDetail(businessId: string) {
       .select("feature, input_tokens, output_tokens, created_at")
       .eq("business_id", businessId),
   ]);
-  if (error) throw new Error(error.message);
+  for (const res of results) if (res.error) throw new Error(res.error.message);
+  const [
+    { data: business },
+    { data: members },
+    { data: config },
+    { data: payments },
+    { data: activities },
+    { data: audit },
+    { data: aiEvents },
+  ] = results;
   if (!business) throw new Error("Organization topilmadi");
 
   const memberIds = (members ?? []).map((m) => m.user_id);
-  const { data: profiles } = memberIds.length
+  const { data: profiles, error: profilesError } = memberIds.length
     ? await supabaseAdmin
         .from("profiles")
         .select("id, full_name, email, phone, status, created_at, last_active_at")
         .in("id", memberIds)
-    : { data: [] as never[] };
+    : { data: [] as never[], error: null };
+  if (profilesError) throw new Error(profilesError.message);
 
   const byBiz = (q: any) => q.eq("business_id", businessId);
   const [customers, leads, orders, tasksCount, products, conversations, messages] = await Promise.all([
@@ -352,19 +356,20 @@ export async function listPlatformUsers(filters: {
   status?: string | undefined;
   role?: string | undefined;
 }) {
-  const [{ data: profiles, error }, { data: members }, { data: businesses }, { data: roles }, { data: admins }, { data: configs }] =
-    await Promise.all([
-      supabaseAdmin
-        .from("profiles")
-        .select("id, full_name, email, phone, status, created_at, last_active_at")
-        .order("created_at", { ascending: false }),
-      supabaseAdmin.from("business_members").select("business_id, user_id, role"),
-      supabaseAdmin.from("businesses").select("id, name, status"),
-      supabaseAdmin.from("user_roles").select("user_id, role"),
-      supabaseAdmin.from("platform_admins").select("user_id"),
-      supabaseAdmin.from("crm_configs").select("business_id, industry"),
-    ]);
-  if (error) throw new Error(error.message);
+  const results = await Promise.all([
+    supabaseAdmin
+      .from("profiles")
+      .select("id, full_name, email, phone, status, created_at, last_active_at")
+      .order("created_at", { ascending: false }),
+    supabaseAdmin.from("business_members").select("business_id, user_id, role"),
+    supabaseAdmin.from("businesses").select("id, name, status"),
+    supabaseAdmin.from("user_roles").select("user_id, role"),
+    supabaseAdmin.from("platform_admins").select("user_id"),
+    supabaseAdmin.from("crm_configs").select("business_id, industry"),
+  ]);
+  for (const res of results) if (res.error) throw new Error(res.error.message);
+  const [{ data: profiles }, { data: members }, { data: businesses }, { data: roles }, { data: admins }, { data: configs }] =
+    results;
 
   const bizById = new Map((businesses ?? []).map((b) => [b.id, b]));
   const industryBy = new Map((configs ?? []).map((c) => [c.business_id, c.industry]));
@@ -383,7 +388,7 @@ export async function listPlatformUsers(filters: {
       organizationId: biz?.id ?? null,
       organization: biz?.name ?? null,
       industry: membership ? industryBy.get(membership.business_id) ?? null : null,
-      role: superIds.has(p.id) ? "super_admin" : membership?.role ?? roleBy.get(p.id) ?? "operator",
+      role: superIds.has(p.id) ? "super_admin" : membership?.role ?? roleBy.get(p.id) ?? "receptionist",
       status: p.status,
       createdAt: p.created_at,
       lastActiveAt: p.last_active_at,
@@ -402,30 +407,31 @@ export async function listPlatformUsers(filters: {
 }
 
 export async function getUserDetail(userId: string) {
-  const [{ data: profile, error }, { data: members }, { data: admins }, { data: aiEvents }, { data: audit }] =
-    await Promise.all([
-      supabaseAdmin
-        .from("profiles")
-        .select("id, full_name, email, phone, status, created_at, last_active_at")
-        .eq("id", userId)
-        .maybeSingle(),
-      supabaseAdmin.from("business_members").select("business_id, role, created_at").eq("user_id", userId),
-      supabaseAdmin.from("platform_admins").select("user_id").eq("user_id", userId),
-      supabaseAdmin.from("ai_usage_events").select("feature, created_at").eq("user_id", userId),
-      supabaseAdmin
-        .from("audit_logs")
-        .select("action, status, created_at, ip, metadata")
-        .eq("actor_user_id", userId)
-        .order("created_at", { ascending: false })
-        .limit(30),
-    ]);
-  if (error) throw new Error(error.message);
+  const results = await Promise.all([
+    supabaseAdmin
+      .from("profiles")
+      .select("id, full_name, email, phone, status, created_at, last_active_at")
+      .eq("id", userId)
+      .maybeSingle(),
+    supabaseAdmin.from("business_members").select("business_id, role, created_at").eq("user_id", userId),
+    supabaseAdmin.from("platform_admins").select("user_id").eq("user_id", userId),
+    supabaseAdmin.from("ai_usage_events").select("feature, created_at").eq("user_id", userId),
+    supabaseAdmin
+      .from("audit_logs")
+      .select("action, status, created_at, ip, metadata")
+      .eq("actor_user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(30),
+  ]);
+  for (const res of results) if (res.error) throw new Error(res.error.message);
+  const [{ data: profile }, { data: members }, { data: admins }, { data: aiEvents }, { data: audit }] = results;
   if (!profile) throw new Error("Foydalanuvchi topilmadi");
 
   const bizIds = (members ?? []).map((m) => m.business_id);
-  const { data: businesses } = bizIds.length
+  const { data: businesses, error: businessesError } = bizIds.length
     ? await supabaseAdmin.from("businesses").select("id, name, status, plan").in("id", bizIds)
-    : { data: [] as never[] };
+    : { data: [] as never[], error: null };
+  if (businessesError) throw new Error(businessesError.message);
 
   return {
     profile: {
@@ -459,13 +465,16 @@ function dayKey(value: string) {
 }
 
 export async function buildSaasAnalytics(from: string, to: string) {
-  const [{ data: businesses }, { data: profiles }, { data: activities }, { data: configs }] =
-    await Promise.all([
-      supabaseAdmin.from("businesses").select("id, created_at, status"),
-      supabaseAdmin.from("profiles").select("id, created_at, last_active_at, status"),
-      supabaseAdmin.from("activities").select("business_id, actor_user_id, created_at").gte("created_at", from).lte("created_at", to),
-      supabaseAdmin.from("crm_configs").select("business_id, industry"),
-    ]);
+  const results = await Promise.all([
+    supabaseAdmin.from("businesses").select("id, created_at, status"),
+    supabaseAdmin.from("profiles").select("id, created_at, last_active_at, status"),
+    supabaseAdmin.from("activities").select("business_id, actor_user_id, created_at").gte("created_at", from).lte("created_at", to),
+    supabaseAdmin.from("crm_configs").select("business_id, industry"),
+  ]);
+  // An analytics panel that silently reads an empty array after a failed query would
+  // report "0 organizations" as if the platform were empty.
+  for (const res of results) if (res.error) throw new Error(res.error.message);
+  const [{ data: businesses }, { data: profiles }, { data: activities }, { data: configs }] = results;
 
   const inRange = (v: string | null | undefined) => !!v && v >= from && v <= to;
 
@@ -514,7 +523,7 @@ export async function buildSaasAnalytics(from: string, to: string) {
 }
 
 export async function buildAiUsage(from: string, to: string) {
-  const [{ data: events }, { data: businesses }, { data: profiles }] = await Promise.all([
+  const results = await Promise.all([
     supabaseAdmin
       .from("ai_usage_events")
       .select("business_id, user_id, feature, model, input_tokens, output_tokens, created_at")
@@ -524,6 +533,8 @@ export async function buildAiUsage(from: string, to: string) {
     supabaseAdmin.from("businesses").select("id, name"),
     supabaseAdmin.from("profiles").select("id, full_name, email"),
   ]);
+  for (const res of results) if (res.error) throw new Error(res.error.message);
+  const [{ data: events }, { data: businesses }, { data: profiles }] = results;
 
   const bizName = new Map((businesses ?? []).map((b) => [b.id, b.name]));
   const userLabel = new Map((profiles ?? []).map((p) => [p.id, p.full_name ?? p.email ?? p.id]));
@@ -586,7 +597,10 @@ export async function listAuditLogs(filters: {
   const { data, error } = await query;
   if (error) throw new Error(error.message);
 
-  const { data: businesses } = await supabaseAdmin.from("businesses").select("id, name");
+  const { data: businesses, error: businessesError } = await supabaseAdmin
+    .from("businesses")
+    .select("id, name");
+  if (businessesError) throw new Error(businessesError.message);
   const bizName = new Map((businesses ?? []).map((b) => [b.id, b.name]));
 
   let rows = (data ?? []).map((r) => ({
@@ -609,13 +623,25 @@ export async function listAuditLogs(filters: {
       [r.actor, r.action, r.target, r.organization].some((v) => (v ?? "").toLowerCase().includes(term)),
     );
 
-  const actions = [...new Set((data ?? []).map((r) => r.action))].sort();
+  // The action choices are listed without the action filter: otherwise picking an
+  // action would erase every other option from the dropdown.
+  let actionQuery = supabaseAdmin
+    .from("audit_logs")
+    .select("action")
+    .order("created_at", { ascending: false })
+    .limit(2000);
+  if (filters.businessId && filters.businessId !== "all") actionQuery = actionQuery.eq("business_id", filters.businessId);
+  if (filters.from) actionQuery = actionQuery.gte("created_at", filters.from);
+  if (filters.to) actionQuery = actionQuery.lte("created_at", filters.to);
+  const { data: actionRows, error: actionError } = await actionQuery;
+  if (actionError) throw new Error(actionError.message);
+  const actions = [...new Set((actionRows ?? []).map((r) => r.action))].sort();
   const organizations = (businesses ?? []).map((b) => ({ id: b.id, name: b.name }));
   return { rows, actions, organizations };
 }
 
 export async function buildSecurityOverview() {
-  const { data: logs } = await supabaseAdmin
+  const { data: logs, error } = await supabaseAdmin
     .from("audit_logs")
     .select("*")
     .in("action", [
@@ -632,6 +658,7 @@ export async function buildSecurityOverview() {
     ])
     .order("created_at", { ascending: false })
     .limit(300);
+  if (error) throw new Error(error.message);
 
   const rows = logs ?? [];
   const dayAgo = iso(new Date(Date.now() - DAY));
@@ -657,21 +684,22 @@ export async function buildSecurityOverview() {
 
 export async function platformSearch(term: string) {
   const like = `%${term}%`;
-  const [{ data: businesses }, { data: profiles }, { data: customers }, { data: orders }] =
-    await Promise.all([
-      supabaseAdmin.from("businesses").select("id, name, status").ilike("name", like).limit(10),
-      supabaseAdmin
-        .from("profiles")
-        .select("id, full_name, email")
-        .or(`full_name.ilike.${like},email.ilike.${like}`)
-        .limit(10),
-      supabaseAdmin
-        .from("customers")
-        .select("id, full_name, phone, business_id")
-        .or(`full_name.ilike.${like},phone.ilike.${like},email.ilike.${like}`)
-        .limit(10),
-      supabaseAdmin.from("orders").select("id, order_number, total, business_id").ilike("order_number", like).limit(10),
-    ]);
+  const results = await Promise.all([
+    supabaseAdmin.from("businesses").select("id, name, status").ilike("name", like).limit(10),
+    supabaseAdmin
+      .from("profiles")
+      .select("id, full_name, email")
+      .or(`full_name.ilike.${like},email.ilike.${like}`)
+      .limit(10),
+    supabaseAdmin
+      .from("customers")
+      .select("id, full_name, phone, business_id")
+      .or(`full_name.ilike.${like},phone.ilike.${like},email.ilike.${like}`)
+      .limit(10),
+    supabaseAdmin.from("orders").select("id, order_number, total, business_id").ilike("order_number", like).limit(10),
+  ]);
+  for (const res of results) if (res.error) throw new Error(res.error.message);
+  const [{ data: businesses }, { data: profiles }, { data: customers }, { data: orders }] = results;
 
   return [
     ...(businesses ?? []).map((b) => ({
@@ -699,4 +727,120 @@ export async function platformSearch(term: string) {
       to: `/super-admin/organizations/${o.business_id}`,
     })),
   ];
+}
+
+/* --------------------------- announcement delivery ------------------------ */
+
+export { audienceCount, type NotificationAudiences } from "./notification-targets";
+
+/** Audience sizes for platform announcements, resolved with the same rules the
+ *  system_notifications RLS policy applies. */
+export async function buildNotificationAudiences(): Promise<NotificationAudiences> {
+  const [members, businesses, configs, profiles] = await Promise.all([
+    supabaseAdmin.from("business_members").select("business_id, user_id"),
+    supabaseAdmin.from("businesses").select("id, plan, status"),
+    supabaseAdmin.from("crm_configs").select("business_id, industry"),
+    supabaseAdmin.from("profiles").select("id, status"),
+  ]);
+  for (const res of [members, businesses, configs, profiles]) {
+    if (res.error) throw new Error(res.error.message);
+  }
+  return countAudiences({
+    members: members.data ?? [],
+    businesses: businesses.data ?? [],
+    configs: configs.data ?? [],
+    profiles: profiles.data ?? [],
+  });
+}
+
+/** How many times each announcement has actually been opened in the CRM bell. */
+export async function buildNotificationReads(): Promise<Map<string, number>> {
+  const { data, error } = await supabaseAdmin.from("notification_reads").select("notification_id");
+  if (error) throw new Error(error.message);
+  const counts = new Map<string, number>();
+  for (const row of data ?? []) counts.set(row.notification_id, (counts.get(row.notification_id) ?? 0) + 1);
+  return counts;
+}
+
+export interface SentNotification {
+  id: string;
+  title: string;
+  body: string;
+  kind: string;
+  target_kind: string;
+  target_value: string | null;
+  created_at: string;
+  audience: number;
+  read: number;
+}
+
+export async function listSentNotifications(): Promise<SentNotification[]> {
+  const [{ data: rows, error }, audiences, reads] = await Promise.all([
+    supabaseAdmin
+      .from("system_notifications")
+      .select("id, title, body, kind, target_kind, target_value, created_at")
+      .order("created_at", { ascending: false })
+      .limit(50),
+    buildNotificationAudiences(),
+    buildNotificationReads(),
+  ]);
+  if (error) throw new Error(error.message);
+  return (rows ?? []).map((r) => ({
+    ...r,
+    audience: audienceCount(audiences, r.target_kind, r.target_value ?? null),
+    read: reads.get(r.id) ?? 0,
+  }));
+}
+
+/** Real industries and plans currently in use — the only targets a send can name. */
+export async function listNotificationTargets() {
+  const [businesses, configs] = await Promise.all([
+    supabaseAdmin.from("businesses").select("id, name, plan").order("name"),
+    supabaseAdmin.from("crm_configs").select("industry"),
+  ]);
+  for (const res of [businesses, configs]) if (res.error) throw new Error(res.error.message);
+  const industries = [...new Set((configs.data ?? []).map((c) => c.industry).filter(Boolean))].sort() as string[];
+  // Plans a send cannot name are not offered: until the plan-vocabulary migration runs,
+  // a stored legacy name would appear here and then be rejected by the send itself.
+  const { PLAN_IDS } = await import("./billing");
+  const live = new Set((businesses.data ?? []).map((b) => b.plan));
+  const plans = PLAN_IDS.filter((p) => live.has(p));
+  return { businesses: businesses.data ?? [], industries, plans };
+}
+
+/* ------------------------------ error trail ------------------------------- */
+
+/** Server-side failure trail for the pilot. One row per fingerprint per bucket. */
+export async function listErrorEvents(filters: { hours: number; route?: string | undefined; limit: number }) {
+  const since = new Date(Date.now() - filters.hours * 60 * 60 * 1000).toISOString();
+  let query = supabaseAdmin
+    .from("error_events")
+    .select("*")
+    .gte("created_at", since)
+    .order("created_at", { ascending: false })
+    .limit(filters.limit);
+  if (filters.route && filters.route !== "all") query = query.eq("route", filters.route);
+  const { data, error } = await query;
+  if (error) throw new Error(error.message);
+  const rows = data ?? [];
+  return {
+    rows,
+    routes: Array.from(new Set(rows.map((row) => row.route).filter(Boolean))).sort(),
+    count: rows.length,
+  };
+}
+
+/** Clears a resolved fingerprint, or prunes everything older than N days. */
+export async function clearErrorEvents(input: { fingerprint?: string | undefined; olderThanDays?: number | undefined }) {
+  if (!input.fingerprint && input.olderThanDays == null) {
+    throw new Error("Fingerprint yoki necha kundandan eski ekanligini ko'rsating.");
+  }
+  let query = supabaseAdmin.from("error_events").delete();
+  if (input.fingerprint) query = query.eq("fingerprint", input.fingerprint);
+  if (input.olderThanDays != null) {
+    query = query.lt("created_at", new Date(Date.now() - input.olderThanDays * DAY).toISOString());
+  }
+  const { data, error } = await query.select("id");
+  if (error) throw new Error(error.message);
+  return { deleted: (data ?? []).length };
 }

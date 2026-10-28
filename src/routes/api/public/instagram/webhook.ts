@@ -107,18 +107,18 @@ export const Route = createFileRoute("/api/public/instagram/webhook")({
 
               if (settingsRes.ai?.enabled === false) continue;
 
-              // Same human-takeover rule as Telegram: operator active → AI silent,
+              // Same human-takeover rule as Telegram: staff active → AI silent,
               // resumes on /start or after 30 idle minutes.
               if (currentRes.data?.mode === "human") {
-                const { data: lastOperator } = await supabaseAdmin
+                const { data: lastStaff } = await supabaseAdmin
                   .from("messages")
                   .select("created_at")
                   .eq("conversation_id", conversation.id)
-                  .eq("role", "operator")
+                  .eq("role", "staff")
                   .order("created_at", { ascending: false })
                   .limit(1)
                   .maybeSingle();
-                const lastAt = lastOperator?.created_at ? Date.parse(lastOperator.created_at) : 0;
+                const lastAt = lastStaff?.created_at ? Date.parse(lastStaff.created_at) : 0;
                 if (!/^\/start\b/.test(text) && Date.now() - lastAt < 30 * 60 * 1000) continue;
                 await supabaseAdmin.from("conversations").update({ mode: "ai" }).eq("id", conversation.id);
               }
@@ -133,7 +133,7 @@ export const Route = createFileRoute("/api/public/instagram/webhook")({
               if (result.error) {
                 await ig.sendInstagramMessage(
                   senderId,
-                  "Bir ozdan keyin yana urinib ko'ring yoki operator bilan bog'lanishingiz mumkin.",
+                  "Bir ozdan keyin yana urinib ko'ring yoki mas'ul xodimimiz bilan bog'lanishingiz mumkin.",
                 );
                 console.error("[instagram-latency]", { ...work.result(), webhook_ack_ms: ackMs, ai_error: result.error });
                 continue;
@@ -168,7 +168,7 @@ export const Route = createFileRoute("/api/public/instagram/webhook")({
               try {
                 await ig.sendInstagramMessage(
                   senderId,
-                  "Bir ozdan keyin yana urinib ko'ring yoki operator bilan bog'lanishingiz mumkin.",
+                  "Bir ozdan keyin yana urinib ko'ring yoki mas'ul xodimimiz bilan bog'lanishingiz mumkin.",
                 );
               } catch (sendError) {
                 console.error("[instagram-webhook] fallback send failed", sendError);

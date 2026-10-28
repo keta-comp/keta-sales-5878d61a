@@ -12,9 +12,9 @@ import { t } from "@/lib/i18n";
 export const Route = createFileRoute("/_authenticated/super-admin/industries")({
   head: () => ({
     meta: [
-      { title: t("Sohalar — NEXORA CRM Control Center") },
-      { name: "description", content: t("NEXORA CRM foydalanuvchilarining sohalari bo‘yicha taqsimoti.") },
-      { property: "og:title", content: t("Sohalar — NEXORA CRM Control Center") },
+      { title: t("Sohalar — KetaOne Control Center") },
+      { name: "description", content: t("KetaOne foydalanuvchilarining sohalari bo‘yicha taqsimoti.") },
+      { property: "og:title", content: t("Sohalar — KetaOne Control Center") },
       { property: "og:description", content: t("Organizationlar soha bo‘yicha taqsimoti.") },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

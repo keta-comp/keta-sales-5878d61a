@@ -1,4 +1,4 @@
-# NEXORA CRM — Vercel'ga joylash
+# KetaOne — Vercel'ga joylash
 
 Loyiha Vercel uchun sozlangan: `vercel.json` mavjud va qurish jarayoni
 Vercel'da avtomatik ravishda `vercel` preseti bilan ishlaydi
@@ -30,7 +30,7 @@ Production va Preview uchun quyidagilarni qo'shing:
 | `OPENROUTER_MODEL` | `google/gemini-2.5-flash` (ixtiyoriy) |
 | `GEMINI_API_KEY` | ixtiyoriy zaxira |
 | `TELEGRAM_BOT_TOKEN` | BotFather tokeni |
-| `PUBLIC_APP_URL` | saytning haqiqiy manzili, masalan `https://nexora-crm.uz` |
+| `PUBLIC_APP_URL` | saytning haqiqiy manzili, masalan `https://ketaone.uz` |
 | `LOVABLE_CRON_SECRET` | kunlik hisobot cron chaqiruvi uchun maxfiy so'z |
 | `BOT_TOKEN_ENCRYPTION_KEY` | ixtiyoriy, 64 belgi |
 | `INSTAGRAM_PAGE_ACCESS_TOKEN`, `META_APP_SECRET` | Instagram uchun, ixtiyoriy |
@@ -40,13 +40,13 @@ qo'shgandan keyin qayta **Redeploy** qiling.
 
 ## 3. Domen
 
-Project Settings → **Domains** → `nexora-crm.uz` (va `www`) qo'shib,
+Project Settings → **Domains** → `ketaone.uz` (va `www`) qo'shib,
 registrarda Vercel ko'rsatgan DNS yozuvlarini kiritasiz.
 
 ## 4. Telegram webhook'ni yangi manzilga ko'chirish
 
 ```bash
-curl "https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/setWebhook?url=https://nexora-crm.uz/api/public/telegram/webhook"
+curl "https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/setWebhook?url=https://ketaone.uz/api/public/telegram/webhook"
 ```
 
 ## 5. Kunlik hisobot jadvali (ixtiyoriy)

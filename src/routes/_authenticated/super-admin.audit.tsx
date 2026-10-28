@@ -13,9 +13,9 @@ import { t } from "@/lib/i18n";
 export const Route = createFileRoute("/_authenticated/super-admin/audit")({
   head: () => ({
     meta: [
-      { title: t("Audit jurnali — NEXORA CRM Control Center") },
+      { title: t("Audit jurnali — KetaOne Control Center") },
       { name: "description", content: t("Platformadagi barcha muhim amallar jurnali: kirishlar, bloklashlar, sozlama o‘zgarishlari.") },
-      { property: "og:title", content: t("Audit jurnali — NEXORA CRM Control Center") },
+      { property: "og:title", content: t("Audit jurnali — KetaOne Control Center") },
       { property: "og:description", content: t("Kim, qachon va nima qilgani bo‘yicha to‘liq jurnal.") },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

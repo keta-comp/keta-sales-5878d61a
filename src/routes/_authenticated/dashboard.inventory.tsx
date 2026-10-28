@@ -14,9 +14,9 @@ import { t } from "@/lib/i18n";
 export const Route = createFileRoute("/_authenticated/dashboard/inventory")({
   head: () => ({
     meta: [
-      { title: t("Ombor — NEXORA CRM") },
+      { title: t("Ombor — KetaOne") },
       { name: "description", content: t("Haqiqiy zaxira darajalari, bandlar va to'liq harakatlar tarixi.") },
-      { property: "og:title", content: t("Ombor — NEXORA CRM") },
+      { property: "og:title", content: t("Ombor — KetaOne") },
       { property: "og:description", content: t("AI orqali Telegram savdosi uchun jonli zaxira nazorati.") },
     ],
   }),

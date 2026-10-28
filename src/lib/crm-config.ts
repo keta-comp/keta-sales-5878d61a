@@ -1,8 +1,11 @@
 /**
  * Universal dynamic CRM engine — client-safe types + industry presets.
- * CRM UI is rendered entirely from CrmConfigData; industries only seed the
- * initial configuration, there is no per-industry frontend.
+ * CRM UI is rendered from CrmConfigData; industries only seed the initial
+ * configuration. One exception: lib/dental.ts gives the odontogramma module a
+ * dedicated chart view on top of the same record storage.
  */
+
+import { TOOTH_CONDITIONS } from "./dental";
 
 export type CrmFieldType =
   | "text"
@@ -12,7 +15,8 @@ export type CrmFieldType =
   | "date"
   | "select"
   | "textarea"
-  | "relation";
+  | "relation"
+  | "file";
 
 /** Relation target: "customers" (core customers table) or a dynamic module key. */
 export interface CrmField {
@@ -72,6 +76,8 @@ export interface CrmConfigData {
   terminology: Record<string, string>;
   dashboardWidgets: CrmWidget[];
   automations: string[];
+  /** Registry id from lib/presets.ts. Absent in configs saved before the registry existed. */
+  presetId?: string;
 }
 
 export interface CrmConfig {
@@ -86,21 +92,7 @@ export interface IndustryOption {
   label: string;
 }
 
-export const INDUSTRIES: IndustryOption[] = [
-  { key: "stomatologiya", emoji: "🦷", label: "Stomatologiya" },
-  { key: "klinika", emoji: "🏥", label: "Klinika / Tibbiyot" },
-  { key: "oquv", emoji: "🎓", label: "O‘quv markazi" },
-  { key: "dokon", emoji: "🛒", label: "Do‘kon / Retail" },
-  { key: "ecommerce", emoji: "📦", label: "E-commerce" },
-  { key: "avtoservis", emoji: "🚗", label: "Avtoservis" },
-  { key: "kochmas_mulk", emoji: "🏠", label: "Ko‘chmas mulk" },
-  { key: "beauty", emoji: "💇", label: "Beauty salon / Barbershop" },
-  { key: "restoran", emoji: "🍔", label: "Restoran / Kafe" },
-  { key: "qurilish", emoji: "🏗", label: "Qurilish" },
-  { key: "xizmat", emoji: "💼", label: "Xizmat ko‘rsatish" },
-  { key: "smm", emoji: "📱", label: "SMM / Marketing agentligi" },
-  { key: "boshqa", emoji: "⚙️", label: "Boshqa" },
-];
+/** Industry options live in lib/presets.ts (INDUSTRIES) — the registry owns preset identity. */
 
 function moneyField(key: string, label: string, required = false): CrmField {
   return { key, label, type: "money", required };
@@ -119,6 +111,10 @@ function selectField(key: string, label: string, options: string[], required = f
 }
 function noteField(): CrmField {
   return { key: "izoh", label: "Izoh", type: "textarea" };
+}
+/** Files live in the private `crm_attachments` bucket; the stored value is the object path. */
+function fileField(key: string, label: string): CrmField {
+  return { key, label, type: "file" };
 }
 function paymentModule(label = "To‘lovlar"): CrmModule {
   return {
@@ -145,7 +141,7 @@ interface PresetInput {
 const W_TODAY_REVENUE: CrmWidget = { key: "tushum", label: "Bugungi tushum", kind: "legacy_today_revenue" };
 const W_TODAY_LEADS: CrmWidget = { key: "murojaatlar", label: "Bugungi murojaatlar", kind: "legacy_today_leads" };
 const W_TODAY_ORDERS: CrmWidget = { key: "buyurtmalar", label: "Bugungi buyurtmalar", kind: "legacy_today_orders" };
-const W_HANDOFFS: CrmWidget = { key: "operator", label: "Operator kutilmoqda", kind: "legacy_handoffs" };
+const W_HANDOFFS: CrmWidget = { key: "attention", label: "E'tibor kutilmoqda", kind: "legacy_handoffs" };
 
 function defaultWidgets(extra: CrmWidget[]): CrmWidget[] {
   return [...extra, W_TODAY_REVENUE, W_TODAY_LEADS, W_HANDOFFS];
@@ -220,15 +216,63 @@ const BASE_PRESETS: Record<string, CrmConfigData> = {
         ],
       },
       {
+        key: "odontogramma",
+        label: "Odontogramma",
+        icon: "activity",
+        fields: [
+          textField("bemor", "Bemor"),
+          { key: "tish", label: "Tish raqami (FDI)", type: "number", required: true },
+          selectField("holat", "Holat", [...TOOTH_CONDITIONS], true),
+          textField("tavsiya", "Tavsiya etilgan muolaja", false),
+          dateField("sana", "Sana"),
+          textField("shifokor", "Shifokor"),
+          moneyField("narx", "Narx"),
+          noteField(),
+        ],
+      },
+      {
+        key: "bemor_kartasi",
+        label: "Bemor kartasi",
+        icon: "clipboard",
+        fields: [
+          textField("bemor", "Bemor"),
+          dateField("tugilgan_kun", "Tug‘ilgan kun"),
+          selectField("qon_guruhi", "Qon guruhi", ["I (0)", "II (A)", "III (B)", "IV (AB)", "Aniqlanmagan"]),
+          textField("allergiya", "Allergiya", false),
+          { key: "anamnez", label: "Anamnez (surunkali kasalliklar)", type: "textarea" },
+          { key: "dorilar", label: "Qabul qilinadigan dorilar", type: "textarea" },
+          { key: "ko_rsatilgan", label: "Qo‘shimcha ko‘rsatmalar", type: "textarea" },
+          dateField("yangilangan", "Oxirgi yangilanish"),
+        ],
+      },
+      {
         key: "davolash",
         label: "Davolash",
         icon: "activity",
         fields: [
           textField("bemor", "Bemor"),
           textField("xizmat", "Xizmat"),
+          textField("tish", "Tish raqami", false),
           dateField("boshlanish", "Boshlanish sanasi"),
+          dateField("muddat", "Rejalashtirilgan tugash"),
           selectField("bosqich", "Bosqich", ["Rejalashtirildi", "Davom etmoqda", "Tugadi"], true),
+          textField("shifokor", "Shifokor"),
           moneyField("narx", "Narx"),
+          moneyField("tolangan", "To‘langan"),
+          noteField(),
+        ],
+      },
+      {
+        key: "rentgen",
+        label: "Rentgen va hujjatlar",
+        icon: "file",
+        fields: [
+          textField("bemor", "Bemor"),
+          selectField("turi", "Hujjat turi", ["Rentgen", "KT", "Panorama", "Rasmiy hujjat", "Boshqa"]),
+          dateField("sana", "Sana"),
+          textField("tashxis", "Izoh / tavsif", false),
+          fileField("fayl", "Fayl"),
+          textField("shifokor", "Shifokor", false),
           noteField(),
         ],
       },
@@ -240,6 +284,8 @@ const BASE_PRESETS: Record<string, CrmConfigData> = {
       { key: "qabul_bugun", label: "Bugungi qabul", kind: "module_count_today", moduleKey: "qabul" },
       { key: "bemorlar", label: "Bemorlar", kind: "module_count", moduleKey: "bemorlar" },
       { key: "kutilayotgan_tolov", label: "Kutilayotgan to‘lovlar", kind: "module_count", moduleKey: "tolovlar", where: { field: "holat", value: "To‘lanmagan" } },
+      { key: "davolash_rejada", label: "Rejadagi davolashlar", kind: "module_count", moduleKey: "davolash", where: { field: "bosqich", value: "Rejalashtirildi" } },
+      { key: "davolash_davom", label: "Davom etayotgan davolashlar", kind: "module_count", moduleKey: "davolash", where: { field: "bosqich", value: "Davom etmoqda" } },
     ],
   }),
 
@@ -297,22 +343,6 @@ const BASE_PRESETS: Record<string, CrmConfigData> = {
       { key: "guruhlar", label: "Guruhlar", kind: "module_count", moduleKey: "guruhlar" },
       { key: "tolanmagan", label: "To‘lanmagan to‘lovlar", kind: "field_sum", moduleKey: "tolovlar", fieldKey: "summa", where: { field: "holat", value: "To‘lanmagan" } },
       { key: "davomat_bugun", label: "Bugungi davomat", kind: "module_count_today", moduleKey: "davomat" },
-    ],
-  }),
-
-  dokon: preset({
-    modules: [
-      { key: "buyurtmalar", label: "Buyurtmalar", icon: "cart", link: "/dashboard/orders", pipeline: true },
-      { key: "mijozlar", label: "Mijozlar", icon: "users", link: "/dashboard/customers" },
-      { key: "mahsulotlar", label: "Mahsulotlar", icon: "package", link: "/dashboard/products" },
-      { key: "ombor", label: "Ombor", icon: "boxes", link: "/dashboard/inventory" },
-      paymentModule(),
-    ],
-    pipelineStages: ["Yangi buyurtma", "Tasdiqlandi", "Tayyorlanmoqda", "Yetkazilmoqda", "Yetkazildi", "Yakunlandi"],
-    terminology: { customer: "Mijoz", lead: "Buyurtma", order: "Buyurtma" },
-    dashboardWidgets: [
-      W_TODAY_ORDERS,
-      { key: "ombor", label: "Ombordagi mahsulotlar", kind: "module_count", moduleKey: "ombor" },
     ],
   }),
 
@@ -471,24 +501,6 @@ const BASE_PRESETS: Record<string, CrmConfigData> = {
     ],
   }),
 
-  restoran: preset({
-    modules: [
-      { key: "buyurtmalar", label: "Buyurtmalar", icon: "cart", link: "/dashboard/orders", pipeline: true },
-      { key: "mijozlar", label: "Mijozlar", icon: "users", link: "/dashboard/customers" },
-      { key: "mahsulotlar", label: "Taomlar", icon: "package", link: "/dashboard/products" },
-      {
-        key: "zaxira",
-        label: "Zaxira / Ombor",
-        icon: "boxes",
-        link: "/dashboard/inventory",
-      },
-      paymentModule(),
-    ],
-    pipelineStages: ["Yangi buyurtma", "Qabul qilindi", "Tayyorlanmoqda", "Yetkazildi", "Yakunlandi"],
-    terminology: { customer: "Mijoz", lead: "Buyurtma", order: "Buyurtma" },
-    dashboardWidgets: [W_TODAY_ORDERS, W_TODAY_REVENUE],
-  }),
-
   qurilish: preset({
     modules: [
       { key: "murojaatlar", label: "Murojaatlar", icon: "target", link: "/dashboard/leads", pipeline: true },
@@ -584,7 +596,21 @@ const BASE_PRESETS: Record<string, CrmConfigData> = {
           textField("bolim", "Bo‘lim"),
           textField("shifokor", "Shifokor"),
           dateField("sana", "Qabul sanasi"),
+          selectField("holat", "Holat", ["Navbatda", "Qabulda", "Yakunlandi", "Kelmadi"], true),
+          textField("xona", "Xona / kabinet", false),
           moneyField("tolov", "To‘lov"),
+          noteField(),
+        ],
+      },
+      {
+        key: "bolimlar",
+        label: "Bo‘limlar",
+        icon: "building",
+        fields: [
+          textField("nomi", "Bo‘lim nomi"),
+          textField("mudir", "Bo‘lim mudiri"),
+          textField("xonalar", "Kabinetlar soni", false),
+          selectField("holat", "Holat", ["Faol", "Vaqtinchalik yopiq"]),
           noteField(),
         ],
       },
@@ -592,7 +618,99 @@ const BASE_PRESETS: Record<string, CrmConfigData> = {
         key: "shifokorlar",
         label: "Shifokorlar",
         icon: "stethoscope",
-        fields: [textField("ism", "Ism"), phoneField(), textField("mutaxassislik", "Mutaxassislik"), noteField()],
+        fields: [
+          textField("ism", "Ism"),
+          phoneField(),
+          textField("mutaxassislik", "Mutaxassislik"),
+          textField("bolim", "Bo‘lim"),
+          selectField("malaka", "Malaka toifasi", ["Yuqori", "Birinchi", "Ikkinchi", "Toifasiz"]),
+          selectField("holat", "Holat", ["Faol", "Ta'tilda"]),
+          noteField(),
+        ],
+      },
+      {
+        key: "tibbiy_karta",
+        label: "Tibbiy karta",
+        icon: "clipboard",
+        fields: [
+          textField("bemor", "Bemor"),
+          dateField("tugilgan_kun", "Tug‘ilgan kun"),
+          selectField("jinsi", "Jinsi", ["Ayol", "Erkak", "Ko‘rsatilmagan"]),
+          selectField("qon_guruhi", "Qon guruhi", ["I (0)", "II (A)", "III (B)", "IV (AB)", "Aniqlanmagan"]),
+          textField("allergiya", "Allergiya", false),
+          { key: "anamnez", label: "Anamnez (surunkali kasalliklar)", type: "textarea" },
+          { key: "dorilar", label: "Qabul qilinadigan dorilar", type: "textarea" },
+          { key: "operatsiyalar", label: "O‘tkazilgan operatsiyalar", type: "textarea" },
+          dateField("yangilangan", "Oxirgi yangilanish"),
+          noteField(),
+        ],
+      },
+      {
+        key: "koriklar",
+        label: "Ko‘rik va tashxis",
+        icon: "stethoscope",
+        fields: [
+          textField("bemor", "Bemor"),
+          textField("shifokor", "Shifokor"),
+          dateField("sana", "Ko‘rik sanasi"),
+          { key: "shikoyat", label: "Shikoyat", type: "textarea" },
+          { key: "tekshiruv", label: "Obyektiv tekshiruv", type: "textarea" },
+          textField("tashxis", "Tashxis"),
+          textField("mkx_kodi", "MKX kodi", false),
+          { key: "tavsiya", label: "Davolash tavsiyasi", type: "textarea" },
+          dateField("qayta_korik", "Qayta ko‘rik sanasi"),
+          textField("yollanma", "Yo‘llanma (boshqa mutaxassis)", false),
+          moneyField("narx", "Ko‘rik narxi"),
+          noteField(),
+        ],
+      },
+      {
+        key: "tahlillar",
+        label: "Tahlillar",
+        icon: "flask",
+        fields: [
+          textField("bemor", "Bemor"),
+          textField("turi", "Tahlil nomi"),
+          selectField("holat", "Holat", ["Topshirildi", "Natija keldi", "Bekor qilindi"], true),
+          dateField("sana", "Topshirilgan sana"),
+          dateField("natija_sana", "Natija sanasi"),
+          { key: "natija", label: "Natija (ko‘rsatkichlar)", type: "textarea" },
+          textField("yo_nalgan", "Yo‘naltirgan shifokor"),
+          moneyField("narx", "Narx"),
+          fileField("fayl", "Natija fayli"),
+          noteField(),
+        ],
+      },
+      {
+        key: "davolash_rejasi",
+        label: "Davolash rejasi",
+        icon: "check",
+        fields: [
+          textField("bemor", "Bemor"),
+          textField("shifokor", "Shifokor"),
+          textField("maqsad", "Davolash maqsadi"),
+          selectField("bosqich", "Bosqich", ["Rejalashtirildi", "Davom etmoqda", "Yakunlandi"], true),
+          dateField("boshlanish", "Boshlanish sanasi"),
+          dateField("muddat", "Rejalashtirilgan tugash"),
+          { key: "protseduralar", label: "Protseduralar ro‘yxati", type: "textarea" },
+          moneyField("narx", "Reja narxi"),
+          moneyField("tolangan", "To‘langan"),
+          noteField(),
+        ],
+      },
+      {
+        key: "hujjatlar",
+        label: "Tibbiy hujjatlar",
+        icon: "file",
+        fields: [
+          textField("bemor", "Bemor"),
+          selectField("turi", "Hujjat turi", ["Yo‘llanma", "Ma'lumotnoma", "Rozilik", "Rentgen", "Tahlil natijasi", "Boshqa"], true),
+          dateField("sana", "Sana"),
+          textField("tavsif", "Izoh / tavsif", false),
+          fileField("fayl", "Fayl"),
+          textField("shifokor", "Shifokor", false),
+          noteField(),
+        ],
       },
       paymentModule(),
     ],
@@ -600,6 +718,20 @@ const BASE_PRESETS: Record<string, CrmConfigData> = {
     terminology: { customer: "Bemor", lead: "Murojaat", order: "Qabul" },
     dashboardWidgets: [
       { key: "qabul_bugun", label: "Bugungi qabul", kind: "module_count_today", moduleKey: "qabul" },
+      {
+        key: "qabul_navbat",
+        label: "Navbatda kutayotganlar",
+        kind: "module_count",
+        moduleKey: "qabul",
+        where: { field: "holat", value: "Navbatda" },
+      },
+      {
+        key: "tahlillar_kutilmoqda",
+        label: "Natijasi kutilayotgan tahlillar",
+        kind: "module_count",
+        moduleKey: "tahlillar",
+        where: { field: "holat", value: "Topshirildi" },
+      },
       { key: "bemorlar", label: "Bemorlar", kind: "module_count", moduleKey: "bemorlar" },
     ],
   }),
@@ -609,10 +741,23 @@ const BASE_PRESETS: Record<string, CrmConfigData> = {
 export const RELATION_MAP: Record<string, Record<string, Record<string, string>>> = {
   stomatologiya: {
     qabul: { bemor: "customers", shifokor: "shifokorlar" },
-    davolash: { bemor: "customers" },
+    davolash: { bemor: "customers", shifokor: "shifokorlar" },
+    odontogramma: { bemor: "customers", shifokor: "shifokorlar" },
+    bemor_kartasi: { bemor: "customers" },
+    rentgen: { bemor: "customers", shifokor: "shifokorlar" },
     tolovlar: { kim: "customers" },
   },
-  klinika: { qabul: { bemor: "customers", shifokor: "shifokorlar" }, tolovlar: { kim: "customers" } },
+  klinika: {
+    qabul: { bemor: "customers", shifokor: "shifokorlar", bolim: "bolimlar" },
+    bolimlar: { mudir: "shifokorlar" },
+    shifokorlar: { bolim: "bolimlar" },
+    tibbiy_karta: { bemor: "customers" },
+    koriklar: { bemor: "customers", shifokor: "shifokorlar" },
+    tahlillar: { bemor: "customers", yo_nalgan: "shifokorlar" },
+    davolash_rejasi: { bemor: "customers", shifokor: "shifokorlar" },
+    hujjatlar: { bemor: "customers", shifokor: "shifokorlar" },
+    tolovlar: { kim: "customers" },
+  },
   oquv: {
     kurslar: { oqituvchi: "oqituvchilar" },
     guruhlar: { kurs: "kurslar", oqituvchi: "oqituvchilar" },
@@ -636,11 +781,17 @@ export const RELATION_MAP: Record<string, Record<string, Record<string, string>>
 
 /** Turns mapped text fields into relation fields; also upgrades saved configs. */
 export function applyRelations(industry: string | null | undefined, config: CrmConfigData): CrmConfigData {
+  // Saved configs predate the retire of the sales-agent "operator" wording.
+  const dashboardWidgets = config.dashboardWidgets.map((widget) =>
+    widget.key === "operator" ? { ...widget, key: "attention", label: "E'tibor kutilmoqda" } : widget,
+  );
+
   const map = RELATION_MAP[industry ?? ""];
-  if (!map) return config;
+  if (!map) return { ...config, dashboardWidgets };
   const keys = new Set(config.modules.map((m) => m.key));
   return {
     ...config,
+    dashboardWidgets,
     modules: config.modules.map((m) => {
       const fm = map[m.key];
       if (!fm || !m.fields) return m;

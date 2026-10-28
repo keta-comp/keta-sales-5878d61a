@@ -1,0 +1,327 @@
+import { createServerFn } from "@tanstack/react-start";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { z } from "zod";
+
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { Database } from "@/integrations/supabase/types";
+import {
+  DEFAULT_BUSINESS_TZ,
+  APPOINTMENT_STATUSES,
+  BOOKED_STATUSES,
+  appointmentEnd,
+  dayWindows,
+  fitsInWindows,
+  isWithinTimeOff,
+  zonedParts,
+} from "./booking";
+import { requireBusinessId } from "./tenant.server";
+
+type Client = SupabaseClient<Database>;
+
+/** Booking is open to every workspace member; RLS keeps rows tenant-scoped. */
+async function requireBookingBusiness(supabase: Client): Promise<string> {
+  return requireBusinessId(supabase);
+}
+
+/**
+ * Server-side availability: the appointment must fall inside the employee's weekly
+ * working windows (when defined) and must not overlap any recorded time off.
+ * The DB exclusion constraint still guards against concurrent double-booking.
+ */
+async function assertEmployeeAvailable(
+  supabase: Client,
+  employeeId: string,
+  startsAt: string,
+  endsAt: string,
+  durationMinutes: number,
+): Promise<void> {
+  const [{ data: schedule }, { data: timeOff }] = await Promise.all([
+    supabase.from("work_schedules").select("*").eq("employee_id", employeeId),
+    supabase
+      .from("time_off")
+      .select("starts_at, ends_at")
+      .eq("employee_id", employeeId)
+      .lt("starts_at", endsAt)
+      .gt("ends_at", startsAt),
+  ]);
+
+  if ((timeOff ?? []).length > 0) {
+    throw new Error("Xodim bu vaqtda ta'tilda.");
+  }
+
+  const dayRows = schedule ?? [];
+  if (dayRows.length === 0) return; // no schedule configured → availability unconstrained
+
+  const { weekday, minutes } = zonedParts(startsAt, DEFAULT_BUSINESS_TZ);
+  const windows = dayWindows(dayRows.filter((row) => row.weekday === weekday));
+  if (windows.length === 0) {
+    throw new Error("Xodim bu kunda ishlamaydi.");
+  }
+  if (!fitsInWindows(minutes, durationMinutes, windows)) {
+    throw new Error("Bron xodim ish vaqtidan tashqarida.");
+  }
+}
+
+/* -------------------------------- services ------------------------------- */
+
+export const listServices = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ includeInactive: z.boolean().optional() }).parse(input ?? {}),
+  )
+  .handler(async ({ data, context }) => {
+    await requireBookingBusiness(context.supabase);
+    let query = context.supabase.from("services").select("*").order("name", { ascending: true });
+    if (!data.includeInactive) query = query.eq("is_active", true);
+    const { data: rows, error } = await query;
+    if (error) throw new Error(error.message);
+    return rows ?? [];
+  });
+
+export const saveService = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        id: z.string().optional(),
+        name: z.string().trim().min(1).max(120),
+        duration_minutes: z.number().int().positive().max(1440),
+        price: z.number().nonnegative(),
+        is_active: z.boolean().optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const businessId = await requireBookingBusiness(context.supabase);
+    const row = { name: data.name, duration_minutes: data.duration_minutes, price: data.price };
+    if (data.id) {
+      const patch = data.is_active === undefined ? row : { ...row, is_active: data.is_active };
+      const { error } = await context.supabase.from("services").update(patch).eq("id", data.id);
+      if (error) throw new Error(error.message);
+    } else {
+      const { error } = await context.supabase
+        .from("services")
+        .insert({
+          ...row,
+          is_active: data.is_active ?? true,
+          business_id: businessId,
+          created_by: context.userId,
+        });
+      if (error) throw new Error(error.message);
+    }
+    return { ok: true };
+  });
+
+export const deleteService = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ id: z.string() }).parse(input))
+  .handler(async ({ data, context }) => {
+    await requireBookingBusiness(context.supabase);
+    const { error } = await context.supabase.from("services").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/* ------------------------------ appointments ----------------------------- */
+
+const APPOINTMENT_SELECT =
+  "*, services(id, name, duration_minutes, price), customers(id, full_name, phone), employees:employee_id(id, full_name), branches(id, name)";
+
+export const listAppointments = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        from: z.string().datetime().optional(),
+        to: z.string().datetime().optional(),
+        employeeId: z.string().optional(),
+        branchId: z.string().optional(),
+        status: z.enum(APPOINTMENT_STATUSES).optional(),
+      })
+      .parse(input ?? {}),
+  )
+  .handler(async ({ data, context }) => {
+    await requireBookingBusiness(context.supabase);
+    let query = context.supabase
+      .from("appointments")
+      .select(APPOINTMENT_SELECT)
+      .order("starts_at", { ascending: true })
+      .limit(500);
+    if (data.from) query = query.gte("starts_at", data.from);
+    if (data.to) query = query.lt("starts_at", data.to);
+    if (data.employeeId) query = query.eq("employee_id", data.employeeId);
+    if (data.branchId && data.branchId !== "all") query = query.eq("branch_id", data.branchId);
+    if (data.status) query = query.eq("status", data.status);
+    const { data: rows, error } = await query;
+    if (error) throw new Error(error.message);
+    return rows ?? [];
+  });
+
+export const saveAppointment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        id: z.string().optional(),
+        service_id: z.string().nullable().optional(),
+        customer_id: z.string().nullable().optional(),
+        employee_id: z.string().nullable().optional(),
+        branch_id: z.string().nullable().optional(),
+        starts_at: z.string().datetime(),
+        duration_minutes: z.number().int().positive().max(1440).optional(),
+        note: z.string().max(500).optional(),
+        status: z.enum(APPOINTMENT_STATUSES).optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const businessId = await requireBookingBusiness(context.supabase);
+
+    let duration = data.duration_minutes;
+    let snapshot: { name: string; price: number; duration_minutes: number } | null = null;
+    if (data.service_id) {
+      const { data: service, error } = await context.supabase
+        .from("services")
+        .select("duration_minutes, name, price")
+        .eq("id", data.service_id)
+        .maybeSingle();
+      if (error) throw new Error(error.message);
+      if (service) snapshot = { name: service.name, price: Number(service.price), duration_minutes: service.duration_minutes };
+      if (duration === undefined) duration = service?.duration_minutes;
+    }
+    if (duration === undefined) throw new Error("Xizmat yoki davomiylikni tanlang.");
+    const endsAt = appointmentEnd(data.starts_at, duration);
+
+    if (data.employee_id) {
+      await assertEmployeeAvailable(context.supabase, data.employee_id, data.starts_at, endsAt, duration);
+    }
+
+    const row = {
+      service_id: data.service_id ?? null,
+      service_name: snapshot?.name ?? null,
+      price: snapshot?.price ?? null,
+      duration_minutes: duration,
+      customer_id: data.customer_id ?? null,
+      employee_id: data.employee_id ?? null,
+      branch_id: data.branch_id ?? null,
+      starts_at: data.starts_at,
+      ends_at: endsAt,
+      note: data.note ?? "",
+      status: data.status ?? "confirmed",
+    };
+
+    if (data.id) {
+      const { error } = await context.supabase.from("appointments").update(row).eq("id", data.id);
+      if (error) throw conflictError(error);
+      return { ok: true, id: data.id };
+    }
+
+    const { data: created, error } = await context.supabase
+      .from("appointments")
+      .insert({ ...row, business_id: businessId, created_by: context.userId })
+      .select("id")
+      .single();
+    if (error) throw conflictError(error);
+    return { ok: true, id: created?.id ?? null };
+  });
+
+export const setAppointmentStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ id: z.string(), status: z.enum(APPOINTMENT_STATUSES) }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await requireBookingBusiness(context.supabase);
+    const { error } = await context.supabase
+      .from("appointments")
+      .update({ status: data.status })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const deleteAppointment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ id: z.string() }).parse(input))
+  .handler(async ({ data, context }) => {
+    await requireBookingBusiness(context.supabase);
+    const { error } = await context.supabase.from("appointments").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/** Exclusion constraint appointments_no_double_booking fires as 23P01. */
+function conflictError(error: { code?: string; message: string }): Error {
+  if (error.code === "23P01") {
+    return new Error("Bu xodim tanlangan vaqtda band — boshqa vaqt yoki xodim tanlang.");
+  }
+  return new Error(error.message);
+}
+
+/* ------------------------------ kpi summary ------------------------------ */
+
+export const getBookingSummary = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await requireBookingBusiness(context.supabase);
+    const now = new Date();
+    const pad = (value: number) => String(value).padStart(2, "0");
+
+    // Period bounds in the business timezone (Asia/Tashkent), matching booking rules.
+    const zonedNoon = new Date(now.toLocaleString("en-US", { timeZone: DEFAULT_BUSINESS_TZ }));
+    const isoDay = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    const todayIso = isoDay(zonedNoon);
+    const weekday = zonedNoon.getDay() === 0 ? 7 : zonedNoon.getDay();
+    const weekStart = new Date(zonedNoon);
+    weekStart.setDate(weekStart.getDate() - (weekday - 1));
+    const monthStart = new Date(zonedNoon.getFullYear(), zonedNoon.getMonth(), 1);
+
+    const from = (dayIso: string) => new Date(`${dayIso}T00:00:00`).toISOString();
+    const todayFrom = from(todayIso);
+    const todayTo = new Date(`${todayIso}T00:00:00`);
+    todayTo.setDate(todayTo.getDate() + 1);
+    const weekTo = new Date(weekStart);
+    weekTo.setDate(weekTo.getDate() + 7);
+    const monthTo = new Date(monthStart);
+    monthTo.setMonth(monthTo.getMonth() + 1);
+
+    const [{ data: monthRows, error }, { data: upcomingRows, error: upError }] = await Promise.all([
+      context.supabase
+        .from("appointments")
+        .select(
+          "id, starts_at, status, price, customers:customer_id(id, full_name), employees:employee_id(id, full_name)",
+        )
+        .gte("starts_at", from(isoDay(monthStart)))
+        .order("starts_at", { ascending: true })
+        .limit(1000),
+      context.supabase
+        .from("appointments")
+        .select(
+          "id, starts_at, ends_at, status, service_name, price, customers:customer_id(id, full_name, phone), employees:employee_id(id, full_name)",
+        )
+        .gte("starts_at", now.toISOString())
+        .order("starts_at", { ascending: true })
+        .limit(40),
+    ]);
+    if (error) throw new Error(error.message);
+    if (upError) throw new Error(upError.message);
+
+    const rows = monthRows ?? [];
+    const held = (row: { status: string }) => row.status !== "cancelled";
+    const inRange = (row: { starts_at: string }, lo: string, hi: string) => row.starts_at >= lo && row.starts_at < hi;
+
+    const upcoming = (upcomingRows ?? []).filter((row) => BOOKED_STATUSES.has(row.status as never)).slice(0, 5);
+
+    return {
+      todayCount: rows.filter((row) => held(row) && inRange(row, todayFrom, todayTo.toISOString())).length,
+      weekCount: rows.filter((row) => held(row) && inRange(row, from(isoDay(weekStart)), weekTo.toISOString())).length,
+      monthCount: rows.filter(held).length,
+      pendingConfirm: rows.filter((row) => row.status === "new").length,
+      cancelledMonth: rows.filter((row) => row.status === "cancelled").length,
+      noShowMonth: rows.filter((row) => row.status === "no_show").length,
+      revenueMonth: rows
+        .filter((row) => row.status === "completed")
+        .reduce((sum, row) => sum + Number(row.price ?? 0), 0),
+      upcoming,
+    };
+  });

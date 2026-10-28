@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { z } from "zod";
 
 import { EmptyState, ErrorState, LoadingState, PageHeader, StatCard, StatusBadge } from "@/components/app/primitives";
 import { PaymentDialog } from "@/components/app/crm-dialogs";
@@ -22,12 +23,20 @@ import { deletePayment, listPayments } from "@/lib/payments.functions";
 import { formatMoney } from "@/lib/types";
 import { t } from "@/lib/i18n";
 
+const searchSchema = z.object({
+  status: z.string().optional(),
+  method: z.string().optional(),
+  customerId: z.string().optional(),
+  search: z.string().optional(),
+});
+
 export const Route = createFileRoute("/_authenticated/dashboard/payments")({
+  validateSearch: searchSchema,
   head: () => ({
     meta: [
-      { title: t("To‘lovlar — NEXORA CRM") },
+      { title: t("To‘lovlar — KetaOne") },
       { name: "description", content: t("Kirim-chiqim, qarzdorlik va to‘lov usullari bo‘yicha hisob.") },
-      { property: "og:title", content: t("To‘lovlar — NEXORA CRM") },
+      { property: "og:title", content: t("To‘lovlar — KetaOne") },
       { property: "og:description", content: t("To‘lovlarni qayd qiling va qarzdorlikni kuzatib boring.") },
     ],
   }),
@@ -37,17 +46,33 @@ export const Route = createFileRoute("/_authenticated/dashboard/payments")({
 type PaymentRow = Awaited<ReturnType<typeof listPayments>>[number];
 
 function PaymentsPage() {
+  const params = Route.useSearch();
+  const navigate = useNavigate();
   const fetchPayments = useServerFn(listPayments);
   const remove = useServerFn(deletePayment);
-  const [status, setStatus] = useState("all");
-  const [method, setMethod] = useState("all");
-  const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<PaymentRow | null>(null);
   const [open, setOpen] = useState(false);
 
+  const status = params.status ?? "all";
+  const method = params.method ?? "all";
+  const search = params.search ?? "";
+  const customerId = params.customerId ?? null;
+
+  const setFilter = (next: "status" | "method" | "search", value: string) =>
+    void navigate({
+      to: "/dashboard/payments",
+      search: (prev) => ({
+        ...prev,
+        [next]: value === "all" || value === "" ? undefined : value,
+      }),
+    });
+
   const query = useQuery({
-    queryKey: ["payments", status, method, search],
-    queryFn: () => fetchPayments({ data: { status, method, search } }),
+    queryKey: ["payments", status, method, search, customerId],
+    queryFn: () =>
+      fetchPayments({
+        data: { status, method, search, ...(customerId ? { customerId } : {}) },
+      }),
   });
 
   const totals = useMemo(() => {
@@ -89,11 +114,11 @@ function PaymentsPage() {
       <div className="clay-panel flex flex-wrap items-center gap-2 p-4">
         <Input
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => setFilter("search", e.target.value)}
           placeholder={t("Mijoz, buyurtma yoki izoh…")}
           className="h-9 w-full sm:w-64"
         />
-        <Select value={status} onValueChange={setStatus}>
+        <Select value={status} onValueChange={(value) => setFilter("status", value)}>
           <SelectTrigger className="h-9 w-40">
             <SelectValue placeholder={t("Holat")} />
           </SelectTrigger>
@@ -106,7 +131,7 @@ function PaymentsPage() {
             ))}
           </SelectContent>
         </Select>
-        <Select value={method} onValueChange={setMethod}>
+        <Select value={method} onValueChange={(value) => setFilter("method", value)}>
           <SelectTrigger className="h-9 w-40">
             <SelectValue placeholder={t("Usul")} />
           </SelectTrigger>
@@ -119,6 +144,20 @@ function PaymentsPage() {
             ))}
           </SelectContent>
         </Select>
+        {customerId ? (
+          <button
+            type="button"
+            onClick={() =>
+              void navigate({
+                to: "/dashboard/payments",
+                search: (prev) => ({ ...prev, customerId: undefined }),
+              })
+            }
+            className="clay-inset h-9 rounded-xl px-3 text-xs font-medium text-muted-foreground hover:text-foreground"
+          >
+            {t("Mijoz bo‘yicha filtr")} ✕
+          </button>
+        ) : null}
       </div>
 
       {query.isPending ? (
@@ -146,13 +185,41 @@ function PaymentsPage() {
             </TableHeader>
             <TableBody>
               {(query.data ?? []).map((row) => {
-                const customer = row.customers as { full_name: string | null } | null;
-                const order = row.orders as { order_number: string | null } | null;
+                const customer = row.customers as
+                  | { id: string | null; full_name: string | null; phone: string | null }
+                  | null;
+                const order = row.orders as
+                  | { id: string | null; order_number: string | null; total: unknown }
+                  | null;
                 const methodLabel = crmLabel(row.method);
                 return (
                   <TableRow key={row.id}>
-                    <TableCell className="font-medium">{customer?.full_name ?? "—"}</TableCell>
-                    <TableCell>{order?.order_number ? `#${order.order_number}` : "—"}</TableCell>
+                    <TableCell className="font-medium">
+                      {customer?.id ? (
+                        <Link
+                          to="/dashboard/customers/$id"
+                          params={{ id: customer.id }}
+                          className="underline-offset-4 hover:underline"
+                        >
+                          {customer.full_name ?? "—"}
+                        </Link>
+                      ) : (
+                        (customer?.full_name ?? "—")
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {order?.order_number ? (
+                        <Link
+                          to="/dashboard/orders"
+                          search={{ search: order.order_number }}
+                          className="underline-offset-4 hover:underline"
+                        >
+                          #{order.order_number}
+                        </Link>
+                      ) : (
+                        "—"
+                      )}
+                    </TableCell>
                     <TableCell className="tabular-nums">{formatMoney(row.amount, currency)}</TableCell>
                     <TableCell>{methodLabel}</TableCell>
                     <TableCell>
@@ -204,6 +271,7 @@ function PaymentsPage() {
       <PaymentDialog
         open={open}
         onOpenChange={setOpen}
+        defaultCustomerId={customerId ?? undefined}
         payment={
           editing
             ? {

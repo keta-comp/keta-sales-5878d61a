@@ -6,6 +6,7 @@ import {
   Bell,
   Building2,
   Bot,
+  CircleAlert,
   FileBarChart,
   Gauge,
   LayoutGrid,
@@ -20,7 +21,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
-import logoUrl from "@/assets/nexora-logo.webp";
+import logoUrl from "@/assets/ketaone-logo.webp";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -41,6 +42,7 @@ const NAV: { to: string; label: string; icon: LucideIcon; exact?: boolean }[] = 
   { to: "/super-admin/notifications", label: "E’lonlar", icon: Bell },
   { to: "/super-admin/flags", label: "Funksiyalar", icon: Puzzle },
   { to: "/super-admin/security", label: "Xavfsizlik", icon: ShieldCheck },
+  { to: "/super-admin/errors", label: "Xatolar jurnali", icon: CircleAlert },
   { to: "/super-admin/audit", label: "Audit jurnali", icon: ScrollText },
   { to: "/super-admin/settings", label: "Tizim sozlamalari", icon: Settings },
 ];
@@ -59,7 +61,7 @@ function AccessDenied() {
       <div>
         <p className="font-display text-xl font-semibold">{t("403 — Ruxsat yo‘q")}</p>
         <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-          {t("Bu bo‘lim faqat NEXORA CRM platforma administratori uchun. Siz o‘z CRM kabinangizga\n          qaytishingiz mumkin.")}
+          {t("Bu bo‘lim faqat KetaOne platforma administratori uchun. Siz o‘z CRM kabinangizga\n          qaytishingiz mumkin.")}
         </p>
       </div>
       <Button asChild variant="outline">
@@ -158,10 +160,10 @@ function SuperAdminLayout() {
   const brand = (
     <div className="flex items-center gap-2 px-3 py-4">
       <span className="clay-raised grid size-10 place-items-center overflow-hidden rounded-2xl bg-card">
-        <img src={logoUrl} alt="NEXORA CRM" className="size-8 object-contain" />
+        <img src={logoUrl} alt="KetaOne" className="size-8 object-contain" />
       </span>
       <div className="leading-tight">
-        <p className="font-display text-sm font-semibold">NEXORA CRM</p>
+        <p className="font-display text-sm font-semibold">KetaOne</p>
         <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">{t("Control Center")}</p>
       </div>
     </div>

@@ -19,6 +19,7 @@ export const Route = createFileRoute("/api/public/click/$action")({
         if (!secret || f("service_id") !== serviceId) return out(-8, "Error in request from click");
 
         const { md5, getAdmin, activateInvoice } = await import("@/lib/billing.server");
+        const { matchesSecret } = await import("@/lib/secure-compare.server");
         const isComplete = params.action === "complete";
         if (!isComplete && params.action !== "prepare") return out(-3, "Action not found");
 
@@ -26,7 +27,7 @@ export const Route = createFileRoute("/api/public/click/$action")({
           f("click_trans_id") + f("service_id") + secret + f("merchant_trans_id") +
             (isComplete ? f("merchant_prepare_id") : "") + f("amount") + f("action") + f("sign_time"),
         );
-        if (sign !== f("sign_string")) return out(-1, "SIGN CHECK FAILED!");
+        if (!matchesSecret(f("sign_string"), sign)) return out(-1, "SIGN CHECK FAILED!");
 
         const admin = await getAdmin();
         const { data: inv } = await admin

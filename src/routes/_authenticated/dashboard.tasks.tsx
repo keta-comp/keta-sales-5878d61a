@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { CheckCircle2, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { z } from "zod";
 
 import { EmptyState, ErrorState, LoadingState, PageHeader, StatusBadge } from "@/components/app/primitives";
 import { TaskDialog } from "@/components/app/crm-dialogs";
@@ -20,12 +21,22 @@ import { crmLabel, TASK_PRIORITIES, TASK_STATUSES } from "@/lib/crm-core";
 import { deleteTask, listTasks, setTaskStatus } from "@/lib/tasks.functions";
 import { t } from "@/lib/i18n";
 
+const searchSchema = z.object({
+  status: z.string().optional(),
+  priority: z.string().optional(),
+  customerId: z.string().optional(),
+  leadId: z.string().optional(),
+  memberId: z.string().optional(),
+  search: z.string().optional(),
+});
+
 export const Route = createFileRoute("/_authenticated/dashboard/tasks")({
+  validateSearch: searchSchema,
   head: () => ({
     meta: [
-      { title: t("Vazifalar — NEXORA CRM") },
+      { title: t("Vazifalar — KetaOne") },
       { name: "description", content: t("Jamoa vazifalari, muddatlari va bajarilish holati.") },
-      { property: "og:title", content: t("Vazifalar — NEXORA CRM") },
+      { property: "og:title", content: t("Vazifalar — KetaOne") },
       { property: "og:description", content: t("Hech bir ish e’tibordan chetda qolmasin.") },
     ],
   }),
@@ -35,18 +46,43 @@ export const Route = createFileRoute("/_authenticated/dashboard/tasks")({
 type TaskRow = Awaited<ReturnType<typeof listTasks>>[number];
 
 function TasksPage() {
+  const params = Route.useSearch();
+  const navigate = useNavigate();
   const fetchTasks = useServerFn(listTasks);
   const changeStatus = useServerFn(setTaskStatus);
   const remove = useServerFn(deleteTask);
-  const [status, setStatus] = useState("all");
-  const [priority, setPriority] = useState("all");
-  const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<TaskRow | null>(null);
   const [open, setOpen] = useState(false);
 
+  const status = params.status ?? "all";
+  const priority = params.priority ?? "all";
+  const search = params.search ?? "";
+  const customerId = params.customerId ?? null;
+  const leadId = params.leadId ?? null;
+  const memberId = params.memberId ?? null;
+
+  const setFilter = (next: "status" | "priority" | "search", value: string) =>
+    void navigate({
+      to: "/dashboard/tasks",
+      search: (prev) => ({
+        ...prev,
+        [next]: value === "all" || value === "" ? undefined : value,
+      }),
+    });
+
   const query = useQuery({
-    queryKey: ["tasks", status, priority, search],
-    queryFn: () => fetchTasks({ data: { status, priority, search } }),
+    queryKey: ["tasks", status, priority, search, customerId, leadId, memberId],
+    queryFn: () =>
+      fetchTasks({
+        data: {
+          status,
+          priority,
+          search,
+          ...(customerId ? { customerId } : {}),
+          ...(leadId ? { leadId } : {}),
+          ...(memberId ? { memberId } : {}),
+        },
+      }),
   });
 
   const today = new Date();
@@ -74,11 +110,11 @@ function TasksPage() {
       <div className="clay-panel flex flex-wrap items-center gap-2 p-4">
         <Input
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => setFilter("search", e.target.value)}
           placeholder={t("Vazifa nomi…")}
           className="h-9 w-full sm:w-64"
         />
-        <Select value={status} onValueChange={setStatus}>
+        <Select value={status} onValueChange={(value) => setFilter("status", value)}>
           <SelectTrigger className="h-9 w-40">
             <SelectValue placeholder={t("Holat")} />
           </SelectTrigger>
@@ -91,7 +127,7 @@ function TasksPage() {
             ))}
           </SelectContent>
         </Select>
-        <Select value={priority} onValueChange={setPriority}>
+        <Select value={priority} onValueChange={(value) => setFilter("priority", value)}>
           <SelectTrigger className="h-9 w-40">
             <SelectValue placeholder={t("Muhimlik")} />
           </SelectTrigger>
@@ -104,6 +140,25 @@ function TasksPage() {
             ))}
           </SelectContent>
         </Select>
+        {customerId || leadId || memberId ? (
+          <button
+            type="button"
+            onClick={() =>
+              void navigate({
+                to: "/dashboard/tasks",
+                search: (prev) => ({
+                  ...prev,
+                  customerId: undefined,
+                  leadId: undefined,
+                  memberId: undefined,
+                }),
+              })
+            }
+            className="clay-inset h-9 rounded-xl px-3 text-xs font-medium text-muted-foreground hover:text-foreground"
+          >
+            {t("Filtrlarni tozalash")} ✕
+          </button>
+        ) : null}
       </div>
 
       {query.isPending ? (
@@ -115,8 +170,9 @@ function TasksPage() {
       ) : (
         <div className="space-y-2">
           {(query.data ?? []).map((task) => {
-            const customer = task.customers as { full_name: string | null } | null;
-            const operator = task.operators as { full_name: string | null } | null;
+            const customer = task.customers as { id: string | null; full_name: string | null } | null;
+            const order = task.orders as { id: string | null; order_number: string | null } | null;
+            const assignee = task.assignee_name;
             const overdue =
               task.due_date && task.status !== "completed" && new Date(task.due_date) < today;
             return (
@@ -153,17 +209,46 @@ function TasksPage() {
                   >
                     {task.title}
                   </p>
-                  <p className="truncate text-xs text-muted-foreground">
-                    {[
-                      customer?.full_name,
-                      operator?.full_name ? `Mas’ul: ${operator.full_name}` : null,
-                      task.due_date
-                        ? `Muddat: ${new Date(task.due_date).toLocaleDateString("uz-UZ")}`
-                        : null,
-                      overdue ? "kechikkan" : null,
-                    ]
-                      .filter(Boolean)
-                      .join(" • ") || "Qo‘shimcha ma’lumot yo‘q"}
+                  <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                    {customer?.full_name ? (
+                      customer.id ? (
+                        <Link
+                          to="/dashboard/customers/$id"
+                          params={{ id: customer.id }}
+                          className="underline-offset-4 hover:underline"
+                        >
+                          {customer.full_name}
+                        </Link>
+                      ) : (
+                        <span>{customer.full_name}</span>
+                      )
+                    ) : null}
+                    {assignee ? (
+                      <Link to="/dashboard/team" className="underline-offset-4 hover:underline">
+                        {t("Mas’ul:")} {assignee}
+                      </Link>
+                    ) : null}
+                    {task.due_date ? (
+                      <span>{t("Muddat: {v0}", { v0: new Date(task.due_date).toLocaleDateString("uz-UZ") })}</span>
+                    ) : null}
+                    {overdue ? <span className="text-destructive">{t("Muddati o‘tgan")}</span> : null}
+                    {task.lead_id ? (
+                      <Link to="/dashboard/leads" search={{ id: task.lead_id }} className="underline-offset-4 hover:underline">
+                        {t("Lid")}
+                      </Link>
+                    ) : null}
+                    {order?.order_number ? (
+                      <Link
+                        to="/dashboard/orders"
+                        search={{ search: order.order_number }}
+                        className="underline-offset-4 hover:underline"
+                      >
+                        #{order.order_number}
+                      </Link>
+                    ) : null}
+                    {!customer?.full_name && !assignee && !task.due_date && !task.lead_id && !order?.order_number ? (
+                      <span>{t("Qo‘shimcha ma’lumot yo‘q")}</span>
+                    ) : null}
                   </p>
                 </div>
                 <StatusBadge value={task.priority} />
@@ -207,13 +292,14 @@ function TasksPage() {
       <TaskDialog
         open={open}
         onOpenChange={setOpen}
+        defaultCustomerId={customerId ?? undefined}
         task={
           editing
             ? {
                 id: editing.id,
                 title: editing.title,
                 description: editing.description,
-                assigned_operator_id: editing.assigned_operator_id,
+                assigned_member_id: editing.assigned_member_id,
                 customer_id: editing.customer_id,
                 order_id: editing.order_id,
                 due_date: editing.due_date,

@@ -15,9 +15,9 @@ import { t } from "@/lib/i18n";
 export const Route = createFileRoute("/_authenticated/dashboard/billing")({
   head: () => ({
     meta: [
-      { title: t("Tarif va to‘lov — NEXORA CRM") },
+      { title: t("Tarif va to‘lov — KetaOne") },
       { name: "description", content: t("Tarifni tanlang va Payme yoki Click orqali to‘lang.") },
-      { property: "og:title", content: t("Tarif va to‘lov — NEXORA CRM") },
+      { property: "og:title", content: t("Tarif va to‘lov — KetaOne") },
       { property: "og:description", content: t("Tarifni tanlang va Payme yoki Click orqali to‘lang.") },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

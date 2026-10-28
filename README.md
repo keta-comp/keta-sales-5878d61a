@@ -1,11 +1,11 @@
-# Sales AI Assistant
+# KetaOne product specification
 
 Build a REAL, PRODUCTION-READY AI SALES AGENT SYSTEM.
 
 This is NOT a mockup, prototype, static demo, or fake UI.
 
 The product must actually work end-to-end:
-Telegram customer → AI Sales Agent → inventory/database → sales conversation → order/lead → operator group → CRM → admin dashboard.
+Telegram customer → AI Sales Agent → inventory/database → sales conversation → order/lead → team group → CRM → admin dashboard.
 
 ## 1. PRODUCT PURPOSE
 
@@ -26,7 +26,7 @@ When a customer writes to the Telegram bot, the AI agent must:
 * collect required customer information;
 * create/update a lead;
 * create an order when appropriate;
-* transfer the conversation to a human operator when necessary.
+* transfer the conversation to a team member when necessary.
 
 The AI must never invent stock, prices, discounts, specifications, delivery availability, or other business facts.
 
@@ -105,7 +105,7 @@ Main navigation:
 * Orders
 * Inventory
 * Products
-* Operators
+* Team & roles
 * Sales Analytics
 * Settings
 
@@ -219,7 +219,7 @@ Its objectives, in order:
 9. Ask for purchase intent.
 10. Collect order information.
 11. Create a lead/order.
-12. Escalate to a human operator when necessary.
+12. Escalate to a team member when necessary.
 
 The AI must NOT be annoying, spammy, manipulative, or dishonest.
 
@@ -308,7 +308,7 @@ Instead:
 
 * understand timing;
 * offer to save the product/request;
-* ask if they want an operator to contact them.
+* ask if they want a team member to contact them.
 
 ---
 
@@ -318,7 +318,7 @@ The AI must know when human assistance is needed.
 
 Examples:
 
-* customer requests human operator;
+* customer requests a human team member;
 * complex complaint;
 * custom price/discount request;
 * payment issue;
@@ -331,17 +331,17 @@ Examples:
 When escalation happens:
 
 1. Create/update the lead.
-2. Set status to "needs_operator".
+2. Set status to "needs_attention".
 3. Save conversation context.
-4. Send the lead to the configured Telegram operator group.
+4. Send the lead to the configured Telegram team group.
 
 ---
 
-# 12. TELEGRAM OPERATOR GROUP
+# 12. TELEGRAM TEAM GROUP
 
-Create a Telegram operator group integration.
+Create a Telegram team group integration.
 
-When a lead requires human assistance, send a structured message to the operator group.
+When a lead requires human assistance, send a structured message to the team group.
 
 Example:
 
@@ -373,9 +373,9 @@ Actions:
 [Open Customer]
 [Open Conversation]
 
-The system must support assigning the lead to an operator.
+The system must support assigning the lead to a team member.
 
-Operator statuses:
+Lead statuses:
 
 * New
 * Assigned
@@ -402,7 +402,7 @@ Lead fields:
 * location
 * lead score
 * status
-* assigned operator
+* assigned team member
 * AI summary
 * notes
 * created_at
@@ -457,7 +457,7 @@ Show:
 * customer
 * latest message
 * AI/human status
-* assigned operator
+* assigned team member
 * lead status
 * timestamp
 
@@ -467,7 +467,7 @@ Messages should show:
 
 * customer
 * AI
-* operator
+* team member
 
 Add:
 
@@ -494,7 +494,7 @@ Order fields:
 * phone
 * payment status
 * order status
-* assigned operator
+* assigned team member
 * created_at
 * updated_at
 
@@ -513,18 +513,18 @@ When an order is confirmed, inventory must be updated transactionally.
 
 ---
 
-# 17. OPERATORS
+# 17. TEAM
 
-Create operator management.
+Create team management: members and roles.
 
 Admin can:
 
-* add operator
-* deactivate operator
+* add member
+* deactivate member
 * assign leads
-* view operator performance
+* view member performance
 
-Operator statistics:
+Member statistics:
 
 * assigned leads
 * contacted leads
@@ -551,7 +551,7 @@ Admin can configure:
 * return policy
 * escalation rules
 * maximum allowed discount
-* operator group chat ID
+* team group chat ID
 
 Create editable business knowledge/settings stored in Supabase.
 
@@ -577,8 +577,8 @@ conversations
 messages
 orders
 order_items
-operators
-operator_assignments
+business_members
+lead_assignments
 ai_settings
 
 Use UUID primary keys where appropriate.
@@ -595,7 +595,7 @@ Implement proper foreign keys.
 
 Implement Supabase Row Level Security.
 
-Authenticated admins/operators must only access authorized data.
+Authenticated admins and members must only access authorized data.
 
 Never use insecure public database access for sensitive CRM data.
 
@@ -644,8 +644,8 @@ get_business_settings()
 create_lead(data)
 update_lead(data)
 create_order(data)
-request_human_operator(reason)
-send_operator_notification(data)
+request_human_help(reason)
+send_staff_notification(data)
 
 The AI can only perform allowed actions through these functions.
 
@@ -662,7 +662,7 @@ Dashboard should update when:
 * lead status changes
 * order is created
 * inventory changes
-* operator takes a lead
+* a team member takes a lead
 
 ---
 
@@ -747,7 +747,7 @@ Before considering the project complete:
 * check Telegram integration architecture;
 * check AI tool calls;
 * check lead creation;
-* check operator handoff;
+* check human handoff;
 * check order creation;
 * check inventory consistency.
 

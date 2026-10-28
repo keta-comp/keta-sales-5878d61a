@@ -84,7 +84,7 @@ type CustomerSeed = {
   location?: string | null;
   status?: string | null;
   source?: string | null;
-  assigned_operator_id?: string | null;
+  assigned_member_id?: string | null;
   notes?: string | null;
 };
 
@@ -119,7 +119,7 @@ export function CustomerDialog({
           location: form.location ?? null,
           status: form.status ?? "active",
           source: form.source ?? "manual",
-          assigned_operator_id: form.assigned_operator_id ?? null,
+          assigned_member_id: form.assigned_member_id ?? null,
           notes: form.notes ?? null,
         },
       }),
@@ -204,9 +204,9 @@ export function CustomerDialog({
           </Field>
           <Field label={t("Mas’ul")}>
             <Select
-              value={form.assigned_operator_id ?? NONE}
+              value={form.assigned_member_id ?? NONE}
               onValueChange={(value) =>
-                setForm((f) => ({ ...f, assigned_operator_id: value === NONE ? null : value }))
+                setForm((f) => ({ ...f, assigned_member_id: value === NONE ? null : value }))
               }
             >
               <SelectTrigger>
@@ -214,7 +214,7 @@ export function CustomerDialog({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={NONE}>{t("Tanlanmagan")}</SelectItem>
-                {(pickers.data?.operators ?? []).map((o) => (
+                {(pickers.data?.assignees ?? []).map((o) => (
                   <SelectItem key={o.id} value={o.id}>
                     {o.full_name}
                   </SelectItem>
@@ -271,7 +271,7 @@ export function LeadDialog({
     value: string;
     stage: string;
     next_action: string;
-    assigned_operator_id: string;
+    assigned_member_id: string;
     notes: string;
   }>({
     customer_id: defaultCustomerId ?? "",
@@ -280,7 +280,7 @@ export function LeadDialog({
     value: "",
     stage: stages?.[0] ?? "Yangi",
     next_action: "",
-    assigned_operator_id: NONE,
+    assigned_member_id: NONE,
     notes: "",
   });
 
@@ -304,7 +304,7 @@ export function LeadDialog({
           stage: form.stage,
           next_action: form.next_action || null,
           notes: form.notes || null,
-          assigned_operator_id: form.assigned_operator_id === NONE ? null : form.assigned_operator_id,
+          assigned_member_id: form.assigned_member_id === NONE ? null : form.assigned_member_id,
         },
       }),
     onSuccess: () => {
@@ -386,15 +386,15 @@ export function LeadDialog({
           </Field>
           <Field label={t("Mas’ul")}>
             <Select
-              value={form.assigned_operator_id}
-              onValueChange={(value) => setForm((f) => ({ ...f, assigned_operator_id: value }))}
+              value={form.assigned_member_id}
+              onValueChange={(value) => setForm((f) => ({ ...f, assigned_member_id: value }))}
             >
               <SelectTrigger>
                 <SelectValue placeholder={t("Tanlanmagan")} />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={NONE}>{t("Tanlanmagan")}</SelectItem>
-                {(pickers.data?.operators ?? []).map((o) => (
+                {(pickers.data?.assignees ?? []).map((o) => (
                   <SelectItem key={o.id} value={o.id}>
                     {o.full_name}
                   </SelectItem>
@@ -786,7 +786,7 @@ type TaskSeed = {
   id?: string;
   title?: string;
   description?: string | null;
-  assigned_operator_id?: string | null;
+  assigned_member_id?: string | null;
   customer_id?: string | null;
   order_id?: string | null;
   due_date?: string | null;
@@ -831,7 +831,7 @@ export function TaskDialog({
           ...(form.id ? { id: form.id } : {}),
           title: (form.title ?? "").trim(),
           description: form.description ?? null,
-          assigned_operator_id: form.assigned_operator_id ?? null,
+          assigned_member_id: form.assigned_member_id ?? null,
           customer_id: form.customer_id ?? null,
           order_id: form.order_id ?? null,
           due_date: form.due_date || null,
@@ -885,9 +885,9 @@ export function TaskDialog({
           </Field>
           <Field label={t("Mas’ul")}>
             <Select
-              value={form.assigned_operator_id ?? NONE}
+              value={form.assigned_member_id ?? NONE}
               onValueChange={(value) =>
-                setForm((f) => ({ ...f, assigned_operator_id: value === NONE ? null : value }))
+                setForm((f) => ({ ...f, assigned_member_id: value === NONE ? null : value }))
               }
             >
               <SelectTrigger>
@@ -895,7 +895,7 @@ export function TaskDialog({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={NONE}>{t("Tanlanmagan")}</SelectItem>
-                {(pickers.data?.operators ?? []).map((o) => (
+                {(pickers.data?.assignees ?? []).map((o) => (
                   <SelectItem key={o.id} value={o.id}>
                     {o.full_name}
                   </SelectItem>

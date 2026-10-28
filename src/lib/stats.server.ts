@@ -20,12 +20,12 @@ function daysAgo(n: number) {
 export async function buildOverview(supabase: Client) {
   const today = startOfToday();
 
-  const [leadsToday, newLeads, hotLeads, needsOperator, ordersToday, revenueRows, convToday, messages, currency] =
+  const [leadsToday, newLeads, hotLeads, needsAttention, ordersToday, revenueRows, convToday, messages, currency] =
     await Promise.all([
       supabase.from("leads").select("id", { count: "exact", head: true }).gte("created_at", today),
       supabase.from("leads").select("id", { count: "exact", head: true }).eq("status", "new"),
       supabase.from("leads").select("id", { count: "exact", head: true }).eq("score", "hot"),
-      supabase.from("leads").select("id", { count: "exact", head: true }).eq("status", "needs_operator"),
+      supabase.from("leads").select("id", { count: "exact", head: true }).eq("status", "needs_attention"),
       supabase.from("orders").select("id", { count: "exact", head: true }).gte("created_at", today),
       supabase.from("orders").select("total, status, created_at").gte("created_at", today),
       supabase.from("conversations").select("id", { count: "exact", head: true }).gte("last_message_at", today),
@@ -69,7 +69,7 @@ export async function buildOverview(supabase: Client) {
     leadsToday: leadsTodayCount,
     newLeads: newLeads.count ?? 0,
     hotLeads: hotLeads.count ?? 0,
-    humanHandoffs: needsOperator.count ?? 0,
+    humanHandoffs: needsAttention.count ?? 0,
     ordersToday: ordersTodayCount,
     revenueToday,
     aiConversationsToday: convToday.count ?? 0,

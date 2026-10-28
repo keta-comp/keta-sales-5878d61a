@@ -17,7 +17,7 @@ export type KanbanLead = {
   ai_summary: string | null;
   created_at: string;
   customers: { full_name: string | null; telegram_username: string | null; phone: string | null } | null;
-  operators: { full_name: string } | null;
+  assignee_name: string | null;
 };
 
 type Props = {
@@ -58,7 +58,7 @@ function LeadCard({ row, pending, movingId, onOpen, onMove, taskStates }: Omit<P
         <span>{new Date(row.created_at).toLocaleDateString()}</span>
       </div>
       {(() => { const st = taskStates?.[row.id]; const b = st ? taskBadge[st] : undefined; return b ? <p className={cn("mt-2 inline-block rounded border px-2 py-0.5 text-xs font-medium", b.cls)}>{t(b.label)}</p> : null; })()}
-      <p className="mt-2 truncate text-xs text-muted-foreground" title={row.operators?.full_name}>{row.operators?.full_name ?? t("Biriktirilmagan")}</p>
+      <p className="mt-2 truncate text-xs text-muted-foreground" title={row.assignee_name ?? undefined}>{row.assignee_name ?? t("Biriktirilmagan")}</p>
       <Select value={row.status} disabled={pending} onValueChange={(value) => { const next = leadStatusChange(row.status, value); if (next) onMove(row.id, next); }}>
         <SelectTrigger className="mt-3 h-8 w-full text-xs" aria-label={t("Lid bosqichi")}><SelectValue /></SelectTrigger>
         <SelectContent>{LEAD_STATUSES.map((status) => <SelectItem key={status} value={status}>{t(LEAD_STATUS_LABELS[status])}</SelectItem>)}</SelectContent>

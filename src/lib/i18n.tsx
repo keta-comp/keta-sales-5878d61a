@@ -20,7 +20,7 @@ const TABLES: Record<Lang, Record<string, string>> = {
   en,
 };
 
-const STORAGE_KEY = "nexora-lang";
+const STORAGE_KEY = "ketaone-lang";
 
 let current: Lang = "uz";
 const listeners = new Set<() => void>();
@@ -56,7 +56,7 @@ function readStoredLang(): Lang {
   } catch {
     /* ignore */
   }
-  const match = /(?:^|;\s*)nexora-lang=([a-z]+)/.exec(document.cookie);
+  const match = /(?:^|;\s*)ketaone-lang=([a-z]+)/.exec(document.cookie);
   return isLang(match?.[1]) ? (match![1] as Lang) : "uz";
 }
 

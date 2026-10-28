@@ -2,26 +2,32 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { withAssigneeNames } from "./assignee.server";
 import { compact } from "./compact";
 
 export const listOrders = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
-    z.object({ status: z.string().optional(), search: z.string().optional() }).parse(input ?? {}),
+    z.object({
+      status: z.string().optional(),
+      search: z.string().optional(),
+      customerId: z.string().optional(),
+    }).parse(input ?? {}),
   )
   .handler(async ({ data, context }) => {
     let query = context.supabase
       .from("orders")
       .select(
-        "*, customers(id, full_name, telegram_username), operators(id, full_name), order_items(id, product_name, quantity, unit_price, line_total)",
+        "*, customers(id, full_name, telegram_username), order_items(id, product_name, quantity, unit_price, line_total)",
       )
       .order("created_at", { ascending: false })
       .limit(300);
     if (data.status && data.status !== "all") query = query.eq("status", data.status as never);
+    if (data.customerId) query = query.eq("customer_id", data.customerId);
     if (data.search) query = query.ilike("order_number", `%${data.search}%`);
     const { data: rows, error } = await query;
     if (error) throw new Error(error.message);
-    return rows;
+    return withAssigneeNames(context.supabase, rows ?? []);
   });
 
 export const updateOrder = createServerFn({ method: "POST" })
@@ -34,7 +40,7 @@ export const updateOrder = createServerFn({ method: "POST" })
           .enum(["new", "confirming", "confirmed", "preparing", "delivered", "cancelled"])
           .optional(),
         payment_status: z.enum(["unpaid", "partial", "paid", "refunded"]).optional(),
-        assigned_operator_id: z.string().nullable().optional(),
+        assigned_member_id: z.string().nullable().optional(),
         delivery_address: z.string().optional(),
         phone: z.string().optional(),
         notes: z.string().optional(),
@@ -129,75 +135,4 @@ export const createOrder = createServerFn({ method: "POST" })
       .insert(lines.map((l) => ({ ...l, order_id: order.id })));
     if (itemError) throw new Error(itemError.message);
     return order;
-  });
-
-export const listOperators = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const [operators, leads, orders] = await Promise.all([
-      context.supabase.from("operators").select("*").order("created_at", { ascending: false }),
-      context.supabase.from("leads").select("assigned_operator_id, status"),
-      context.supabase.from("orders").select("assigned_operator_id, total, status"),
-    ]);
-    if (operators.error) throw new Error(operators.error.message);
-
-    return (operators.data ?? []).map((operator) => {
-      const own = (leads.data ?? []).filter((l) => l.assigned_operator_id === operator.id);
-      const won = own.filter((l) => l.status === "won").length;
-      const lost = own.filter((l) => l.status === "lost").length;
-      const contacted = own.filter((l) =>
-        ["contacted", "negotiating", "won", "lost"].includes(l.status),
-      ).length;
-      const revenue = (orders.data ?? [])
-        .filter((o) => o.assigned_operator_id === operator.id && o.status !== "cancelled")
-        .reduce((sum, o) => sum + Number(o.total), 0);
-      return {
-        ...operator,
-        assigned_leads: own.length,
-        contacted_leads: contacted,
-        won_leads: won,
-        lost_leads: lost,
-        conversion_rate: own.length ? Math.round((won / own.length) * 1000) / 10 : 0,
-        revenue,
-      };
-    });
-  });
-
-export const saveOperator = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) =>
-    z
-      .object({
-        id: z.string().optional(),
-        full_name: z.string().min(1),
-        telegram_username: z.string().nullable().optional(),
-        telegram_user_id: z.string().nullable().optional(),
-        phone: z.string().nullable().optional(),
-        is_active: z.boolean(),
-      })
-      .parse(input),
-  )
-  .handler(async ({ data, context }) => {
-    const { id, ...payload } = data;
-    if (id) {
-      const { error } = await context.supabase.from("operators").update(compact(payload) as never).eq("id", id);
-      if (error) throw new Error(error.message);
-      return { id };
-    }
-    const { data: created, error } = await context.supabase
-      .from("operators")
-      .insert(compact(payload) as never)
-      .select("id")
-      .single();
-    if (error) throw new Error(error.message);
-    return created;
-  });
-
-export const deleteOperator = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => z.object({ id: z.string() }).parse(input))
-  .handler(async ({ data, context }) => {
-    const { error } = await context.supabase.from("operators").delete().eq("id", data.id);
-    if (error) throw new Error(error.message);
-    return { ok: true };
   });

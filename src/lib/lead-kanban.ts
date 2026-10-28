@@ -2,7 +2,7 @@ import { LEAD_STATUSES, type LeadStatus } from "@/lib/types";
 
 export const LEAD_STATUS_LABELS: Record<LeadStatus, string> = {
   new: "Yangi",
-  needs_operator: "Operator kerak",
+  needs_attention: "E'tibor kerak",
   assigned: "Biriktirilgan",
   contacted: "Bog'lanildi",
   negotiating: "Muzokara",

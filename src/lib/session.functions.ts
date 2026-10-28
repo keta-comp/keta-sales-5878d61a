@@ -44,9 +44,22 @@ export const recordLogin = createServerFn({ method: "POST" })
 export const recordFailedLogin = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => z.object({ email: z.string().max(200) }).parse(input))
   .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { logAudit } = await import("./audit.server");
+
+    // Throttle: this endpoint is anonymous, so cap per-email writes to prevent audit-log spam.
+    const email = data.email.slice(0, 200).toLowerCase();
+    const since = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+    const { count } = await supabaseAdmin
+      .from("audit_logs")
+      .select("id", { count: "exact", head: true })
+      .eq("action", "login_failed")
+      .ilike("actor_email", email)
+      .gte("created_at", since);
+    if ((count ?? 0) >= 5) return { ok: true };
+
     await logAudit({
-      actorEmail: data.email.slice(0, 200),
+      actorEmail: email,
       actorKind: "system",
       action: "login_failed",
       status: "failure",

@@ -17,9 +17,9 @@ import { t } from "@/lib/i18n";
 export const Route = createFileRoute("/_authenticated/super-admin/settings")({
   head: () => ({
     meta: [
-      { title: t("Tizim sozlamalari — NEXORA CRM Control Center") },
+      { title: t("Tizim sozlamalari — KetaOne Control Center") },
       { name: "description", content: t("Platforma nomi, qo‘llab-quvvatlash aloqasi, standart vaqt mintaqasi va texnik ishlar rejimi.") },
-      { property: "og:title", content: t("Tizim sozlamalari — NEXORA CRM Control Center") },
+      { property: "og:title", content: t("Tizim sozlamalari — KetaOne Control Center") },
       { property: "og:description", content: t("Platforma darajasidagi asosiy sozlamalar.") },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -39,7 +39,7 @@ interface FormState {
 }
 
 const EMPTY: FormState = {
-  platform_name: "NEXORA CRM",
+  platform_name: "KetaOne",
   support_email: "keta.comp.dev@gmail.com",
   support_phone: "+998 77 763 02 16",
   default_timezone: "Asia/Tashkent",

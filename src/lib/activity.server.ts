@@ -24,7 +24,7 @@ export async function logActivity(
       customer_id: entry.customerId ?? null,
       action: entry.action,
       detail: entry.detail ?? null,
-      actor: entry.actor ?? "operator",
+      actor: entry.actor ?? "staff",
       actor_user_id: entry.actorUserId ?? null,
     } as never);
   } catch (error) {

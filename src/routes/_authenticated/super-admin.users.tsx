@@ -39,9 +39,9 @@ import { t } from "@/lib/i18n";
 export const Route = createFileRoute("/_authenticated/super-admin/users")({
   head: () => ({
     meta: [
-      { title: t("Foydalanuvchilar — NEXORA CRM Control Center") },
-      { name: "description", content: t("NEXORA CRM platformasidagi barcha foydalanuvchilar, rollari va holati.") },
-      { property: "og:title", content: t("Foydalanuvchilar — NEXORA CRM Control Center") },
+      { title: t("Foydalanuvchilar — KetaOne Control Center") },
+      { name: "description", content: t("KetaOne platformasidagi barcha foydalanuvchilar, rollari va holati.") },
+      { property: "og:title", content: t("Foydalanuvchilar — KetaOne Control Center") },
       { property: "og:description", content: t("Barcha foydalanuvchilar: organization, rol, holat, faollik.") },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -50,7 +50,28 @@ export const Route = createFileRoute("/_authenticated/super-admin/users")({
   component: UsersPage,
 });
 
-const ROLES = ["owner", "admin", "manager", "operator"] as const;
+const ROLES = ["owner", "admin", "manager", "receptionist", "cashier"] as const;
+
+function RoleSelect({
+  value,
+  disabled,
+  onChange,
+}: {
+  value: string;
+  disabled: boolean;
+  onChange: (role: (typeof ROLES)[number]) => void;
+}) {
+  return (
+    <Select value={value} onValueChange={(v) => onChange(v as (typeof ROLES)[number])} disabled={disabled}>
+      <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+      <SelectContent>
+        {ROLES.map((r) => (
+          <SelectItem key={r} value={r}>{r}</SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
 
 function UserDialog({ userId, onClose }: { userId: string; onClose: () => void }) {
   const queryClient = useQueryClient();
@@ -79,7 +100,8 @@ function UserDialog({ userId, onClose }: { userId: string; onClose: () => void }
   });
 
   const changeRole = useMutation({
-    mutationFn: (role: (typeof ROLES)[number]) => roleFn({ data: { id: userId, role } }),
+    mutationFn: (input: { businessId: string; role: (typeof ROLES)[number] }) =>
+      roleFn({ data: { id: userId, businessId: input.businessId, role: input.role } }),
     onSuccess: () => {
       toast.success(t("Rol yangilandi"));
       invalidate();
@@ -89,7 +111,8 @@ function UserDialog({ userId, onClose }: { userId: string; onClose: () => void }
 
   const sendReset = useMutation({
     mutationFn: () => resetFn({ data: { id: userId } }),
-    onSuccess: () => toast.success(t("Parolni tiklash havolasi emailga yuborildi")),
+    onSuccess: () =>
+      toast.success(t("Parolni tiklash havolasi yuborildi. Email kelmasa SMTP sozlamalarini tekshiring.")),
     onError: (e) => toast.error(e instanceof Error ? e.message : t("Yuborilmadi")),
   });
 
@@ -121,7 +144,13 @@ function UserDialog({ userId, onClose }: { userId: string; onClose: () => void }
               <Field label={t("AI so‘rovlari")} value={fmtNumber(data.usage.aiRequests)} />
               <Field
                 label={t("Platforma roli")}
-                value={data.profile.isSuperAdmin ? t("Super Admin") : data.memberships[0]?.role ?? "—"}
+                value={
+                  data.profile.isSuperAdmin
+                    ? t("Super Admin")
+                    : data.memberships.length
+                      ? t("Rollar organization bo‘yicha belgilanadi")
+                      : t("Hech bir organization’ga a’zo emas")
+                }
               />
             </div>
 
@@ -134,7 +163,13 @@ function UserDialog({ userId, onClose }: { userId: string; onClose: () => void }
                         {m.organization ?? "—"}
                       </Link>
                     </td>
-                    <td className="px-3 py-2">{m.role}</td>
+                    <td className="px-3 py-2">
+                      <RoleSelect
+                        disabled={data.profile.isSuperAdmin || changeRole.isPending}
+                        value={m.role}
+                        onChange={(role) => changeRole.mutate({ businessId: m.businessId, role })}
+                      />
+                    </td>
                     <td className="px-3 py-2"><Pill value={m.organizationStatus} /></td>
                     <td className="px-3 py-2">{m.plan ?? "—"}</td>
                   </tr>
@@ -143,16 +178,6 @@ function UserDialog({ userId, onClose }: { userId: string; onClose: () => void }
             ) : null}
 
             <div className="flex flex-wrap items-center gap-2">
-              <Select
-                value={data.memberships[0]?.role ?? "operator"}
-                onValueChange={(v) => changeRole.mutate(v as (typeof ROLES)[number])}
-                disabled={data.profile.isSuperAdmin}
-              >
-                <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {ROLES.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-                </SelectContent>
-              </Select>
               {data.profile.status === "suspended" ? (
                 <Button size="sm" onClick={() => changeStatus.mutate("active")}>{t("Qayta faollashtirish")}</Button>
               ) : (

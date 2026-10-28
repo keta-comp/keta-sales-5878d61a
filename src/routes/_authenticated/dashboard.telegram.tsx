@@ -25,12 +25,12 @@ export const Route = createFileRoute("/_authenticated/dashboard/telegram")({
   validateSearch: searchSchema,
   head: () => ({
     meta: [
-      { title: t("Telegram integratsiyasi — NEXORA CRM") },
+      { title: t("Telegram integratsiyasi — KetaOne") },
       {
         name: "description",
-        content: t("NEXORA CRM hisobingizni Telegram bilan ulang va biznes hisobotlarini Telegram orqali oling."),
+        content: t("KetaOne hisobingizni Telegram bilan ulang va biznes hisobotlarini Telegram orqali oling."),
       },
-      { property: "og:title", content: t("Telegram integratsiyasi — NEXORA CRM") },
+      { property: "og:title", content: t("Telegram integratsiyasi — KetaOne") },
       { property: "og:description", content: t("Kunlik hisobot, Excel fayl va muhim bildirishnomalar Telegramda.") },
     ],
   }),
@@ -104,7 +104,7 @@ function TelegramPage() {
           ) : request.data?.valid ? (
             <>
               <p className="text-sm text-muted-foreground">
-                {request.data.username ? `@${request.data.username}` : t("Telegram akkauntingiz")} {t("ni NEXORA CRM hisobingiz\n                bilan ulashga ruxsat berasizmi?")}
+                {request.data.username ? `@${request.data.username}` : t("Telegram akkauntingiz")} {t("ni KetaOne hisobingiz\n                bilan ulashga ruxsat berasizmi?")}
               </p>
               <div className="flex flex-wrap gap-3">
                 <Button onClick={() => confirmMutation.mutate()} disabled={confirmMutation.isPending}>
@@ -142,7 +142,7 @@ function TelegramPage() {
           <h2 className="text-lg font-semibold">{t("⚪️ Ulanmagan")}</h2>
           <p className="text-sm text-muted-foreground">
             {t("Telegram botni oching,")}{" "}<span className="font-medium">/start</span> {t("yuboring va")}{" "}
-            <span className="font-medium">{t("“🔗 NEXORA CRM akkauntini ulash”")}</span> {t("tugmasini bosing. Bot sizni shu sahifaga\n            qaytaradi. Parolingiz hech qachon Telegramda so‘ralmaydi.")}
+            <span className="font-medium">{t("“🔗 KetaOne akkauntini ulash”")}</span> {t("tugmasini bosing. Bot sizni shu sahifaga\n            qaytaradi. Parolingiz hech qachon Telegramda so‘ralmaydi.")}
           </p>
         </div>
       )}
@@ -168,6 +168,7 @@ function LinkedCard({
     notifyPayment: boolean;
     notifyLead: boolean;
     notifyLowStock: boolean;
+    notifyBooking: boolean;
   }) => void;
   saving: boolean;
   onUnlink: () => void;
@@ -180,6 +181,7 @@ function LinkedCard({
   const [notifyPayment, setNotifyPayment] = useState(link.notify_payment);
   const [notifyLead, setNotifyLead] = useState(link.notify_lead);
   const [notifyLowStock, setNotifyLowStock] = useState(link.notify_low_stock);
+  const [notifyBooking, setNotifyBooking] = useState(link.notify_booking);
 
   useEffect(() => {
     setDailyReports(link.daily_reports);
@@ -214,6 +216,7 @@ function LinkedCard({
         <ToggleRow label={t("To‘lov bildirishnomasi")} value={notifyPayment} onChange={setNotifyPayment} />
         <ToggleRow label={t("Muhim lead bildirishnomasi")} value={notifyLead} onChange={setNotifyLead} />
         <ToggleRow label={t("Ombor qoldig‘i bildirishnomasi")} value={notifyLowStock} onChange={setNotifyLowStock} />
+        <ToggleRow label={t("Yangi bron bildirishnomasi")} value={notifyBooking} onChange={setNotifyBooking} />
       </div>
 
       <div className="flex flex-wrap gap-3">
@@ -227,6 +230,7 @@ function LinkedCard({
               notifyPayment,
               notifyLead,
               notifyLowStock,
+              notifyBooking,
             })
           }
           disabled={saving}

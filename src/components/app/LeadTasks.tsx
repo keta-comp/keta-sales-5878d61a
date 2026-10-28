@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { CheckCircle2, Circle, Plus } from "lucide-react";
@@ -18,7 +19,7 @@ function dueAt(daysAhead: number) {
 }
 
 /** Next-step tasks inside the lead card (amoCRM golden rule). */
-export function LeadTasks({ leadId, customerId, operatorId }: { leadId: string; customerId: string | null; operatorId: string | null }) {
+export function LeadTasks({ leadId, customerId, memberId }: { leadId: string; customerId: string | null; memberId: string | null }) {
   const qc = useQueryClient();
   const fetchTasks = useServerFn(listTasks);
   const save = useServerFn(saveTask);
@@ -38,7 +39,7 @@ export function LeadTasks({ leadId, customerId, operatorId }: { leadId: string; 
           title: title.trim(),
           lead_id: leadId,
           customer_id: customerId,
-          assigned_operator_id: operatorId,
+          assigned_member_id: memberId,
           due_date: dueAt(days),
           priority: "medium",
           status: "pending",
@@ -71,9 +72,18 @@ export function LeadTasks({ leadId, customerId, operatorId }: { leadId: string; 
     <div className="clay-panel space-y-3 p-4">
       <div className="flex items-center justify-between">
         <p className="text-sm font-medium text-foreground">{t("Keyingi qadam")}</p>
-        {open.length === 0 && !tasks.isPending ? (
-          <span className="rounded border border-destructive/40 px-2 py-0.5 text-xs text-destructive">{t("Vazifa yo‘q")}</span>
-        ) : null}
+        <div className="flex items-center gap-2">
+          {open.length === 0 && !tasks.isPending ? (
+            <span className="rounded border border-destructive/40 px-2 py-0.5 text-xs text-destructive">{t("Vazifa yo‘q")}</span>
+          ) : null}
+          <Link
+            to="/dashboard/tasks"
+            search={{ leadId }}
+            className="text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+          >
+            {t("Vazifalar")}
+          </Link>
+        </div>
       </div>
       <form
         className="space-y-2"

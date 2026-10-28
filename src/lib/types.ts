@@ -1,6 +1,6 @@
 export type LeadStatus =
   | "new"
-  | "needs_operator"
+  | "needs_attention"
   | "assigned"
   | "contacted"
   | "negotiating"
@@ -18,7 +18,7 @@ export type PaymentStatus = "unpaid" | "partial" | "paid" | "refunded";
 
 export const LEAD_STATUSES: LeadStatus[] = [
   "new",
-  "needs_operator",
+  "needs_attention",
   "assigned",
   "contacted",
   "negotiating",
@@ -39,7 +39,7 @@ export const PAYMENT_STATUSES: PaymentStatus[] = ["unpaid", "partial", "paid", "
 /** Uzbek display labels for backend status/score values. Never send these to the API. */
 export const STATUS_LABELS: Record<string, string> = {
   new: "Yangi",
-  needs_operator: "Operator kerak",
+  needs_attention: "E'tibor kerak",
   assigned: "Tayinlangan",
   contacted: "Bog'lanildi",
   negotiating: "Muzokara",
@@ -61,7 +61,7 @@ export const STATUS_LABELS: Record<string, string> = {
   low_stock: "Kam qoldi",
   out_of_stock: "Tugagan",
   ai: "AI",
-  human: "Operator",
+  human: "Inson",
 };
 
 export function statusLabel(value: string | null | undefined) {

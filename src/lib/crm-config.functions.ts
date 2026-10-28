@@ -14,17 +14,124 @@ import {
   type CrmWidget,
 } from "./crm-config";
 import { invalidateCrmAgentContext } from "./crm-config.server";
+import {
+  applyMissingParts,
+  attachPresetId,
+  crmConfigForPreset,
+  droppedModulesForPreset,
+  isMedicalModule,
+  isModuleEnabled,
+  medicalModuleKeys,
+  presetForId,
+  resolvePresetId,
+  type IndustryPreset,
+} from "./presets";
+import { can, type MemberRole } from "./roles";
+import { logAiUsage, logAudit } from "./audit.server";
 import { requireBusinessId } from "./tenant.server";
 
 /* ------------------------------------------------------------------ */
 /* Helpers                                                             */
 /* ------------------------------------------------------------------ */
 
+type SbClient = Parameters<typeof requireBusinessId>[0];
+
+/** Tenant identity plus its own CRM config — the only module list writes are validated against. */
+async function tenantCrm(supabase: SbClient) {
+  const businessId = await requireBusinessId(supabase);
+  const { data: row, error } = await supabase
+    .from("crm_configs")
+    .select("industry, config")
+    .eq("business_id", businessId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!row) throw new Error("CRM konfiguratsiyasi topilmadi");
+  const config = attachPresetId(row.industry, row.config as unknown as CrmConfigData);
+  return { businessId, config };
+}
+
+/** A record may only live in a module the tenant actually enabled. */
+function requireEnabledModule(config: CrmConfigData, moduleKey: string): CrmModule {
+  const module = config.modules.find((m) => m.key === moduleKey);
+  if (!module) throw new Error(`Bunday modul sozlanmagan: ${moduleKey}`);
+  if (!isModuleEnabled(resolvePresetId(null, config.presetId), moduleKey)) {
+    throw new Error(`Modul o‘chirilgan: ${moduleKey}`);
+  }
+  return module;
+}
+
+/**
+ * Patient-data modules need `medical.view` — both to read and to write them. The list of
+ * medical modules lives in the preset registry, not in the tenant's stored config, so a
+ * tenant cannot unlock them by editing its own CRM JSON.
+ */
+async function requireModuleAccess(
+  supabase: SbClient,
+  businessId: string,
+  config: CrmConfigData,
+  moduleKey: string,
+  write = false,
+): Promise<CrmModule> {
+  const module = requireEnabledModule(config, moduleKey);
+  if (!isMedicalModule(resolvePresetId(null, config.presetId), moduleKey)) return module;
+  const { data: role, error } = await supabase.rpc("business_role", { _business_id: businessId });
+  if (error) throw new Error(error.message);
+  if (!can(role as MemberRole | null, "medical.view")) {
+    void logAudit({
+      action: write ? "medical.write_denied" : "medical.read_denied",
+      businessId,
+      targetType: "crm_module",
+      targetId: moduleKey,
+      targetLabel: module.label,
+      status: "failure",
+    });
+    throw new Error("Bu tibbiy yozuvlarga faqat vakolatli xodimlar kira oladi.");
+  }
+  return module;
+}
+
+/** True when the caller's role may see patient data — presets without it always pass. */
+async function memberMayViewMedical(supabase: SbClient, businessId: string, presetId: string): Promise<boolean> {
+  if (medicalModuleKeys(presetId).length === 0) return true;
+  const { data: role, error } = await supabase.rpc("business_role", { _business_id: businessId });
+  if (error) throw new Error(error.message);
+  return can(role as MemberRole | null, "medical.view");
+}
+
+/** Audit trail for every access to stored patient data; ordinary modules never log. */
+function auditMedicalAccess(
+  config: CrmConfigData,
+  businessId: string,
+  moduleKey: string,
+  action: string,
+  metadata: Record<string, unknown> = {},
+) {
+  if (!isMedicalModule(resolvePresetId(null, config.presetId), moduleKey)) return;
+  void logAudit({
+    action,
+    businessId,
+    targetType: "crm_module",
+    targetId: moduleKey,
+    metadata,
+  });
+}
+
+/** Rewriting CRM structure is an admin action — RLS alone does not limit who may call it. */
+async function requireSettingsAdmin(supabase: SbClient): Promise<string> {
+  const businessId = await requireBusinessId(supabase);
+  const { data: role, error } = await supabase.rpc("business_role", { _business_id: businessId });
+  if (error) throw new Error(error.message);
+  if (!can(role as MemberRole | null, "settings.manage")) {
+    throw new Error("CRM konfiguratsiyasini faqat ego yoki admin o‘zgartira oladi.");
+  }
+  return businessId;
+}
+
 function normalizeField(raw: unknown): CrmField | null {
   if (!raw || typeof raw !== "object") return null;
   const r = raw as Record<string, unknown>;
   if (typeof r["key"] !== "string" || !r["key"].trim()) return null;
-  const types = ["text", "phone", "number", "money", "date", "select", "textarea", "relation"] as const;
+  const types = ["text", "phone", "number", "money", "date", "select", "textarea", "relation", "file"] as const;
   const type = types.includes(r["type"] as (typeof types)[number]) ? (r["type"] as CrmField["type"]) : "text";
   return {
     key: r["key"].trim(),
@@ -119,6 +226,8 @@ export function normalizeConfig(raw: unknown, preset: CrmConfigData): CrmConfigD
         : preset.terminology,
     dashboardWidgets: widgets.length ? widgets : preset.dashboardWidgets,
     automations: automations.length ? automations : preset.automations,
+    // Preset identity is server-owned; AI output can never re-point a business at another preset.
+    ...(preset.presetId ? { presetId: preset.presetId } : {}),
   };
 }
 
@@ -139,21 +248,25 @@ export const getMyCrmConfig = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const businessId = await requireBusinessId(context.supabase);
-    const [{ data: row }, { data: business }] = await Promise.all([
+    const [{ data: row }, { data: business }, { data: role }, branchCount] = await Promise.all([
       context.supabase
         .from("crm_configs")
         .select("industry, business_description, config")
         .eq("business_id", businessId)
         .maybeSingle(),
       context.supabase.from("businesses").select("name").eq("id", businessId).maybeSingle(),
+      context.supabase.rpc("business_role", { _business_id: businessId }),
+      context.supabase.from("branches").select("id", { count: "exact", head: true }).eq("business_id", businessId),
     ]);
     return {
       hasConfig: !!row,
       businessId,
       businessName: business?.name ?? null,
       industry: row?.industry ?? null,
+      role: (role ?? null) as MemberRole | null,
+      branchCount: branchCount.count ?? 0,
       businessDescription: row?.business_description ?? null,
-      config: row ? applyRelations(row.industry, row.config as unknown as CrmConfigData) : null,
+      config: row ? attachPresetId(row.industry, applyRelations(row.industry, row.config as unknown as CrmConfigData)) : null,
     };
   });
 
@@ -182,6 +295,8 @@ export const searchRelatedRecords = createServerFn({ method: "GET" })
         hint: r.phone ?? null,
       }));
     }
+    const crm = await tenantCrm(context.supabase);
+    await requireModuleAccess(context.supabase, businessId, crm.config, data.targetModule);
     let q = context.supabase
       .from("crm_records")
       .select("id, title")
@@ -195,11 +310,28 @@ export const searchRelatedRecords = createServerFn({ method: "GET" })
     return (rows ?? []).map((r) => ({ id: r.id, label: r.title, hint: null as string | null }));
   });
 
+function linkedValues(raw: unknown): Record<string, string | null> {
+  const source = (raw ?? {}) as Record<string, unknown>;
+  return Object.fromEntries(
+    Object.entries(source).map(([key, value]) => [key, value === null || value === undefined ? null : String(value)]),
+  );
+}
+
+export interface CustomerLinkedRecord {
+  id: string;
+  title: string;
+  stage: string | null;
+  created_at: string;
+  moduleKey: string;
+  moduleLabel: string;
+  data: Record<string, string | null>;
+}
+
 /** Dynamic-module records linked to a customer (via any relation field). */
 export const listCustomerLinkedRecords = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ customerId: z.string().uuid() }).parse(input))
-  .handler(async ({ data, context }) => {
+  .handler(async ({ data, context }): Promise<CustomerLinkedRecord[]> => {
     const businessId = await requireBusinessId(context.supabase);
     const { data: cfgRow } = await context.supabase
       .from("crm_configs")
@@ -207,10 +339,15 @@ export const listCustomerLinkedRecords = createServerFn({ method: "GET" })
       .eq("business_id", businessId)
       .maybeSingle();
     if (!cfgRow) return [];
-    const cfg = applyRelations(cfgRow.industry, cfgRow.config as unknown as CrmConfigData);
+    const cfg = attachPresetId(cfgRow.industry, applyRelations(cfgRow.industry, cfgRow.config as unknown as CrmConfigData));
+    const presetId = resolvePresetId(null, cfg.presetId);
+    // The linked-records panel would otherwise leak diagnoses to roles that cannot open
+    // the medical modules themselves.
+    const maySeeMedical = await memberMayViewMedical(context.supabase, businessId, presetId);
     const filters: { moduleKey: string; moduleLabel: string; idKey: string }[] = [];
     for (const m of cfg.modules) {
       if (m.link) continue;
+      if (!maySeeMedical && isMedicalModule(presetId, m.key)) continue;
       for (const f of m.fields ?? []) {
         if (f.type === "relation" && f.targetModule === "customers") {
           filters.push({ moduleKey: m.key, moduleLabel: m.label, idKey: `${f.key}_id` });
@@ -235,6 +372,7 @@ export const listCustomerLinkedRecords = createServerFn({ method: "GET" })
           created_at: r.created_at,
           moduleKey: f.moduleKey,
           moduleLabel: f.moduleLabel,
+          data: linkedValues(r.data),
         }));
       }),
     );
@@ -245,23 +383,33 @@ export const listCustomerLinkedRecords = createServerFn({ method: "GET" })
       .sort((a, b) => b.created_at.localeCompare(a.created_at));
   });
 
-const generateInput = z.object({
+/** Exported for tests: onboarding must not force a business description. */
+export const generateInput = z.object({
   industryKey: z.string().min(1),
   industryOther: z.string().optional(),
-  businessDescription: z.string().min(1),
+  /** Sub-preset inside an industry (e.g. barbershop inside beauty). */
+  presetId: z.string().min(1).optional(),
+  /** Optional: onboarding can be finished later, the industry preset stands on its own. */
+  businessDescription: z.string().max(4000).optional(),
   businessName: z.string().optional(),
+  currency: z.string().min(1).max(8).optional(),
+  workingHours: z.string().max(120).optional(),
 });
 
 export const generateCrmConfig = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => generateInput.parse(input))
   .handler(async ({ data, context }) => {
-    const businessId = await requireBusinessId(context.supabase);
+    const businessId = await requireSettingsAdmin(context.supabase);
     const preset = presetForIndustry(data.industryKey);
+    const presetId = resolvePresetId(data.industryKey, data.presetId);
+    const registryPreset = presetForId(presetId);
+    const defaults = registryPreset?.defaults;
     const industryLabel =
       data.industryKey === "boshqa"
         ? (data.industryOther?.trim() || "Boshqa soha")
         : data.industryKey;
+    const description = data.businessDescription?.trim() ?? "";
 
     let config = preset;
     let aiError: string | null = null;
@@ -271,7 +419,7 @@ export const generateCrmConfig = createServerFn({ method: "POST" })
       const prompt = [
         "Siz CRM konfiguratsiya dizaynerisiz. Foydalanuvchi biznesini tavsifladi.",
         `Soha: ${industryLabel}`,
-        `Biznes tavsifi: ${data.businessDescription}`,
+        `Biznes tavsifi: ${description || "Tavsif berilmagan — soha bo‘yicha standart konfiguratsiyani saqlang."}`,
         "",
         "Quyidagi boshlang'ich konfiguratsiyani ushbu biznesga moslab, FAQAT JSON qaytaring.",
         "Qoidalar:",
@@ -288,22 +436,49 @@ export const generateCrmConfig = createServerFn({ method: "POST" })
         prompt,
         maxOutputTokens: 3000,
       });
+      void logAiUsage({
+        businessId,
+        userId: context.userId,
+        feature: "crm_builder",
+        model: runtime.defaultModel,
+        inputTokens: result.usage?.inputTokens ?? null,
+        outputTokens: result.usage?.outputTokens ?? null,
+      });
       config = normalizeConfig(extractJson(result.text), preset);
     } catch (error) {
       // AI unavailable → the industry preset is already a complete, working CRM.
       aiError = error instanceof Error ? error.message : "AI sozlash xatosi";
     }
 
+    const finalConfig = attachPresetId(industryLabel, { ...config, presetId });
+
     const upsert = {
       business_id: businessId,
       industry: industryLabel,
-      business_description: data.businessDescription,
-      config: config as never,
+      business_description: description,
+      config: finalConfig as never,
     };
     const { error } = await context.supabase
       .from("crm_configs")
       .upsert(upsert, { onConflict: "business_id" });
     if (error) throw new Error(error.message);
+
+    // Preset defaults only fill settings the tenant has not set yet — never overwrite real edits.
+    const { data: currentSettings } = await context.supabase
+      .from("business_settings")
+      .select("business_description, currency, working_hours")
+      .eq("business_id", businessId)
+      .maybeSingle();
+    const patch: Record<string, string> = {};
+    const currency = data.currency?.trim() || defaults?.currency;
+    const workingHours =
+      data.workingHours?.trim() || (defaults ? `${defaults.workStart}–${defaults.workEnd}` : undefined);
+    if (description && !currentSettings?.business_description?.trim()) patch["business_description"] = description;
+    if (currency && !currentSettings?.currency?.trim()) patch["currency"] = currency;
+    if (workingHours && !currentSettings?.working_hours?.trim()) patch["working_hours"] = workingHours;
+    if (Object.keys(patch).length) {
+      await context.supabase.from("business_settings").update(patch as never).eq("business_id", businessId);
+    }
 
     if (data.businessName?.trim()) {
       const name = data.businessName.trim();
@@ -315,7 +490,7 @@ export const generateCrmConfig = createServerFn({ method: "POST" })
     }
 
     invalidateCrmAgentContext(businessId);
-    return { config, aiError };
+    return { config: finalConfig, aiError };
   });
 
 export const updateCrmConfig = createServerFn({ method: "POST" })
@@ -324,14 +499,17 @@ export const updateCrmConfig = createServerFn({ method: "POST" })
     z.object({ config: z.unknown() }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    const businessId = await requireBusinessId(context.supabase);
+    const businessId = await requireSettingsAdmin(context.supabase);
     const { data: row } = await context.supabase
       .from("crm_configs")
       .select("industry, config")
       .eq("business_id", businessId)
       .maybeSingle();
     if (!row) throw new Error("CRM konfiguratsiyasi topilmadi");
-    const normalized = normalizeConfig(data.config, row.config as unknown as CrmConfigData);
+    const normalized = attachPresetId(
+      row.industry,
+      normalizeConfig(data.config, row.config as unknown as CrmConfigData),
+    );
     const { error } = await context.supabase
       .from("crm_configs")
       .update({ config: normalized as never })
@@ -341,13 +519,127 @@ export const updateCrmConfig = createServerFn({ method: "POST" })
     return { config: normalized };
   });
 
+export interface OrphanedModule {
+  moduleKey: string;
+  label: string;
+  recordCount: number;
+}
+
+const switchPresetInput = z.object({ presetId: z.string().min(1) });
+
+/**
+ * Re-point the tenant at another preset (brief §7.1). Structure changes; data never does:
+ * crm_records/customers/appointments stay, modules the new preset drops are counted and
+ * reported so the admin knows where the old rows live.
+ */
+export const switchCrmPreset = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => switchPresetInput.parse(input))
+  .handler(async ({ data, context }): Promise<{ config: CrmConfigData; orphans: OrphanedModule[] }> => {
+    const businessId = await requireSettingsAdmin(context.supabase);
+    const target: IndustryPreset | undefined = presetForId(data.presetId);
+    if (!target) throw new Error("Bunday biznes turi mavjud emas.");
+
+    const { data: row, error: loadError } = await context.supabase
+      .from("crm_configs")
+      .select("industry, config")
+      .eq("business_id", businessId)
+      .maybeSingle();
+    if (loadError) throw new Error(loadError.message);
+    if (!row) throw new Error("CRM konfiguratsiyasi topilmadi");
+
+    const previous = attachPresetId(row.industry, applyRelations(row.industry, row.config as unknown as CrmConfigData));
+    const next = attachPresetId(target.industryKey, {
+      ...crmConfigForPreset(target.id),
+      presetId: target.id,
+    });
+
+    const dropped = droppedModulesForPreset(previous, target.id);
+    const orphans: OrphanedModule[] = [];
+    if (dropped.length) {
+      const counts = await Promise.all(
+        dropped.map(async (module) => {
+          const { count } = await context.supabase
+            .from("crm_records")
+            .select("id", { count: "exact", head: true })
+            .eq("business_id", businessId)
+            .eq("module_key", module.key);
+          return { moduleKey: module.key, label: module.label, recordCount: count ?? 0 };
+        }),
+      );
+      orphans.push(...counts.filter((c) => c.recordCount > 0));
+    }
+
+    // A custom industry label only survives while the tenant stays on the universal preset.
+    const industry = target.industryKey === "boshqa" ? row.industry : target.industryKey;
+    const { error } = await context.supabase
+      .from("crm_configs")
+      .update({ industry, config: next as never })
+      .eq("business_id", businessId);
+    if (error) throw new Error(error.message);
+
+    invalidateCrmAgentContext(businessId);
+    return { config: next, orphans };
+  });
+
+const syncInput = z.object({ presetId: z.string().min(1).optional() });
+
+/**
+ * Append registry modules, widgets and module fields a stored config predates. Additive
+ * only: existing modules, field order and every crm_records row stay untouched, so an
+ * admin who deleted a module keeps it deleted until they ask for the sync.
+ */
+export const syncPresetModules = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => syncInput.parse(input ?? {}))
+  .handler(async ({ data, context }): Promise<{
+    config: CrmConfigData;
+    addedModules: string[];
+    addedWidgets: string[];
+    addedFields: string[];
+  }> => {
+    const businessId = await requireSettingsAdmin(context.supabase);
+    const { data: row, error: loadError } = await context.supabase
+      .from("crm_configs")
+      .select("industry, config")
+      .eq("business_id", businessId)
+      .maybeSingle();
+    if (loadError) throw new Error(loadError.message);
+    if (!row) throw new Error("CRM konfiguratsiyasi topilmadi");
+
+    const current = attachPresetId(row.industry, applyRelations(row.industry, row.config as unknown as CrmConfigData));
+    const presetId = data.presetId ?? current.presetId ?? resolvePresetId(row.industry);
+    const { config: next, missing } = applyMissingParts(current, presetId);
+    if (
+      missing.modules.length === 0 &&
+      missing.widgets.length === 0 &&
+      missing.fields.length === 0
+    ) {
+      return { config: current, addedModules: [], addedWidgets: [], addedFields: [] };
+    }
+
+    const { error } = await context.supabase
+      .from("crm_configs")
+      .update({ config: next as never })
+      .eq("business_id", businessId);
+    if (error) throw new Error(error.message);
+
+    invalidateCrmAgentContext(businessId);
+    return {
+      config: next,
+      addedModules: missing.modules.map((m) => m.label),
+      addedWidgets: missing.widgets.map((w) => w.label),
+      addedFields: missing.fields.flatMap((entry) => entry.fields.map((f) => f.label)),
+    };
+  });
+
 const builderInput = z.object({ message: z.string().min(1) });
 
 export const aiCrmBuilder = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => builderInput.parse(input))
   .handler(async ({ data, context }) => {
-    const businessId = await requireBusinessId(context.supabase);
+    const businessId = await requireSettingsAdmin(context.supabase);
     const { data: row } = await context.supabase
       .from("crm_configs")
       .select("industry, config")
@@ -376,9 +668,17 @@ export const aiCrmBuilder = createServerFn({ method: "POST" })
       prompt,
       maxOutputTokens: 3000,
     });
+    void logAiUsage({
+      businessId,
+      userId: context.userId,
+      feature: "crm_agent",
+      model: runtime.defaultModel,
+      inputTokens: result.usage?.inputTokens ?? null,
+      outputTokens: result.usage?.outputTokens ?? null,
+    });
     const parsed = extractJson(result.text) as { reply?: unknown; config?: unknown };
     const reply = typeof parsed.reply === "string" && parsed.reply.trim() ? parsed.reply : "CRM yangilandi.";
-    const config = normalizeConfig(parsed.config, current);
+    const config = attachPresetId(row.industry, normalizeConfig(parsed.config, current));
 
     const { error } = await context.supabase
       .from("crm_configs")
@@ -397,15 +697,19 @@ export const listCrmRecords = createServerFn({ method: "GET" })
     z.object({ moduleKey: z.string().min(1), search: z.string().optional() }).parse(input ?? {}),
   )
   .handler(async ({ data, context }) => {
+    const { businessId, config } = await tenantCrm(context.supabase);
+    await requireModuleAccess(context.supabase, businessId, config, data.moduleKey);
     let query = context.supabase
       .from("crm_records")
       .select("*")
+      .eq("business_id", businessId)
       .eq("module_key", data.moduleKey)
       .order("created_at", { ascending: false })
       .limit(500);
     if (data.search) query = query.ilike("title", `%${data.search}%`);
     const { data: rows, error } = await query;
     if (error) throw new Error(error.message);
+    auditMedicalAccess(config, businessId, data.moduleKey, "medical.records_listed");
     return rows;
   });
 
@@ -421,7 +725,8 @@ export const saveCrmRecord = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => recordInput.parse(input))
   .handler(async ({ data, context }) => {
-    const businessId = await requireBusinessId(context.supabase);
+    const { businessId, config } = await tenantCrm(context.supabase);
+    await requireModuleAccess(context.supabase, businessId, config, data.moduleKey, true);
     const payload = {
       business_id: businessId,
       module_key: data.moduleKey,
@@ -430,9 +735,17 @@ export const saveCrmRecord = createServerFn({ method: "POST" })
       data: data.data as never,
     };
     if (data.id) {
-      const { error } = await context.supabase.from("crm_records").update(payload).eq("id", data.id);
+      const { data: updated, error } = await context.supabase
+        .from("crm_records")
+        .update(payload)
+        .eq("id", data.id)
+        .eq("business_id", businessId)
+        .select("id")
+        .maybeSingle();
       if (error) throw new Error(error.message);
-      return { id: data.id };
+      if (!updated) throw new Error("Yozuv topilmadi yoki bu biznesga tegishli emas.");
+      auditMedicalAccess(config, businessId, data.moduleKey, "medical.record_saved", { recordId: updated.id });
+      return { id: updated.id };
     }
     const { data: row, error } = await context.supabase
       .from("crm_records")
@@ -440,6 +753,7 @@ export const saveCrmRecord = createServerFn({ method: "POST" })
       .select("id")
       .single();
     if (error) throw new Error(error.message);
+    auditMedicalAccess(config, businessId, data.moduleKey, "medical.record_saved", { recordId: row.id });
     return { id: row.id };
   });
 
@@ -447,8 +761,26 @@ export const deleteCrmRecord = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ id: z.string() }).parse(input))
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase.from("crm_records").delete().eq("id", data.id);
+    const { businessId, config } = await tenantCrm(context.supabase);
+    // The caller only names an id, so the owning module must be read back before deleting.
+    const { data: target, error: findError } = await context.supabase
+      .from("crm_records")
+      .select("module_key")
+      .eq("id", data.id)
+      .eq("business_id", businessId)
+      .maybeSingle();
+    if (findError) throw new Error(findError.message);
+    if (!target) throw new Error("Yozuv topilmadi yoki bu biznesga tegishli emas.");
+    await requireModuleAccess(context.supabase, businessId, config, target.module_key, true);
+    const { data: deleted, error } = await context.supabase
+      .from("crm_records")
+      .delete()
+      .eq("id", data.id)
+      .eq("business_id", businessId)
+      .select("id");
     if (error) throw new Error(error.message);
+    if (!deleted?.length) throw new Error("Yozuv topilmadi yoki bu biznesga tegishli emas.");
+    auditMedicalAccess(config, businessId, target.module_key, "medical.record_deleted", { recordId: data.id });
     return { ok: true };
   });
 
@@ -480,7 +812,7 @@ export const getWidgetStats = createServerFn({ method: "GET" })
             if (!widget.moduleKey) return;
             let query = sb.from("crm_records").select(widget.kind === "field_sum" ? "data" : "id");
             if (widget.kind === "field_sum") query = query.limit(1000);
-            query = query.eq("module_key", widget.moduleKey);
+            query = query.eq("business_id", businessId).eq("module_key", widget.moduleKey);
             if (widget.where) query = query.eq(`data->>${widget.where.field}`, widget.where.value);
             if (widget.kind === "module_count_today") query = query.gte("created_at", todayStart.toISOString());
             const { data: rows, error } = await query;
@@ -533,7 +865,7 @@ export const getWidgetStats = createServerFn({ method: "GET" })
             const { count } = await sb
               .from("leads")
               .select("id", { count: "exact", head: true })
-              .eq("status", "needs_operator");
+              .eq("status", "needs_attention");
             stats[widget.key] = count ?? 0;
           }
         } catch {
@@ -542,4 +874,133 @@ export const getWidgetStats = createServerFn({ method: "GET" })
       }),
     );
     return { widgets: stats };
+  });
+
+/* ------------------------- record attachments ---------------------- */
+
+/** Private bucket — the object is only ever opened through a short-lived signed URL. */
+export const ATTACHMENT_BUCKET = "crm_attachments";
+const MAX_ATTACHMENT_BYTES = 15 * 1024 * 1024;
+const ATTACHMENT_SUFFIX: Record<string, string> = {
+  "image/png": "png",
+  "image/jpeg": "jpg",
+  "image/webp": "webp",
+  "image/tiff": "tif",
+  "application/pdf": "pdf",
+};
+
+const attachmentPathInput = z.object({
+  moduleKey: z.string().min(1),
+  filename: z.string().min(1).max(200),
+  contentType: z.string().min(1).max(80),
+  size: z.number().int().nonnegative(),
+});
+
+/**
+ * `{business}/{module}/{id}/{name}` — the first segment is the tenant boundary storage RLS reads,
+ * so it comes from the session, never from the upload. The extension follows the declared content
+ * type instead of the name the browser sent.
+ */
+export function attachmentObjectPath(input: {
+  businessId: string;
+  moduleKey: string;
+  filename: string;
+  contentType: string;
+  id: string;
+}): string | null {
+  const suffix = ATTACHMENT_SUFFIX[input.contentType];
+  if (!suffix) return null;
+  const name =
+    input.filename
+      .replace(/[^\p{L}\d ._-]/gu, "")
+      .replace(/^\.+/, "")
+      // The real extension is appended from the content type, so any claimed one goes first.
+      .replace(/\.[a-z0-9]{1,5}$/i, "")
+      .trim()
+      .slice(0, 80) || "hujjat";
+  return `${input.businessId}/${input.moduleKey}/${input.id}/${name}.${suffix}`;
+}
+
+/**
+ * The server names the object path: a client cannot aim an upload at another tenant. Medical
+ * modules keep the same gate as their records — an unauthorised member cannot store files either.
+ */
+export const issueCrmAttachmentPath = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => attachmentPathInput.parse(input))
+  .handler(async ({ data, context }): Promise<{ path: string; name: string }> => {
+    const { businessId, config } = await tenantCrm(context.supabase);
+    await requireModuleAccess(context.supabase, businessId, config, data.moduleKey, true);
+    if (data.size > MAX_ATTACHMENT_BYTES) throw new Error("Fayl hajmi 15 MB dan oshmasin.");
+    const path = attachmentObjectPath({
+      businessId,
+      moduleKey: data.moduleKey,
+      filename: data.filename,
+      contentType: data.contentType,
+      id: crypto.randomUUID(),
+    });
+    if (!path) throw new Error("Faqat PDF, PNG, JPG, WEBP yoki TIFF fayl biriktirish mumkin.");
+    return { path, name: path.split("/").pop() ?? path };
+  });
+
+const attachmentUrlInput = z.object({ moduleKey: z.string().min(1), path: z.string().min(1).max(600) });
+
+/** Opens an attachment: tenant + role checked first, then a 2-minute signed link. */
+export const getCrmAttachmentUrl = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => attachmentUrlInput.parse(input))
+  .handler(async ({ data, context }): Promise<{ url: string; name: string }> => {
+    const { businessId, config } = await tenantCrm(context.supabase);
+    await requireModuleAccess(context.supabase, businessId, config, data.moduleKey);
+    if (!data.path.startsWith(`${businessId}/`)) throw new Error("Bu fayl sizning biznesingizga tegishli emas.");
+    const { data: signed, error } = await context.supabase.storage
+      .from(ATTACHMENT_BUCKET)
+      .createSignedUrl(data.path, 120);
+    if (error) throw new Error(error.message);
+    if (!signed?.signedUrl) throw new Error("Fayl havolasi olinmadi.");
+    auditMedicalAccess(config, businessId, data.moduleKey, "medical.file_opened", { path: data.path });
+    return { url: signed.signedUrl, name: data.path.split("/").pop() ?? data.path };
+  });
+
+export interface MedicalAuditEvent {
+  id: string;
+  created_at: string;
+  action: string;
+  actor_email: string | null;
+  module_key: string | null;
+  module_label: string | null;
+  record_id: string | null;
+  status: string;
+}
+
+/**
+ * The patient-data journal the brief asks for: who read, wrote or opened which medical module.
+ * RLS already limits an authenticated reader to their own business' `medical.*` rows and only for
+ * its admins; this function repeats the check so a non-admin gets a clear refusal, not an empty list.
+ */
+export const listMedicalAuditEvents = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<MedicalAuditEvent[]> => {
+    const businessId = await requireSettingsAdmin(context.supabase);
+    const { data: rows, error } = await context.supabase
+      .from("audit_logs")
+      .select("id, created_at, action, actor_email, target_id, target_label, status, metadata")
+      .eq("business_id", businessId)
+      .like("action", "medical.%")
+      .order("created_at", { ascending: false })
+      .limit(100);
+    if (error) throw new Error(error.message);
+    return (rows ?? []).map((row) => {
+      const meta = (row.metadata ?? {}) as Record<string, unknown>;
+      return {
+        id: row.id,
+        created_at: row.created_at,
+        action: row.action,
+        actor_email: row.actor_email ?? null,
+        module_key: row.target_id ?? null,
+        module_label: row.target_label ?? null,
+        record_id: typeof meta["recordId"] === "string" ? meta["recordId"] : null,
+        status: row.status,
+      };
+    });
   });

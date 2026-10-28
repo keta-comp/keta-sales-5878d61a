@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { currentMembershipId, withAssigneeName, withAssigneeNames } from "./assignee.server";
 import { compact } from "./compact";
 
 export const listLeads = createServerFn({ method: "GET" })
@@ -19,7 +20,7 @@ export const listLeads = createServerFn({ method: "GET" })
     let query = context.supabase
       .from("leads")
       .select(
-        "*, customers(id, full_name, telegram_username, phone, location), operators(id, full_name), products(id, name)",
+        "*, customers(id, full_name, telegram_username, phone, location), products(id, name)",
       )
       .order("created_at", { ascending: false })
       .limit(300);
@@ -28,7 +29,7 @@ export const listLeads = createServerFn({ method: "GET" })
     if (data.search) query = query.ilike("requested_product", `%${data.search}%`);
     const { data: rows, error } = await query;
     if (error) throw new Error(error.message);
-    return rows;
+    return withAssigneeNames(context.supabase, rows ?? []);
   });
 
 export const getLead = createServerFn({ method: "GET" })
@@ -38,7 +39,7 @@ export const getLead = createServerFn({ method: "GET" })
     const [lead, events] = await Promise.all([
       context.supabase
         .from("leads")
-        .select("*, customers(*), operators(id, full_name), conversations(id)")
+        .select("*, customers(*), conversations(id)")
         .eq("id", data.id)
         .single(),
       context.supabase
@@ -48,7 +49,8 @@ export const getLead = createServerFn({ method: "GET" })
         .order("created_at", { ascending: false }),
     ]);
     if (lead.error) throw new Error(lead.error.message);
-    return { lead: lead.data, events: events.data ?? [] };
+    const enriched = await withAssigneeName(context.supabase, lead.data);
+    return { lead: enriched, events: events.data ?? [] };
   });
 
 export const updateLead = createServerFn({ method: "POST" })
@@ -58,10 +60,10 @@ export const updateLead = createServerFn({ method: "POST" })
       .object({
         id: z.string(),
         status: z
-          .enum(["new", "needs_operator", "assigned", "contacted", "negotiating", "won", "lost"])
+          .enum(["new", "needs_attention", "assigned", "contacted", "negotiating", "won", "lost"])
           .optional(),
         score: z.enum(["hot", "warm", "cold"]).optional(),
-        assigned_operator_id: z.string().nullable().optional(),
+        assigned_member_id: z.string().nullable().optional(),
         notes: z.string().optional(),
         phone: z.string().optional(),
         budget: z.string().optional(),
@@ -73,19 +75,19 @@ export const updateLead = createServerFn({ method: "POST" })
     const { id, ...patch } = data;
     const { error } = await context.supabase.from("leads").update(compact(patch) as never).eq("id", id);
     if (error) throw new Error(error.message);
-    if (patch.assigned_operator_id) {
+    if (patch.assigned_member_id) {
       await context.supabase
-        .from("operator_assignments")
+        .from("lead_assignments")
         .upsert(
-          { lead_id: id, operator_id: patch.assigned_operator_id, assigned_by: context.userId },
-          { onConflict: "lead_id,operator_id" },
+          { lead_id: id, member_id: patch.assigned_member_id, assigned_by: context.userId },
+          { onConflict: "lead_id,member_id" },
         );
     }
     await context.supabase.from("lead_events").insert({
       lead_id: id,
       event_type: "lead_updated",
       detail: Object.keys(patch).join(", "),
-      actor: "operator",
+      actor: "staff",
     });
     return { ok: true };
   });
@@ -167,7 +169,7 @@ export const listConversations = createServerFn({ method: "GET" })
   .handler(async ({ data, context }) => {
     let query = context.supabase
       .from("conversations")
-      .select("*, customers(id, full_name, telegram_username), operators(id, full_name)")
+      .select("*, customers(id, full_name, telegram_username)")
       .order("last_message_at", { ascending: false })
       .limit(200);
     if (data.mode && data.mode !== "all") query = query.eq("mode", data.mode as never);
@@ -186,27 +188,28 @@ export const listConversations = createServerFn({ method: "GET" })
       : (rows ?? []);
 
     const ids = filtered.map((r) => r.id);
-    const leadMap: Record<string, { status: string; score: string }> = {};
+    const leadMap: Record<string, { id: string; status: string; score: string }> = {};
     if (ids.length) {
       const { data: leadRows } = await context.supabase
         .from("leads")
-        .select("conversation_id, status, score")
+        .select("id, conversation_id, status, score")
         .in("conversation_id", ids);
       for (const lead of leadRows ?? []) {
-        if (lead.conversation_id) leadMap[lead.conversation_id] = { status: lead.status, score: lead.score };
+        if (lead.conversation_id) leadMap[lead.conversation_id] = { id: lead.id, status: lead.status, score: lead.score };
       }
     }
-    return filtered.map((row) => ({ ...row, lead: leadMap[row.id] ?? null }));
+    const named = await withAssigneeNames(context.supabase, filtered);
+    return named.map((row) => ({ ...row, lead: leadMap[row.id] ?? null }));
   });
 
 export const getConversation = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ id: z.string() }).parse(input))
   .handler(async ({ data, context }) => {
-    const [conversation, messages] = await Promise.all([
+    const [conversation, messages, lead] = await Promise.all([
       context.supabase
         .from("conversations")
-        .select("*, customers(*), operators(id, full_name)")
+        .select("*, customers(*)")
         .eq("id", data.id)
         .single(),
       context.supabase
@@ -214,10 +217,16 @@ export const getConversation = createServerFn({ method: "GET" })
         .select("*")
         .eq("conversation_id", data.id)
         .order("created_at", { ascending: true }),
+      context.supabase
+        .from("leads")
+        .select("id, status, score")
+        .eq("conversation_id", data.id)
+        .maybeSingle(),
     ]);
     if (conversation.error) throw new Error(conversation.error.message);
     await context.supabase.from("conversations").update({ unread_count: 0 }).eq("id", data.id);
-    return { conversation: conversation.data, messages: messages.data ?? [] };
+    const named = await withAssigneeName(context.supabase, conversation.data);
+    return { conversation: { ...named, lead: lead.data ?? null }, messages: messages.data ?? [] };
   });
 
 export const setConversationMode = createServerFn({ method: "POST" })
@@ -234,7 +243,7 @@ export const setConversationMode = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-export const sendOperatorMessage = createServerFn({ method: "POST" })
+export const sendStaffMessage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
     z.object({ conversationId: z.string(), content: z.string().min(1).max(4000) }).parse(input),
@@ -254,7 +263,7 @@ export const sendOperatorMessage = createServerFn({ method: "POST" })
       try {
         await sendInstagramMessage(conversation.telegram_chat_id, data.content);
       } catch (sendError) {
-        console.error("[operator-message]", sendError);
+        console.error("[staff-message]", sendError);
         throw new Error(
           sendError instanceof Error ? sendError.message : "Instagram xabarini yetkazib bo'lmadi",
         );
@@ -268,7 +277,7 @@ export const sendOperatorMessage = createServerFn({ method: "POST" })
         const sent = await sendTelegramMessage(bot.token, conversation.telegram_chat_id, data.content);
         telegramMessageId = sent.message_id;
       } catch (sendError) {
-        console.error("[operator-message]", sendError);
+        console.error("[staff-message]", sendError);
         throw new Error(
           sendError instanceof Error ? sendError.message : "Could not deliver the Telegram message",
         );
@@ -277,9 +286,10 @@ export const sendOperatorMessage = createServerFn({ method: "POST" })
 
     const { error: insertError } = await context.supabase.from("messages").insert({
       conversation_id: data.conversationId,
-      role: "operator",
+      role: "staff",
       content: data.content,
       telegram_message_id: telegramMessageId,
+      member_id: await currentMembershipId(context.supabase, context.userId),
     });
     if (insertError) throw new Error(insertError.message);
     await context.supabase

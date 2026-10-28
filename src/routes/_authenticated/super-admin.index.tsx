@@ -11,10 +11,10 @@ import { t } from "@/lib/i18n";
 export const Route = createFileRoute("/_authenticated/super-admin/")({
   head: () => ({
     meta: [
-      { title: t("Control Center — NEXORA CRM") },
-      { name: "description", content: t("NEXORA CRM platformasining umumiy ko‘rsatkichlari: organizationlar, foydalanuvchilar, AI ishlatilishi.") },
-      { property: "og:title", content: t("Control Center — NEXORA CRM") },
-      { property: "og:description", content: t("NEXORA CRM platforma darajasidagi real ko‘rsatkichlar.") },
+      { title: t("Control Center — KetaOne") },
+      { name: "description", content: t("KetaOne platformasining umumiy ko‘rsatkichlari: organizationlar, foydalanuvchilar, AI ishlatilishi.") },
+      { property: "og:title", content: t("Control Center — KetaOne") },
+      { property: "og:description", content: t("KetaOne platforma darajasidagi real ko‘rsatkichlar.") },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -36,7 +36,7 @@ function OverviewPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title={t("NEXORA CRM Control Center")}
+        title={t("KetaOne Control Center")}
         description={t("Platforma darajasidagi barcha ko‘rsatkichlar — faqat haqiqiy bazadagi ma’lumot.")}
       />
 

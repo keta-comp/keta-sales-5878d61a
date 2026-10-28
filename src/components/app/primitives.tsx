@@ -119,7 +119,7 @@ export function StatusBadge({ value }: { value: string | null | undefined }) {
       warm: "bg-warning/15 text-warning border-warning/30",
       cold: "bg-info/15 text-info border-info/30",
       new: "bg-info/15 text-info border-info/30",
-      needs_operator: "bg-destructive/15 text-destructive border-destructive/30",
+      needs_attention: "bg-destructive/15 text-destructive border-destructive/30",
       assigned: "bg-warning/15 text-warning border-warning/30",
       contacted: "bg-warning/15 text-warning border-warning/30",
       negotiating: "bg-warning/15 text-warning border-warning/30",
@@ -148,7 +148,7 @@ export function StatusBadge({ value }: { value: string | null | undefined }) {
         warm: "Iliq",
         cold: "Sovuq",
         new: "Yangi",
-        needs_operator: "Operator kerak",
+        needs_attention: "E'tibor kerak",
         assigned: "Tayinlangan",
         contacted: "Bog'lanildi",
         negotiating: "Muzokara",
@@ -167,7 +167,7 @@ export function StatusBadge({ value }: { value: string | null | undefined }) {
         low_stock: "Kam qoldi",
         out_of_stock: "Tugagan",
         ai: "AI",
-        human: "Operator",
+        human: "Inson",
         unknown: "Noma'lum",
       } as Record<string, string>
     )[key] ?? key.replace(/_/g, " ");

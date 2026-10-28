@@ -21,14 +21,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ErrorState, LoadingState, PageHeader } from "@/components/app/primitives";
 import { DataTable, Field, NoData, Panel, Pill, fmtDate, fmtMoney, fmtNumber } from "@/components/app/super-admin-ui";
 import { getOrganization, setOrganizationPlan, setOrganizationStatus } from "@/lib/super-admin.functions";
+import { PLAN_IDS } from "@/lib/billing";
 import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/super-admin/organizations/$id")({
   head: () => ({
     meta: [
-      { title: t("Organization profili — NEXORA CRM Control Center") },
+      { title: t("Organization profili — KetaOne Control Center") },
       { name: "description", content: t("Bitta biznesning platforma darajasidagi profili: jamoa, CRM, faollik va AI ishlatilishi.") },
-      { property: "og:title", content: t("Organization profili — NEXORA CRM Control Center") },
+      { property: "og:title", content: t("Organization profili — KetaOne Control Center") },
       { property: "og:description", content: t("Biznes profili, jamoa va faollik tarixi.") },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -37,7 +38,7 @@ export const Route = createFileRoute("/_authenticated/super-admin/organizations/
   component: OrganizationDetailPage,
 });
 
-const PLANS = ["free", "starter", "business", "enterprise"] as const;
+const PLANS = PLAN_IDS;
 
 function OrganizationDetailPage() {
   const { id } = Route.useParams();

@@ -1,4 +1,5 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { requestIp } from "./request.server";
 
 export interface AuditEntry {
   actorUserId?: string | null;
@@ -27,7 +28,9 @@ export async function logAudit(entry: AuditEntry) {
       target_label: entry.targetLabel ?? null,
       business_id: entry.businessId ?? null,
       status: entry.status ?? "success",
-      ip: entry.ip ?? null,
+      // Every write happens inside a request, so the caller's address is always
+      // available — the journal's IP column must not depend on callers remembering it.
+      ip: entry.ip ?? requestIp(),
       metadata: (entry.metadata ?? {}) as never,
     });
   } catch (error) {

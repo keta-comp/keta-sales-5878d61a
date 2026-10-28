@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Bot, Send, UserRound } from "lucide-react";
 import { toast } from "sonner";
+import { z } from "zod";
 
 import { EmptyState, ErrorState, LoadingState, PageHeader, StatusBadge } from "@/components/app/primitives";
 import { Button } from "@/components/ui/button";
@@ -14,18 +15,21 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   getConversation,
   listConversations,
-  sendOperatorMessage,
+  sendStaffMessage,
   setConversationMode,
 } from "@/lib/crm.functions";
 import { t } from "@/lib/i18n";
 
+const searchSchema = z.object({ id: z.string().optional() });
+
 export const Route = createFileRoute("/_authenticated/dashboard/conversations")({
+  validateSearch: searchSchema,
   head: () => ({
     meta: [
-      { title: t("Suhbatlar — NEXORA CRM") },
-      { name: "description", content: t("Jonli Telegram inbox: AI savdo suhbatlarini o'qing va operator sifatida ularni o'z qo'lingizga oling.") },
-      { property: "og:title", content: t("Suhbatlar — NEXORA CRM") },
-      { property: "og:description", content: t("Jonli AI va inson operator Telegram savdo inboxi.") },
+      { title: t("Suhbatlar — KetaOne") },
+      { name: "description", content: t("Jonli Telegram inbox: AI savdo suhbatlarini o'qing va ularni o'z qo'lingizga oling.") },
+      { property: "og:title", content: t("Suhbatlar — KetaOne") },
+      { property: "og:description", content: t("AI va jonli jamoa a’zolari ishtirokidagi Telegram savdo inboxi.") },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -36,19 +40,26 @@ export const Route = createFileRoute("/_authenticated/dashboard/conversations")(
 const MODE_LABELS: Record<string, string> = {
   all: "Barchasi",
   ai: "AI",
-  human: "Operator",
+  human: "Inson",
 };
 
 function ConversationsPage() {
+  const params = Route.useSearch();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const fetchList = useServerFn(listConversations);
   const fetchOne = useServerFn(getConversation);
-  const send = useServerFn(sendOperatorMessage);
+  const send = useServerFn(sendStaffMessage);
   const switchMode = useServerFn(setConversationMode);
 
   const [mode, setMode] = useState("all");
   const [search, setSearch] = useState("");
-  const [activeId, setActiveId] = useState<string | null>(null);
+  const activeId = params.id ?? null;
+  const setActiveId = (next: string | null) =>
+    void navigate({
+      to: "/dashboard/conversations",
+      search: (prev) => ({ ...prev, id: next ?? undefined }),
+    });
   const [draft, setDraft] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -196,6 +207,26 @@ function ConversationsPage() {
                     {(conversation.customers as { full_name: string | null } | null)?.full_name ?? "Telegram mijozi"}
                   </p>
                   <p className="text-xs text-muted-foreground">{t("Chat ID")}{" "}{conversation.telegram_chat_id}</p>
+                  <div className="mt-1 flex flex-wrap gap-2 text-xs">
+                    {conversation.customer_id ? (
+                      <Link
+                        to="/dashboard/customers/$id"
+                        params={{ id: conversation.customer_id }}
+                        className="underline-offset-4 text-muted-foreground hover:text-foreground hover:underline"
+                      >
+                        {t("Mijoz profili")}
+                      </Link>
+                    ) : null}
+                    {conversation.lead?.id ? (
+                      <Link
+                        to="/dashboard/leads"
+                        search={{ id: conversation.lead.id }}
+                        className="underline-offset-4 text-muted-foreground hover:text-foreground hover:underline"
+                      >
+                        {t("Lid")}
+                      </Link>
+                    ) : null}
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <StatusBadge value={conversation.mode} />
@@ -228,7 +259,7 @@ function ConversationsPage() {
                           "clay-raised max-w-[80%] rounded-2xl px-3.5 py-2 text-sm",
                           message.role === "customer" && "bg-muted text-foreground",
                           message.role === "ai" && "bg-primary/15 text-foreground",
-                          message.role === "operator" && "bg-warning/15 text-foreground",
+                          message.role === "staff" && "bg-warning/15 text-foreground",
                           message.role === "system" && "bg-card text-muted-foreground",
                         )}
                       >

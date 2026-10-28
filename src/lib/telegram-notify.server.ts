@@ -2,13 +2,14 @@
  * Important business notifications pushed to linked Telegram accounts.
  * Best-effort only: a Telegram failure must never break a CRM operation.
  */
-type NotifyKind = "new_order" | "payment" | "lead" | "low_stock";
+type NotifyKind = "new_order" | "payment" | "lead" | "low_stock" | "booking";
 
 const FLAG: Record<NotifyKind, string> = {
   new_order: "notify_new_order",
   payment: "notify_payment",
   lead: "notify_lead",
   low_stock: "notify_low_stock",
+  booking: "notify_booking",
 };
 
 export async function notifyBusiness(businessId: string, kind: NotifyKind, text: string) {

@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { withAssigneeNames } from "./assignee.server";
 import { compact } from "./compact";
 
 export const listTasks = createServerFn({ method: "GET" })
@@ -11,7 +12,7 @@ export const listTasks = createServerFn({ method: "GET" })
       .object({
         status: z.string().optional(),
         priority: z.string().optional(),
-        operatorId: z.string().optional(),
+        memberId: z.string().optional(),
         customerId: z.string().optional(),
         leadId: z.string().optional(),
         search: z.string().optional(),
@@ -21,20 +22,20 @@ export const listTasks = createServerFn({ method: "GET" })
   .handler(async ({ data, context }) => {
     let query = context.supabase
       .from("tasks")
-      .select("*, customers(id, full_name), operators(id, full_name), orders(id, order_number)")
+      .select("*, customers(id, full_name), orders(id, order_number)")
       .order("due_date", { ascending: true, nullsFirst: false })
       .order("created_at", { ascending: false })
       .limit(500);
     if (data.status && data.status !== "all") query = query.eq("status", data.status);
     if (data.priority && data.priority !== "all") query = query.eq("priority", data.priority);
-    if (data.operatorId && data.operatorId !== "all")
-      query = query.eq("assigned_operator_id", data.operatorId);
+    if (data.memberId && data.memberId !== "all")
+      query = query.eq("assigned_member_id", data.memberId);
     if (data.customerId) query = query.eq("customer_id", data.customerId);
     if (data.leadId) query = query.eq("lead_id", data.leadId);
     if (data.search) query = query.ilike("title", `%${data.search}%`);
     const { data: rows, error } = await query;
     if (error) throw new Error(error.message);
-    return rows ?? [];
+    return withAssigneeNames(context.supabase, rows ?? []);
   });
 
 export const saveTask = createServerFn({ method: "POST" })
@@ -45,7 +46,7 @@ export const saveTask = createServerFn({ method: "POST" })
         id: z.string().optional(),
         title: z.string().min(1, "Sarlavha kerak"),
         description: z.string().nullable().optional(),
-        assigned_operator_id: z.string().nullable().optional(),
+        assigned_member_id: z.string().nullable().optional(),
         customer_id: z.string().nullable().optional(),
         lead_id: z.string().nullable().optional(),
         order_id: z.string().nullable().optional(),

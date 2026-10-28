@@ -4,7 +4,9 @@ import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { gatewayErrorMessage, resolveAiRuntime } from "./ai-gateway.server";
+import { logAiUsage } from "./audit.server";
 import { crmLabel } from "./crm-core";
+import { requireBusinessId } from "./tenant.server";
 
 export const getDashboardKpis = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -33,6 +35,10 @@ export const getReport = createServerFn({ method: "GET" })
     z.object({ from: z.string(), to: z.string() }).parse(input),
   )
   .handler(async ({ data, context }) => {
+    // The analytics panel is the Max-plan feature the Control Center can switch off,
+    // so it is gated here rather than merely hidden in the browser.
+    const { assertFeature } = await import("./billing.server");
+    await assertFeature(context.supabase, "advanced_analytics");
     const { buildReport } = await import("./workspace.server");
     return buildReport(context.supabase, data.from, data.to);
   });
@@ -41,6 +47,8 @@ export const exportReportExcel = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ from: z.string(), to: z.string() }).parse(input))
   .handler(async ({ data, context }) => {
+    const { assertFeature } = await import("./billing.server");
+    await assertFeature(context.supabase, "excel_export");
     const { buildReport } = await import("./workspace.server");
     const { buildWorkbookBase64 } = await import("./excel.server");
 
@@ -131,13 +139,15 @@ export const exportReportExcel = createServerFn({ method: "POST" })
       },
     ]);
 
-    return { base64, filename: `nexora-crm-hisobot-${data.from.slice(0, 10)}_${data.to.slice(0, 10)}.xlsx` };
+    return { base64, filename: `ketaone-hisobot-${data.from.slice(0, 10)}_${data.to.slice(0, 10)}.xlsx` };
   });
 
 export const askBusinessAssistant = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ question: z.string().min(2).max(500) }).parse(input))
   .handler(async ({ data, context }) => {
+    const { assertFeature } = await import("./billing.server");
+    await assertFeature(context.supabase, "ai_assistant");
     const runtime = resolveAiRuntime();
     if ("error" in runtime) throw new Error(runtime.error);
 
@@ -152,7 +162,7 @@ export const askBusinessAssistant = createServerFn({ method: "POST" })
       context.supabase
         .from("leads")
         .select("requested_product, status, last_contact_at, customers(full_name, phone)")
-        .in("status", ["contacted", "negotiating", "assigned", "needs_operator"])
+        .in("status", ["contacted", "negotiating", "assigned", "needs_attention"])
         .order("last_contact_at", { ascending: true, nullsFirst: true })
         .limit(15),
       context.supabase
@@ -180,7 +190,7 @@ export const askBusinessAssistant = createServerFn({ method: "POST" })
       oxirgi_30_kun: report.kpis,
       kunlik_dinamika: report.days.slice(-14),
       manbalar: report.bySource,
-      operatorlar: report.byOperator,
+      masullar: report.byMember,
       top_mahsulotlar: report.topProducts,
       bugungi_vazifalar: todos.map((t) => `${t.count} ${t.label}`),
       qayta_aloqa_kerak: (followUps.data ?? []).map((l) => {
@@ -197,7 +207,7 @@ export const askBusinessAssistant = createServerFn({ method: "POST" })
     };
 
     const prompt = [
-      "Siz NEXORA CRM ichidagi biznes tahlilchisisiz. Faqat berilgan REAL ma'lumotlar asosida javob bering.",
+      "Siz KetaOne ichidagi biznes tahlilchisisiz. Faqat berilgan REAL ma'lumotlar asosida javob bering.",
       "Qoidalar:",
       "- Hech qachon taxminiy yoki uydirma raqam bermang.",
       "- Agar ma'lumot yetarli bo'lmasa, aynan shu gapni yozing: \"Bu ma'lumotni aniqlash uchun yetarli ma'lumot mavjud emas.\"",
@@ -215,6 +225,15 @@ export const askBusinessAssistant = createServerFn({ method: "POST" })
         model: runtime.model(runtime.defaultModel),
         prompt,
         maxOutputTokens: 700,
+      });
+      const businessId = await requireBusinessId(context.supabase).catch(() => null);
+      void logAiUsage({
+        businessId,
+        userId: context.userId,
+        feature: "assistant",
+        model: runtime.defaultModel,
+        inputTokens: result.usage?.inputTokens ?? null,
+        outputTokens: result.usage?.outputTokens ?? null,
       });
       const answer = result.text.trim();
       return {

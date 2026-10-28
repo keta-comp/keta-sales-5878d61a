@@ -12,12 +12,12 @@ import { t } from "@/lib/i18n";
 export const Route = createFileRoute("/_authenticated/dashboard/assistant")({
   head: () => ({
     meta: [
-      { title: t("AI yordamchi — NEXORA CRM") },
+      { title: t("AI yordamchi — KetaOne") },
       {
         name: "description",
         content: t("Biznesingiz haqida savol bering — javob faqat bazadagi real raqamlar asosida beriladi."),
       },
-      { property: "og:title", content: t("AI yordamchi — NEXORA CRM") },
+      { property: "og:title", content: t("AI yordamchi — KetaOne") },
       { property: "og:description", content: t("Savol bering, AI hisobotni o‘zi tahlil qiladi.") },
     ],
   }),

@@ -18,14 +18,15 @@ import { ErrorState, LoadingState, PageHeader } from "@/components/app/primitive
 import { DataTable, NoData, Panel, Pill, fmtDate, fmtNumber } from "@/components/app/super-admin-ui";
 import { downloadBase64Xlsx } from "@/components/app/super-admin-ui";
 import { exportPlatformExcel, listOrganizationsFn } from "@/lib/super-admin.functions";
+import { PLAN_IDS } from "@/lib/billing";
 import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/super-admin/organizations/")({
   head: () => ({
     meta: [
-      { title: t("Organizationlar — NEXORA CRM Control Center") },
-      { name: "description", content: t("NEXORA CRM platformasidagi barcha bizneslar ro‘yxati, holati va faolligi.") },
-      { property: "og:title", content: t("Organizationlar — NEXORA CRM Control Center") },
+      { title: t("Organizationlar — KetaOne Control Center") },
+      { name: "description", content: t("KetaOne platformasidagi barcha bizneslar ro‘yxati, holati va faolligi.") },
+      { property: "og:title", content: t("Organizationlar — KetaOne Control Center") },
       { property: "og:description", content: t("Barcha bizneslar: soha, foydalanuvchilar soni, holat va plan.") },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -34,7 +35,7 @@ export const Route = createFileRoute("/_authenticated/super-admin/organizations/
   component: OrganizationsPage,
 });
 
-const PLANS = ["free", "starter", "business", "enterprise"];
+const PLANS = PLAN_IDS;
 const STATUSES = ["active", "trial", "suspended", "cancelled"];
 
 function OrganizationsPage() {
@@ -64,7 +65,7 @@ function OrganizationsPage() {
     <div className="space-y-6">
       <PageHeader
         title={t("Organizationlar")}
-        description={t("NEXORA CRM'dan foydalanayotgan barcha bizneslar.")}
+        description={t("KetaOne'dan foydalanayotgan barcha bizneslar.")}
         actions={
           <Button variant="outline" size="sm" onClick={() => void exportExcel()}>
             <Download className="size-4" /> Excel

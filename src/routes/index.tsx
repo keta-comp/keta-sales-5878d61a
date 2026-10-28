@@ -6,6 +6,7 @@ import {
   BarChart3,
   Boxes,
   Building2,
+  CalendarCheck,
   Check,
   Mail,
   MessagesSquare,
@@ -13,11 +14,10 @@ import {
   Phone,
   ShoppingCart,
   Users,
-  UsersRound,
   X,
 } from "lucide-react";
 
-import logoUrl from "@/assets/nexora-logo.webp";
+import logoUrl from "@/assets/ketaone-logo.webp";
 import {
   BRAND_NAME,
   BRAND_TAGLINE,
@@ -34,9 +34,9 @@ import { fetchPlatformStats, formatCount } from "@/lib/public-stats";
 import { t } from "@/lib/i18n";
 import { LanguageSwitcher } from "@/components/app/LanguageSwitcher";
 
-const TITLE = "NEXORA CRM — Qoraqalpog‘iston bizneslari uchun zamonaviy CRM";
+const TITLE = "KetaOne — Qoraqalpog‘iston bizneslari uchun zamonaviy CRM";
 const DESCRIPTION =
-  "NEXORA CRM — Qoraqalpog‘iston bizneslari uchun mijozlar, savdo, murojaatlar va jamoani boshqarish platformasi. KETA.COMP tomonidan ishlab chiqilgan.";
+  "KetaOne — Qoraqalpog‘iston bizneslari uchun mijozlar, savdo, murojaatlar va jamoani boshqarish platformasi. KETA.COMP tomonidan ishlab chiqilgan.";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -64,7 +64,11 @@ const FEATURES = [
   { icon: BarChart3, title: "Savdo", body: "Murojaatlarni nazorat qiling va savdoni oshiring." },
   { icon: Boxes, title: "Ombor", body: "Mahsulotlar va qoldiqlarni boshqaring." },
   { icon: MessagesSquare, title: "Murojaatlar", body: "Mijozlar murojaatlarini tartibga soling." },
-  { icon: UsersRound, title: "Jamoa", body: "Operatorlar va vazifalarni boshqaring." },
+  {
+    icon: CalendarCheck,
+    title: "Online qabul",
+    body: "Instagram bio havolangiz orqali mijozlar kartasiz o‘ziga mos sana va vaqtni tanlab yoziladi.",
+  },
   { icon: ShoppingCart, title: "Statistika", body: "Biznesingiz natijalarini kuzatib boring." },
 ];
 
@@ -137,7 +141,7 @@ function Landing() {
           <h1 className="mt-6 font-display text-4xl font-bold leading-[1.05] text-foreground sm:text-5xl lg:text-6xl">
             {t("Biznesingiz uchun")}
             <br />
-            zamonaviy <span className="text-metal">CRM</span>
+            {t("zamonaviy")} <span className="text-metal">CRM</span>
           </h1>
           <p className="mt-5 max-w-xl text-base text-muted-foreground sm:text-lg">
             {t("Mijozlar, murojaatlar, savdo va jamoangizni bitta platformada boshqaring. Har qanday soha\n            uchun moslashadigan zamonaviy CRM.")}
@@ -158,7 +162,7 @@ function Landing() {
                 <span className="grid size-5 place-items-center rounded-full bg-primary text-primary-foreground">
                   <Check className="size-3" />
                 </span>
-                {item}
+                {t(item)}
               </li>
             ))}
           </ul>
@@ -167,7 +171,7 @@ function Landing() {
         <div className="clay-metal relative grid place-items-center overflow-hidden p-10">
           <img
             src={logoUrl}
-            alt={t("NEXORA CRM metallik logotipi")}
+            alt={t("KetaOne metallik logotipi")}
             className="w-full max-w-sm object-contain drop-shadow-2xl"
           />
           <div className="mt-6 text-center">
@@ -190,8 +194,8 @@ function Landing() {
               <span className="clay-inset grid size-12 place-items-center">
                 <feature.icon className="size-5 text-foreground" />
               </span>
-              <p className="mt-4 font-display text-base font-semibold text-foreground">{feature.title}</p>
-              <p className="mt-1.5 text-sm text-muted-foreground">{feature.body}</p>
+              <p className="mt-4 font-display text-base font-semibold text-foreground">{t(feature.title)}</p>
+              <p className="mt-1.5 text-sm text-muted-foreground">{t(feature.body)}</p>
             </div>
           ))}
         </div>
@@ -202,7 +206,7 @@ function Landing() {
         <div className="clay-panel p-6 sm:p-8">
           <h2 className="font-display text-2xl font-semibold text-foreground">{t("Real statistika")}</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            {t("Barcha raqamlar NEXORA CRM bazasidan real vaqtda olinadi.")}
+            {t("Barcha raqamlar KetaOne bazasidan real vaqtda olinadi.")}
           </p>
           {stats.isError ? (
             <p className="mt-6 text-sm text-muted-foreground">
@@ -236,10 +240,10 @@ function Landing() {
               <KarakalpakFlag /> {t("Qoraqalpog‘istonda yaratilgan")}
             </span>
             <h2 className="mt-5 font-display text-2xl font-semibold text-foreground sm:text-3xl">
-              {t("NEXORA CRM — Qoraqalpog‘iston bizneslari uchun")}
+              {t("KetaOne — Qoraqalpog‘iston bizneslari uchun")}
             </h2>
             <p className="mt-4 text-base text-muted-foreground">
-              {t("NEXORA CRM — Qoraqalpog‘istondagi bizneslar uchun yaratilgan zamonaviy CRM platformasi.\n              Bizning maqsadimiz — mahalliy bizneslarga mijozlar, savdo, jamoa va kundalik jarayonlarni\n              texnologiya orqali samarali boshqarishga yordam berish.")}
+              {t("KetaOne — Qoraqalpog‘istondagi bizneslar uchun yaratilgan zamonaviy CRM platformasi.\n              Bizning maqsadimiz — mahalliy bizneslarga mijozlar, savdo, jamoa va kundalik jarayonlarni\n              texnologiya orqali samarali boshqarishga yordam berish.")}
             </p>
             <p className="mt-4 text-sm font-medium text-foreground">
               <a
@@ -269,12 +273,12 @@ function Landing() {
                   <span className="clay-inset grid size-9 shrink-0 place-items-center">
                     <Check className="size-4 text-foreground" />
                   </span>
-                  <span className="pt-2 text-foreground">{item}</span>
+                  <span className="pt-2 text-foreground">{t(item)}</span>
                 </li>
               ))}
             </ul>
             <p className="mt-7 border-t border-border pt-5 text-sm italic text-muted-foreground">
-              {t("“Qoraqalpog‘iston uchun. Katta imkoniyatlar.”")}
+              {`“${BRAND_TAGLINE}”`}
             </p>
           </div>
         </div>
@@ -314,9 +318,9 @@ function Landing() {
             </div>
           </div>
           <div className="mt-10 flex flex-col gap-2 border-t border-primary-foreground/15 pt-6 text-xs text-primary-foreground/60 sm:flex-row sm:items-center sm:justify-between">
-            <p>{t("© 2026 Nexora CRM — nexora-crm.uz. Barcha huquqlar himoyalangan.")}</p>
+            <p>{t("© 2026 KetaOne — ketaone.uz. Barcha huquqlar himoyalangan.")}</p>
             <p>
-              {t("Nexora CRM —")}{" "}
+              {t("KetaOne —")}{" "}
               <a href="https://keta.uz" target="_blank" rel="noreferrer" className="hover:text-primary-foreground">
                 KETA.COMP
               </a>{" "}

@@ -19,7 +19,8 @@ export const Route = createFileRoute("/api/public/payme")({
 
         const key = process.env["PAYME_KEY"];
         const auth = request.headers.get("authorization") ?? "";
-        if (!key || auth !== `Basic ${btoa(`Paycom:${key}`)}`) return fail(-32504, "Ruxsat yo'q");
+        const { matchesSecret } = await import("@/lib/secure-compare.server");
+        if (!key || !matchesSecret(auth, `Basic ${btoa(`Paycom:${key}`)}`)) return fail(-32504, "Ruxsat yo'q");
 
         const { getAdmin, activateInvoice } = await import("@/lib/billing.server");
         const admin = await getAdmin();

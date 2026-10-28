@@ -11,7 +11,7 @@ import { aiCrmBuilder } from "@/lib/crm-config.functions";
 import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/dashboard/crm-builder")({
-  head: () => ({ meta: [{ title: t("AI bilan CRMni sozlash — NEXORA CRM") }] }),
+  head: () => ({ meta: [{ title: t("AI bilan CRMni sozlash — KetaOne") }] }),
   component: CrmBuilderPage,
 });
 

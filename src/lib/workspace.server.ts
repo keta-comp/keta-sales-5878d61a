@@ -1,6 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { Database } from "@/integrations/supabase/types";
+import { assigneeNameMap } from "./assignee.server";
+import { requireBusinessId } from "./tenant.server";
 
 type Client = SupabaseClient<Database>;
 
@@ -33,7 +35,7 @@ export async function buildKpis(supabase: Client) {
       supabase
         .from("leads")
         .select("id", { count: "exact", head: true })
-        .in("status", ["new", "needs_operator", "assigned", "contacted", "negotiating"]),
+        .in("status", ["new", "needs_attention", "assigned", "contacted", "negotiating"]),
       supabase.from("orders").select("id", { count: "exact", head: true }).gte("created_at", today),
       supabase.from("payments").select("amount, due_date").eq("status", "pending"),
       supabase
@@ -92,7 +94,7 @@ export async function buildTodoActions(supabase: Client): Promise<TodoAction[]> 
       .select("id", { count: "exact", head: true })
       .eq("status", "pending")
       .lte("due_date", soon),
-    supabase.from("leads").select("id", { count: "exact", head: true }).eq("status", "needs_operator"),
+    supabase.from("leads").select("id", { count: "exact", head: true }).eq("status", "needs_attention"),
     supabase
       .from("tasks")
       .select("id", { count: "exact", head: true })
@@ -128,9 +130,9 @@ export async function buildTodoActions(supabase: Client): Promise<TodoAction[]> 
     {
       key: "handoff",
       count: waitingLeads.count ?? 0,
-      label: "yangi lead operatorni kutmoqda",
+      label: "yangi lead mas'ulni kutmoqda",
       to: "/dashboard/leads",
-      search: { view: "list", status: "needs_operator" },
+      search: { view: "list", status: "needs_attention" },
       tone: "danger",
     },
     {
@@ -223,26 +225,26 @@ export interface ReportResult {
   };
   days: { date: string; label: string; revenue: number; orders: number; leads: number }[];
   bySource: { name: string; leads: number; customers: number }[];
-  byOperator: { name: string; orders: number; revenue: number; leads: number }[];
+  byMember: { name: string; orders: number; revenue: number; leads: number }[];
   topProducts: { name: string; quantity: number; revenue: number }[];
 }
 
 export async function buildReport(supabase: Client, from: string, to: string): Promise<ReportResult> {
-  const [settings, orders, leads, customers, payments, operators, items] = await Promise.all([
+  const businessId = await requireBusinessId(supabase);
+  const [settings, orders, leads, customers, payments, items] = await Promise.all([
     supabase.from("business_settings").select("currency").limit(1).maybeSingle(),
     supabase
       .from("orders")
-      .select("id, total, status, created_at, assigned_operator_id")
+      .select("id, total, status, created_at, assigned_member_id")
       .gte("created_at", from)
       .lte("created_at", to),
     supabase
       .from("leads")
-      .select("id, status, source, created_at, assigned_operator_id")
+      .select("id, status, source, created_at, assigned_member_id")
       .gte("created_at", from)
       .lte("created_at", to),
     supabase.from("customers").select("id, source, created_at").gte("created_at", from).lte("created_at", to),
     supabase.from("payments").select("amount, status, paid_at, created_at").gte("created_at", from).lte("created_at", to),
-    supabase.from("operators").select("id, full_name"),
     supabase
       .from("order_items")
       .select("product_name, quantity, line_total, created_at")
@@ -297,22 +299,22 @@ export async function buildReport(supabase: Client, from: string, to: string): P
   for (const l of leadRows) bumpSource(l.source ?? "other", "leads");
   for (const c of customers.data ?? []) bumpSource(c.source ?? "other", "customers");
 
-  // operators
-  const operatorNames = new Map((operators.data ?? []).map((o) => [o.id, o.full_name]));
-  const operatorMap = new Map<string, { name: string; orders: number; revenue: number; leads: number }>();
-  const operatorEntry = (id: string | null) => {
+  // team members who closed deals
+  const memberNames = await assigneeNameMap(businessId);
+  const memberMap = new Map<string, { name: string; orders: number; revenue: number; leads: number }>();
+  const memberEntry = (id: string | null) => {
     const key = id ?? "unassigned";
-    const name = id ? (operatorNames.get(id) ?? "Operator") : "Tayinlanmagan";
-    const entry = operatorMap.get(key) ?? { name, orders: 0, revenue: 0, leads: 0 };
-    operatorMap.set(key, entry);
+    const name = id ? (memberNames.get(id) ?? "Mas’ul") : "Tayinlanmagan";
+    const entry = memberMap.get(key) ?? { name, orders: 0, revenue: 0, leads: 0 };
+    memberMap.set(key, entry);
     return entry;
   };
   for (const o of orderRows) {
-    const entry = operatorEntry(o.assigned_operator_id);
+    const entry = memberEntry(o.assigned_member_id);
     entry.orders += 1;
     entry.revenue += num(o.total);
   }
-  for (const l of leadRows) operatorEntry(l.assigned_operator_id).leads += 1;
+  for (const l of leadRows) memberEntry(l.assigned_member_id).leads += 1;
 
   // products
   const productMap = new Map<string, { name: string; quantity: number; revenue: number }>();
@@ -340,7 +342,7 @@ export async function buildReport(supabase: Client, from: string, to: string): P
     },
     days: [...dayMap.values()],
     bySource: [...sourceMap.values()].sort((a, b) => b.leads + b.customers - (a.leads + a.customers)),
-    byOperator: [...operatorMap.values()].sort((a, b) => b.revenue - a.revenue),
+    byMember: [...memberMap.values()].sort((a, b) => b.revenue - a.revenue),
     topProducts: [...productMap.values()].sort((a, b) => b.revenue - a.revenue).slice(0, 10),
   };
 }

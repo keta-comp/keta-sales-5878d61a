@@ -25,12 +25,12 @@ import { t } from "@/lib/i18n";
 export const Route = createFileRoute("/_authenticated/dashboard/customers/")({
   head: () => ({
     meta: [
-      { title: t("Mijozlar — NEXORA CRM") },
+      { title: t("Mijozlar — KetaOne") },
       {
         name: "description",
         content: t("Mijozlar bazasi: aloqa ma’lumotlari, holati, manbasi va sotib olish tarixi."),
       },
-      { property: "og:title", content: t("Mijozlar — NEXORA CRM") },
+      { property: "og:title", content: t("Mijozlar — KetaOne") },
       { property: "og:description", content: t("Har bir mijoz uchun to‘liq profil va tarix.") },
     ],
   }),
@@ -46,15 +46,15 @@ function CustomersPage() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [source, setSource] = useState("all");
-  const [operatorId, setOperatorId] = useState("all");
+  const [memberId, setMemberId] = useState("all");
   const [sort, setSort] = useState<"recent" | "name" | "spent">("recent");
   const [editing, setEditing] = useState<CustomerRow | null>(null);
   const [open, setOpen] = useState(false);
 
   const crm = useQuery({ queryKey: ["crm-config"], queryFn: () => fetchConfig() });
   const query = useQuery({
-    queryKey: ["crm-customers", search, status, source, operatorId, sort],
-    queryFn: () => fetchCustomers({ data: { search, status, source, operatorId, sort } }),
+    queryKey: ["crm-customers", search, status, source, memberId, sort],
+    queryFn: () => fetchCustomers({ data: { search, status, source, memberId, sort } }),
   });
 
   const term = crm.data?.config?.terminology?.["customer"] ?? "Mijozlar";
@@ -112,15 +112,15 @@ function CustomersPage() {
             ))}
           </SelectContent>
         </Select>
-        <Select value={operatorId} onValueChange={setOperatorId}>
+        <Select value={memberId} onValueChange={setMemberId}>
           <SelectTrigger className="h-9 w-40">
             <SelectValue placeholder={t("Mas’ul")} />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t("Barcha mas’ul")}</SelectItem>
-            {(pickers.data?.operators ?? []).map((operator) => (
-              <SelectItem key={operator.id} value={operator.id}>
-                {operator.full_name}
+            {(pickers.data?.assignees ?? []).map((member) => (
+              <SelectItem key={member.id} value={member.id}>
+                {member.full_name}
               </SelectItem>
             ))}
           </SelectContent>
@@ -160,7 +160,7 @@ function CustomersPage() {
             </TableHeader>
             <TableBody>
               {(query.data ?? []).map((row) => {
-                const operator = row.operators as { full_name: string | null } | null;
+                const assignee = row.assignee_name;
                 return (
                   <TableRow key={row.id}>
                     <TableCell className="font-medium">
@@ -179,10 +179,24 @@ function CustomersPage() {
                       <StatusBadge value={row.status} />
                     </TableCell>
                     <TableCell className="text-xs">{crmLabel(row.source)}</TableCell>
-                    <TableCell className="tabular-nums">{row.total_orders}</TableCell>
+                    <TableCell className="tabular-nums">
+                      <Link
+                        to="/dashboard/orders"
+                        search={{ customerId: row.id }}
+                        className="underline-offset-4 hover:underline"
+                      >
+                        {row.total_orders}
+                      </Link>
+                    </TableCell>
                     <TableCell className="tabular-nums">{formatMoney(row.total_spent, currency)}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">
-                      {operator?.full_name ?? "—"}
+                      {assignee ? (
+                        <Link to="/dashboard/team" className="underline-offset-4 hover:text-foreground hover:underline">
+                          {assignee}
+                        </Link>
+                      ) : (
+                        "—"
+                      )}
                     </TableCell>
                     <TableCell className="text-right">
                       <Button
@@ -218,7 +232,7 @@ function CustomersPage() {
                 location: editing.location,
                 status: editing.status,
                 source: editing.source,
-                assigned_operator_id: editing.assigned_operator_id,
+                assigned_member_id: editing.assigned_member_id,
                 notes: editing.notes,
               }
             : undefined

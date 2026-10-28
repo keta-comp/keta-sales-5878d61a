@@ -1,9 +1,9 @@
-import logoUrl from "@/assets/nexora-logo.webp";
+import logoUrl from "@/assets/ketaone-logo.webp";
 import { cn } from "@/lib/utils";
 import { t } from "@/lib/i18n";
 
-export const BRAND_NAME = "NEXORA CRM";
-export const BRAND_TAGLINE = "Qoraqalpog‘iston uchun";
+export const BRAND_NAME = "KetaOne";
+export const BRAND_TAGLINE = "Your Business. One Platform.";
 export const CONTACT_PHONE = "+998 77 763 02 16";
 export const CONTACT_PHONE_HREF = "tel:+998777630216";
 export const CONTACT_EMAIL = "keta.comp.dev@gmail.com";
@@ -50,7 +50,7 @@ export function BrandMark({
     <div className={cn("flex items-center gap-2.5", className)}>
       <img
         src={logoUrl}
-        alt={t("NEXORA CRM logotipi")}
+        alt={t("KetaOne logotipi")}
         className={cn("object-contain", size === "sm" ? "h-7 w-9" : "h-9 w-12")}
       />
       <div className="leading-tight">

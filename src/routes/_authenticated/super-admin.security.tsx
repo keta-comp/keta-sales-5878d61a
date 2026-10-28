@@ -10,9 +10,9 @@ import { t } from "@/lib/i18n";
 export const Route = createFileRoute("/_authenticated/super-admin/security")({
   head: () => ({
     meta: [
-      { title: t("Xavfsizlik — NEXORA CRM Control Center") },
+      { title: t("Xavfsizlik — KetaOne Control Center") },
       { name: "description", content: t("Kirishlar, muvaffaqiyatsiz urinishlar va admin amallari bo‘yicha xavfsizlik ko‘rinishi.") },
-      { property: "og:title", content: t("Xavfsizlik — NEXORA CRM Control Center") },
+      { property: "og:title", content: t("Xavfsizlik — KetaOne Control Center") },
       { property: "og:description", content: t("Kirish tarixi va shubhali faollik.") },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

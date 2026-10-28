@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Send } from "lucide-react";
+import { Send, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -19,16 +19,21 @@ import {
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ErrorState, LoadingState, PageHeader } from "@/components/app/primitives";
-import { DataTable, NoData, Panel, Pill, fmtDate } from "@/components/app/super-admin-ui";
-import { getFeatureFlags, listSystemNotifications, sendSystemNotification } from "@/lib/super-admin.functions";
+import { DataTable, NoData, Panel, fmtDate, fmtNumber } from "@/components/app/super-admin-ui";
+import {
+  deleteSystemNotification,
+  getNotificationTargets,
+  listSystemNotifications,
+  sendSystemNotification,
+} from "@/lib/super-admin.functions";
 import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/super-admin/notifications")({
   head: () => ({
     meta: [
-      { title: t("E’lonlar — NEXORA CRM Control Center") },
+      { title: t("E’lonlar — KetaOne Control Center") },
       { name: "description", content: t("Platforma e’lonlari: texnik ishlar, ogohlantirish va yangilik xabarlari.") },
-      { property: "og:title", content: t("E’lonlar — NEXORA CRM Control Center") },
+      { property: "og:title", content: t("E’lonlar — KetaOne Control Center") },
       { property: "og:description", content: t("Organizationlarga platforma e’lonlarini yuborish.") },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -37,18 +42,32 @@ export const Route = createFileRoute("/_authenticated/super-admin/notifications"
   component: NotificationsPage,
 });
 
-const PLANS = ["free", "starter", "business", "enterprise"];
+type TargetKind = "all" | "organization" | "plan" | "industry";
+
+const KIND_LABEL: Record<string, string> = {
+  info: "Ma’lumot",
+  warning: "Ogohlantirish",
+  maintenance: "Texnik ishlar",
+};
+
+function targetLabel(targetKind: TargetKind, targetValue: string | null, businessesName?: string) {
+  if (targetKind === "all") return t("Barcha foydalanuvchilar");
+  if (targetKind === "organization") return `${t("Organization")}: ${businessesName ?? targetValue ?? "—"}`;
+  if (targetKind === "plan") return `${t("Plan")}: ${targetValue ?? "—"}`;
+  return `${t("Soha")}: ${targetValue ?? "—"}`;
+}
 
 function NotificationsPage() {
   const queryClient = useQueryClient();
   const load = useServerFn(listSystemNotifications);
-  const loadTargets = useServerFn(getFeatureFlags);
+  const loadTargets = useServerFn(getNotificationTargets);
   const sendFn = useServerFn(sendSystemNotification);
+  const deleteFn = useServerFn(deleteSystemNotification);
 
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [kind, setKind] = useState<"info" | "warning" | "maintenance">("info");
-  const [targetKind, setTargetKind] = useState<"all" | "organization" | "plan" | "industry">("all");
+  const [targetKind, setTargetKind] = useState<TargetKind>("all");
   const [targetValue, setTargetValue] = useState("");
   const [confirm, setConfirm] = useState(false);
 
@@ -56,7 +75,9 @@ function NotificationsPage() {
     queryKey: ["super-admin-notifications"],
     queryFn: () => load(),
   });
-  const targets = useQuery({ queryKey: ["super-admin-flag-targets"], queryFn: () => loadTargets() });
+  // Targets come from live rows, so a choice offered here is always a choice the
+  // delivery policy can actually resolve to people.
+  const targets = useQuery({ queryKey: ["super-admin-notification-targets"], queryFn: () => loadTargets() });
 
   const send = useMutation({
     mutationFn: () =>
@@ -69,8 +90,8 @@ function NotificationsPage() {
           target_value: targetKind === "all" ? null : targetValue || null,
         },
       }),
-    onSuccess: () => {
-      toast.success(t("E’lon yuborildi"));
+    onSuccess: (result) => {
+      toast.success(t("E’lon yuborildi — {v0} foydalanuvchiga yetdi", { v0: fmtNumber(result.audience) }));
       setTitle("");
       setBody("");
       setTargetValue("");
@@ -80,17 +101,38 @@ function NotificationsPage() {
     onError: (e) => toast.error(e instanceof Error ? e.message : t("Yuborilmadi")),
   });
 
+  const revoke = useMutation({
+    mutationFn: (id: string) => deleteFn({ data: { id } }),
+    onSuccess: () => {
+      toast.success(t("E’lon o‘chirildi"));
+      void queryClient.invalidateQueries({ queryKey: ["super-admin-notifications"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : t("O‘chirilmadi")),
+  });
+
   const canSend = title.trim().length >= 2 && body.trim().length >= 2 && (targetKind === "all" || !!targetValue);
+
+  const businessName = (id: string | null) =>
+    (targets.data?.businesses ?? []).find((b) => b.id === id)?.name ?? id ?? "—";
 
   return (
     <div className="space-y-6">
-      <PageHeader title={t("Platforma e’lonlari")} description={t("Barcha yoki tanlangan bizneslarga xabar yuborish.")} />
+      <PageHeader
+        title={t("Platforma e’lonlari")}
+        description={t("E’lon foydalanuvchining qo‘ng‘irog‘ida ko‘rinadi. Maqsad hech kimga to‘g‘ri kelmasa, yuborilmaydi.")}
+      />
 
       <Panel title={t("Yangi e’lon")}>
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="title">{t("Sarlavha")}</Label>
-            <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("Texnik ishlar")} />
+            <Input
+              id="title"
+              maxLength={120}
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder={t("Texnik ishlar")}
+            />
           </div>
           <div className="space-y-2">
             <Label>{t("Turi")}</Label>
@@ -105,14 +147,14 @@ function NotificationsPage() {
           </div>
           <div className="space-y-2 lg:col-span-2">
             <Label htmlFor="body">{t("Matn")}</Label>
-            <Textarea id="body" rows={4} value={body} onChange={(e) => setBody(e.target.value)} />
+            <Textarea id="body" rows={4} maxLength={1000} value={body} onChange={(e) => setBody(e.target.value)} />
           </div>
           <div className="space-y-2">
             <Label>{t("Kimga")}</Label>
             <Select
               value={targetKind}
               onValueChange={(v) => {
-                setTargetKind(v as typeof targetKind);
+                setTargetKind(v as TargetKind);
                 setTargetValue("");
               }}
             >
@@ -132,7 +174,9 @@ function NotificationsPage() {
                 <Select value={targetValue} onValueChange={setTargetValue}>
                   <SelectTrigger><SelectValue placeholder={t("Plan tanlang")} /></SelectTrigger>
                   <SelectContent>
-                    {PLANS.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                    {(targets.data?.plans ?? []).map((p) => (
+                      <SelectItem key={p} value={p}>{p}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               ) : targetKind === "organization" ? (
@@ -145,13 +189,20 @@ function NotificationsPage() {
                   </SelectContent>
                 </Select>
               ) : (
-                <Input value={targetValue} onChange={(e) => setTargetValue(e.target.value)} placeholder={t("Soha nomi")} />
+                <Select value={targetValue} onValueChange={setTargetValue}>
+                  <SelectTrigger><SelectValue placeholder={t("Soha tanlang")} /></SelectTrigger>
+                  <SelectContent>
+                    {(targets.data?.industries ?? []).map((i) => (
+                      <SelectItem key={i} value={i}>{i}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               )}
             </div>
           ) : null}
         </div>
         <div className="mt-4">
-          <Button size="sm" disabled={!canSend} onClick={() => setConfirm(true)}>
+          <Button size="sm" disabled={!canSend || send.isPending} onClick={() => setConfirm(true)}>
             <Send className="size-4" /> {t("Yuborish")}
           </Button>
         </div>
@@ -165,7 +216,7 @@ function NotificationsPage() {
         ) : (data ?? []).length === 0 ? (
           <NoData label={t("Hali e’lon yuborilmagan")} />
         ) : (
-          <DataTable columns={["Vaqt", "Sarlavha", "Turi", "Kimga", "Holat"]}>
+          <DataTable columns={["Vaqt", "Sarlavha", "Turi", "Kimga", "Yetdi", "O‘qildi", ""]}>
             {(data ?? []).map((n) => (
               <tr key={n.id}>
                 <td className="px-3 py-2 text-xs">{fmtDate(n.created_at)}</td>
@@ -173,11 +224,28 @@ function NotificationsPage() {
                   <span className="block font-medium">{n.title}</span>
                   <span className="text-xs text-muted-foreground">{n.body}</span>
                 </td>
-                <td className="px-3 py-2">{n.kind}</td>
+                <td className="px-3 py-2">{t(KIND_LABEL[n.kind] ?? n.kind)}</td>
                 <td className="px-3 py-2 text-xs">
-                  {n.target_kind === "all" ? t("Barchasi") : `${n.target_kind}: ${n.target_value ?? "—"}`}
+                  {targetLabel(n.target_kind as TargetKind, n.target_value, n.target_value ? businessName(n.target_value) : undefined)}
                 </td>
-                <td className="px-3 py-2"><Pill value="active" /></td>
+                <td className="px-3 py-2 tabular-nums">{fmtNumber(n.audience)}</td>
+                <td className="px-3 py-2 tabular-nums">
+                  {n.audience > 0 ? `${fmtNumber(n.read)} / ${fmtNumber(n.audience)}` : "—"}
+                </td>
+                <td className="px-3 py-2 text-right">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label={t("O‘chirish")}
+                    disabled={revoke.isPending}
+                    onClick={() => {
+                      if (!window.confirm(t("Ushbu e’lonni o‘chirishni tasdiqlaysizmi?"))) return;
+                      void revoke.mutate(n.id);
+                    }}
+                  >
+                    <Trash2 className="size-4 text-destructive" />
+                  </Button>
+                </td>
               </tr>
             ))}
           </DataTable>
@@ -189,7 +257,9 @@ function NotificationsPage() {
           <DialogHeader>
             <DialogTitle>{t("E’lonni yuborishni tasdiqlaysizmi?")}</DialogTitle>
             <DialogDescription>
-              {targetKind === "all" ? t("Barcha organizationlar") : t("Tanlangan maqsad")} {t("bu xabarni ko‘radi.")}
+              {t("{v0} bu xabarni ko‘radi. Yuborilgandan keyin matnni o‘zgartirib bo‘lmaydi, faqat o‘chirish mumkin.", {
+                v0: targetLabel(targetKind, targetValue || null, targetValue ? businessName(targetValue) : undefined),
+              })}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
+import { z } from "zod";
 import { Columns3, List } from "lucide-react";
 import { LeadKanban } from "@/components/app/LeadKanban";
 import { LeadContact, LeadFacts, LeadStageBar } from "@/components/app/LeadCardDetails";
@@ -21,8 +22,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { supabase } from "@/integrations/supabase/client";
 import { getLead, listLeads, updateLead } from "@/lib/crm.functions";
-import { listOperators } from "@/lib/orders.functions";
-import { notifyLeadOperators } from "@/lib/settings.functions";
+import { listAssignees } from "@/lib/members.functions";
+import { notifyLeadStaff } from "@/lib/settings.functions";
 import { LEAD_SCORES, LEAD_STATUSES, type LeadScore, type LeadStatus } from "@/lib/types";
 import { t } from "@/lib/i18n";
 
@@ -33,7 +34,7 @@ type LeadPatch = {
   location?: string;
   status?: LeadStatus;
   score?: LeadScore;
-  assigned_operator_id?: string | null;
+  assigned_member_id?: string | null;
   notes?: string;
 };
 
@@ -43,13 +44,16 @@ const LEAD_SCORE_LABELS: Record<LeadScore, string> = {
   cold: "Sovuq",
 };
 
+const searchSchema = z.object({ id: z.string().optional(), status: z.string().optional() });
+
 export const Route = createFileRoute("/_authenticated/dashboard/leads")({
+  validateSearch: searchSchema,
   head: () => ({
     meta: [
-      { title: t("Lidlar — NEXORA CRM") },
+      { title: t("Lidlar — KetaOne") },
       { name: "description", content: t("AI tomonidan yaratilgan Telegram savdo lidlarini baholang, biriktiring va yakunlang.") },
-      { property: "og:title", content: t("Lidlar — NEXORA CRM") },
-      { property: "og:description", content: t("Operatorga biriktirish imkoniyati bilan AI baholagan Telegram savdo lidlari.") },
+      { property: "og:title", content: t("Lidlar — KetaOne") },
+      { property: "og:description", content: t("Mas'ulga biriktirish imkoniyati bilan AI baholagan Telegram savdo lidlari.") },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -58,18 +62,31 @@ export const Route = createFileRoute("/_authenticated/dashboard/leads")({
 });
 
 function LeadsPage() {
+  const params = Route.useSearch();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const fetchLeads = useServerFn(listLeads);
   const fetchLead = useServerFn(getLead);
-  const fetchOperators = useServerFn(listOperators);
+  const fetchAssignees = useServerFn(listAssignees);
   const saveLead = useServerFn(updateLead);
-  const notify = useServerFn(notifyLeadOperators);
+  const notify = useServerFn(notifyLeadStaff);
 
-  const [status, setStatus] = useState("all");
+  const status = params.status ?? "all";
+  const openId = params.id ?? null;
   const [view, setView] = useState("kanban");
   const [score, setScore] = useState("all");
   const [search, setSearch] = useState("");
-  const [openId, setOpenId] = useState<string | null>(null);
+
+  const setStatus = (next: string) =>
+    void navigate({
+      to: "/dashboard/leads",
+      search: (prev) => ({ ...prev, status: next === "all" ? undefined : next }),
+    });
+  const setOpenId = (next: string | null) =>
+    void navigate({
+      to: "/dashboard/leads",
+      search: (prev) => ({ ...prev, id: next ?? undefined }),
+    });
 
   const leads = useQuery({
     queryKey: ["leads", status, score, search],
@@ -89,7 +106,7 @@ function LeadsPage() {
   const tasks = useQuery({ queryKey: ["tasks", "all-leads"], queryFn: () => fetchTasks({ data: {} }) });
   const taskStates = leadTaskStates(leads.data ?? [], tasks.data ?? []);
 
-  const operators = useQuery({ queryKey: ["operators"], queryFn: () => fetchOperators() });
+  const assignees = useQuery({ queryKey: ["assignees"], queryFn: () => fetchAssignees() });
 
   useEffect(() => {
     const channel = supabase
@@ -119,7 +136,7 @@ function LeadsPage() {
   const notifyMutation = useMutation({
     mutationFn: (leadId: string) =>
       notify({ data: { leadId, reason: "Manual escalation from CRM" } }),
-    onSuccess: () => toast.success(t("Operatorlar guruhiga yuborildi")),
+    onSuccess: () => toast.success(t("Jamoa guruhiga yuborildi")),
     onError: (error: unknown) =>
       toast.error(error instanceof Error ? error.message : t("Telegram xabarnomasi yuborilmadi")),
   });
@@ -200,7 +217,7 @@ function LeadsPage() {
                 <th className="px-4 py-3">{t("Qiziqish")}</th>
                 <th className="px-4 py-3">{t("Baho")}</th>
                 <th className="px-4 py-3">{t("Holat")}</th>
-                <th className="px-4 py-3">{t("Operator")}</th>
+                <th className="px-4 py-3">{t("Mas’ul")}</th>
                 <th className="px-4 py-3">{t("Yaratildi")}</th>
                 <th className="px-4 py-3" />
               </tr>
@@ -208,17 +225,26 @@ function LeadsPage() {
             <tbody className="divide-y divide-border">
               {leads.data.map((row) => {
                 const customer = row.customers as {
+                  id: string | null;
                   full_name: string | null;
                   telegram_username: string | null;
                   phone: string | null;
                 } | null;
-                const operator = row.operators as { full_name: string } | null;
+                const assignee = row.assignee_name;
                 return (
                   <tr key={row.id} className="clay-hover">
                     <td className="px-4 py-3">
-                      <p className="font-medium text-foreground">
-                         {customer?.full_name ?? t("Telegram mijozi")}
-                      </p>
+                      {customer?.id ? (
+                        <Link
+                          to="/dashboard/customers/$id"
+                          params={{ id: customer.id }}
+                          className="font-medium text-foreground underline-offset-4 hover:underline"
+                        >
+                          {customer.full_name ?? t("Telegram mijozi")}
+                        </Link>
+                      ) : (
+                        <p className="font-medium text-foreground">{t("Telegram mijozi")}</p>
+                      )}
                       <p className="text-xs text-muted-foreground">
                         {customer?.telegram_username ? `@${customer.telegram_username}` : (customer?.phone ?? "—")}
                       </p>
@@ -233,7 +259,15 @@ function LeadsPage() {
                     <td className="px-4 py-3">
                       <StatusBadge value={row.status} />
                     </td>
-                     <td className="px-4 py-3 text-muted-foreground">{operator?.full_name ?? t("Biriktirilmagan")}</td>
+                     <td className="px-4 py-3 text-muted-foreground">
+                      {row.assigned_member_id ? (
+                        <Link to="/dashboard/team" className="underline-offset-4 hover:underline">
+                          {assignee ?? t("Mas’ul")}
+                        </Link>
+                      ) : (
+                        t("Biriktirilmagan")
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-xs text-muted-foreground">
                       {new Date(row.created_at).toLocaleString()}
                     </td>
@@ -271,7 +305,7 @@ function LeadsPage() {
                 key={`tasks-${lead.id}`}
                 leadId={lead.id}
                 customerId={lead.customer_id ?? null}
-                operatorId={lead.assigned_operator_id ?? null}
+                memberId={lead.assigned_member_id ?? null}
               />
               <LeadContact customer={lead.customers as Parameters<typeof LeadContact>[0]["customer"]} />
               <LeadToOrder key={`order-${lead.id}`} lead={lead} />
@@ -282,6 +316,15 @@ function LeadsPage() {
                  <p className="text-xs text-muted-foreground">{lead.ai_summary ?? t("AI xulosasi hali yo'q")}</p>
                 {lead.handoff_reason ? (
                   <p className="mt-2 text-xs text-warning">{t("Uzatish sababi:")}{" "}{lead.handoff_reason}</p>
+                ) : null}
+                {(lead.conversations as { id: string } | null)?.id ? (
+                  <Link
+                    to="/dashboard/conversations"
+                    search={{ id: (lead.conversations as { id: string }).id }}
+                    className="mt-2 inline-block text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+                  >
+                    {t("Suhbatni ochish")}
+                  </Link>
                 ) : null}
               </div>
 
@@ -334,13 +377,13 @@ function LeadsPage() {
                   </Select>
                 </div>
                 <div className="sm:col-span-2">
-                  <Label>{t("Biriktirilgan operator")}</Label>
+                  <Label>{t("Biriktirilgan mas’ul")}</Label>
                   <Select
-                    value={lead.assigned_operator_id ?? "none"}
+                    value={lead.assigned_member_id ?? "none"}
                     onValueChange={(value) =>
                       mutation.mutate({
                         id: lead.id,
-                        assigned_operator_id: value === "none" ? null : value,
+                        assigned_member_id: value === "none" ? null : value,
                         ...(value === "none" ? {} : { status: "assigned" as LeadStatus }),
                       })
                     }
@@ -350,9 +393,9 @@ function LeadsPage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">{t("Biriktirilmagan")}</SelectItem>
-                      {(operators.data ?? []).map((operator) => (
-                        <SelectItem key={operator.id} value={operator.id}>
-                          {operator.full_name}
+                      {(assignees.data ?? []).map((member) => (
+                        <SelectItem key={member.id} value={member.id}>
+                          {member.full_name}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -372,7 +415,7 @@ function LeadsPage() {
                 disabled={notifyMutation.isPending}
                 onClick={() => notifyMutation.mutate(lead.id)}
               >
-                {t("Operatorlar guruhiga yuborish")}
+                {t("Jamoa guruhiga yuborish")}
               </Button>
 
               <div>
@@ -405,7 +448,7 @@ function LeadNotes({ initial, onSave }: { initial: string; onSave: (value: strin
   const [value, setValue] = useState(initial);
   return (
     <div>
-      <Label htmlFor="lead-notes">{t("Operator eslatmalari")}</Label>
+      <Label htmlFor="lead-notes">{t("Mas’ul eslatmalari")}</Label>
       <Textarea
         id="lead-notes"
         value={value}

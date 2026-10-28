@@ -9,9 +9,10 @@ export const Route = createFileRoute("/api/public/telegram/daily-report")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        const { matchesSecret } = await import("@/lib/secure-compare.server");
         const secret = process.env["LOVABLE_CRON_SECRET"];
         const provided = request.headers.get("x-cron-secret") ?? "";
-        if (!secret || provided !== secret) return new Response("Unauthorized", { status: 401 });
+        if (!matchesSecret(provided, secret)) return new Response("Unauthorized", { status: 401 });
 
         const [{ supabaseAdmin }, single, bot, reports] = await Promise.all([
           import("@/integrations/supabase/client.server"),
@@ -30,7 +31,7 @@ export const Route = createFileRoute("/api/public/telegram/daily-report")({
         const { data, error } = await supabaseAdmin
           .from("telegram_links")
           .select(
-            "id, business_id, telegram_chat_id, telegram_username, timezone, report_time, daily_reports, notify_new_order, notify_payment, notify_lead, notify_low_stock, linked_at, last_report_date",
+            "id, business_id, telegram_chat_id, telegram_username, timezone, report_time, daily_reports, notify_new_order, notify_payment, notify_lead, notify_low_stock, notify_booking, linked_at, last_report_date",
           )
           .eq("status", "active")
           .eq("daily_reports", true);

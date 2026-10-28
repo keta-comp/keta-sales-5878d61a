@@ -4,6 +4,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import {
   ArrowRight,
+  CalendarCheck,
   ClipboardList,
   ShoppingCart,
   Target,
@@ -16,6 +17,7 @@ import { ErrorState, LoadingState, PageHeader, StatCard, StatusBadge } from "@/c
 import { QuickNewButton } from "@/components/app/crm-dialogs";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { getBookingSummary } from "@/lib/appointments.functions";
 import { getMyCrmConfig, getWidgetStats } from "@/lib/crm-config.functions";
 import { getDashboardKpis } from "@/lib/workspace.functions";
 import { listLeads } from "@/lib/crm.functions";
@@ -26,12 +28,12 @@ import { t } from "@/lib/i18n";
 export const Route = createFileRoute("/_authenticated/dashboard/")({
   head: () => ({
     meta: [
-      { title: t("Ish ekrani — NEXORA CRM") },
+      { title: t("Ish ekrani — KetaOne") },
       {
         name: "description",
         content: t("Bugungi tushum, yangi mijozlar, murojaatlar va bajarilishi kerak bo‘lgan ishlar bir ekranda."),
       },
-      { property: "og:title", content: t("Ish ekrani — NEXORA CRM") },
+      { property: "og:title", content: t("Ish ekrani — KetaOne") },
       { property: "og:description", content: t("Biznesingizning bugungi holati real ma’lumotlar asosida.") },
     ],
   }),
@@ -45,8 +47,10 @@ function Overview() {
   const fetchOrders = useServerFn(listOrders);
   const fetchConfig = useServerFn(getMyCrmConfig);
   const fetchWidgets = useServerFn(getWidgetStats);
+  const fetchBookings = useServerFn(getBookingSummary);
 
   const kpis = useQuery({ queryKey: ["kpis"], queryFn: () => fetchKpis() });
+  const bookings = useQuery({ queryKey: ["booking-summary"], queryFn: () => fetchBookings() });
   const leads = useQuery({ queryKey: ["leads", "recent"], queryFn: () => fetchLeads({ data: {} }) });
   const orders = useQuery({ queryKey: ["orders", "recent"], queryFn: () => fetchOrders({ data: {} }) });
   const crmConfig = useQuery({ queryKey: ["crm-config"], queryFn: () => fetchConfig() });
@@ -72,6 +76,9 @@ function Overview() {
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, () => {
         void kpis.refetch();
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "appointments" }, () => {
+        void bookings.refetch();
       })
       .subscribe();
     return () => {
@@ -108,43 +115,115 @@ function Overview() {
       />
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        <StatCard
-          label={t("Bugungi tushum")}
-          value={formatMoney(data.revenueToday, currency)}
-          hint={`Bu oy: ${formatMoney(data.revenueMonth, currency)}`}
-          icon={<TrendingUp className="size-4" />}
-        />
-        <StatCard
-          label={terms["customer"] ? t("Yangi {v0}", { v0: terms["customer"].toLowerCase() }) : t("Yangi mijozlar")}
-          value={data.newCustomers}
-          hint={t("Bugun qo‘shilgan")}
-          icon={<UserRoundPlus className="size-4" />}
-        />
-        <StatCard
-          label={t("Yangi murojaatlar")}
-          value={data.newLeads}
-          hint={t("Faol: {v0}", { v0: data.activeLeads })}
-          icon={<Target className="size-4" />}
-        />
-        <StatCard
-          label={t("Yangi buyurtmalar")}
-          value={data.newOrders}
-          hint={t("Bugun yaratilgan")}
-          icon={<ShoppingCart className="size-4" />}
-        />
-        <StatCard
-          label={t("Kutilayotgan to‘lovlar")}
-          value={formatMoney(data.pendingPaymentsAmount, currency)}
-          hint={t("{v0} ta to‘lov", { v0: data.pendingPaymentsCount })}
-          icon={<Wallet className="size-4" />}
-        />
-        <StatCard
-          label={t("Yaqin vazifalar")}
-          value={data.dueTasks}
-          hint={t("3 kun ichida bajarilishi kerak")}
-          icon={<ClipboardList className="size-4" />}
-        />
+        <Link to="/dashboard/payments" className="block">
+          <StatCard
+            label={t("Bugungi tushum")}
+            value={formatMoney(data.revenueToday, currency)}
+            hint={`Bu oy: ${formatMoney(data.revenueMonth, currency)}`}
+            icon={<TrendingUp className="size-4" />}
+          />
+        </Link>
+        <Link to="/dashboard/customers" className="block">
+          <StatCard
+            label={terms["customer"] ? t("Yangi {v0}", { v0: terms["customer"].toLowerCase() }) : t("Yangi mijozlar")}
+            value={data.newCustomers}
+            hint={t("Bugun qo‘shilgan")}
+            icon={<UserRoundPlus className="size-4" />}
+          />
+        </Link>
+        <Link to="/dashboard/leads" className="block">
+          <StatCard
+            label={t("Yangi murojaatlar")}
+            value={data.newLeads}
+            hint={t("Faol: {v0}", { v0: data.activeLeads })}
+            icon={<Target className="size-4" />}
+          />
+        </Link>
+        <Link to="/dashboard/orders" className="block">
+          <StatCard
+            label={t("Yangi buyurtmalar")}
+            value={data.newOrders}
+            hint={t("Bugun yaratilgan")}
+            icon={<ShoppingCart className="size-4" />}
+          />
+        </Link>
+        <Link to="/dashboard/payments" search={{ status: "pending" }} className="block">
+          <StatCard
+            label={t("Kutilayotgan to‘lovlar")}
+            value={formatMoney(data.pendingPaymentsAmount, currency)}
+            hint={t("{v0} ta to‘lov", { v0: data.pendingPaymentsCount })}
+            icon={<Wallet className="size-4" />}
+          />
+        </Link>
+        <Link to="/dashboard/tasks" className="block">
+          <StatCard
+            label={t("Yaqin vazifalar")}
+            value={data.dueTasks}
+            hint={t("3 kun ichida bajarilishi kerak")}
+            icon={<ClipboardList className="size-4" />}
+          />
+        </Link>
       </div>
+
+      {bookings.data ? (
+        <section className="clay-panel p-5">
+          <div className="flex items-center justify-between">
+            <h2 className="font-display text-lg font-semibold">{t("Qabullar")}</h2>
+            <Button asChild variant="ghost" size="sm">
+              <Link to="/dashboard/appointments">{t("Barchasi")}</Link>
+            </Button>
+          </div>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <StatCard
+              label={t("Bugungi qabullar")}
+              value={bookings.data.todayCount}
+              hint={`${t("Hafta")}: ${bookings.data.weekCount} · ${t("Oy")}: ${bookings.data.monthCount}`}
+              icon={<CalendarCheck className="size-4" />}
+            />
+            <StatCard
+              label={t("Tasdiqlanmagan bronlar")}
+              value={bookings.data.pendingConfirm}
+              hint={t("Holati 'yangi' bo'lgan bronlar")}
+            />
+            <StatCard
+              label={t("Bekor qilingan / kelmagan (oy)")}
+              value={`${bookings.data.cancelledMonth} / ${bookings.data.noShowMonth}`}
+              hint={t("Shu oy ichida")}
+            />
+            <StatCard
+              label={t("Xizmat tushumi (oy)")}
+              value={formatMoney(bookings.data.revenueMonth, currency)}
+              hint={t("Yakunlangan bronlar narxi bo'yicha")}
+            />
+          </div>
+          {bookings.data.upcoming.length > 0 ? (
+            <div className="mt-4 grid gap-2 sm:grid-cols-2">
+              {bookings.data.upcoming.map((appointment) => {
+                const customer = (appointment.customers ?? null) as { full_name?: string | null } | null;
+                const employee = (appointment.employees ?? null) as { full_name?: string | null } | null;
+                return (
+                  <div key={appointment.id} className="clay-inset flex items-center justify-between gap-3 rounded-2xl px-3 py-2">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium">
+                        {new Date(appointment.starts_at).toLocaleString([], {
+                          day: "numeric",
+                          month: "short",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                        {" — "}
+                        {customer?.full_name ?? appointment.service_name ?? "—"}
+                      </p>
+                      <p className="truncate text-xs text-muted-foreground">{employee?.full_name ?? t("Xodimsiz")}</p>
+                    </div>
+                    <StatusBadge value={appointment.status} />
+                  </div>
+                );
+              })}
+            </div>
+          ) : null}
+        </section>
+      ) : null}
 
       <section className="clay-panel p-5">
         <h2 className="font-display text-lg font-semibold">{t("Bugun nima qilish kerak?")}</h2>
