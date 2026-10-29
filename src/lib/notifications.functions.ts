@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireSupabaseAuth } from "@/lib/auth-middleware";
 
 /** Announcements written in the Control Center, read here through the caller's own
  *  session. Which rows come back is decided by the database targeting policy

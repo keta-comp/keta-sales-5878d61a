@@ -1,3 +1,5 @@
+// VORIS SNAPSHOT — ilova buni import qilmaydi. Neon sxemasining tarixiy holati;
+// scripts/neon-drift.mjs drift solishtiruvi uchun o‘qiladi.
 export type Json =
   | string
   | number

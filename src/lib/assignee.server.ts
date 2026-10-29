@@ -15,7 +15,7 @@ export async function assigneeNameMap(businessId: string, memberIds?: (string | 
   const wanted = memberIds ? new Set(memberIds.filter((id): id is string => Boolean(id))) : null;
   if (wanted?.size === 0) return new Map<string, string>();
 
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { supabaseAdmin } = await import("@/lib/platform.server");
   const { data: members } = await supabaseAdmin
     .from("business_members")
     .select("id, user_id")

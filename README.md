@@ -36,14 +36,14 @@ All factual product information must come from the database.
 
 # 2. AUTHENTICATION
 
-Create a secure admin authentication system using Supabase Auth.
+Create a secure admin authentication system using Neon Auth (hosted Better Auth).
 
 Admin login:
 Email: [nursultansayyora@gmail.com](mailto:nursultansayyora@gmail.com)
 
 The password must NOT be hardcoded into frontend source code.
 
-Create the account through Supabase Auth / secure environment configuration.
+Create the account through Neon Auth / secure environment configuration.
 
 After successful login, redirect to the dashboard.
 
@@ -71,10 +71,10 @@ Use:
 * TypeScript
 * Vite
 * Tailwind CSS
-* Supabase
+# Baza: Neon Postgres (qarang: docs/SELF-HOSTING.md)
 * PostgreSQL
-* Supabase Auth
-* Supabase Edge Functions where needed
+* Neon Auth
+* Secure server endpoints (TanStack Start server functions) where needed
 * Telegram Bot API
 * OpenAI-compatible LLM API through secure server-side environment variables
 * modern responsive UI
@@ -85,7 +85,7 @@ Never expose:
 
 * Telegram bot token
 * AI API key
-* Supabase service role key
+* Neon admin (service) credentials
 * other private credentials
 
 in browser/client code.
@@ -553,7 +553,7 @@ Admin can configure:
 * maximum allowed discount
 * team group chat ID
 
-Create editable business knowledge/settings stored in Supabase.
+Create editable business knowledge/settings stored in the database (Neon Postgres).
 
 The AI should use this information when responding.
 
@@ -561,7 +561,7 @@ The AI should use this information when responding.
 
 # 19. DATABASE
 
-Create proper PostgreSQL/Supabase tables with relationships.
+Create proper Neon Postgres tables with relationships.
 
 At minimum:
 
@@ -593,7 +593,7 @@ Implement proper foreign keys.
 
 # 20. SECURITY
 
-Implement Supabase Row Level Security.
+Implement Neon Postgres Row Level Security (app_user role + app.user_id()).
 
 Authenticated admins and members must only access authorized data.
 
@@ -609,7 +609,7 @@ Validate Telegram webhook requests where possible.
 
 # 21. TELEGRAM WEBHOOK
 
-Implement a real Telegram webhook using a Supabase Edge Function or appropriate secure server endpoint.
+Implement a real Telegram webhook or an appropriate secure server endpoint.
 
 Incoming Telegram message flow:
 
@@ -653,7 +653,7 @@ The AI can only perform allowed actions through these functions.
 
 # 23. REAL-TIME
 
-Use Supabase realtime where useful.
+Use frequent polling (server-driven refetch) where realtime is useful.
 
 Dashboard should update when:
 
@@ -704,7 +704,7 @@ Do NOT hardcode conversations.
 
 Do NOT use mock data as the main application.
 
-Every important feature must connect to the actual Supabase database/API.
+Every important feature must connect to the actual Neon database/API.
 
 If an external integration requires credentials that are not available yet, create the correct integration architecture and a clear Settings screen for entering/configuring the credentials.
 
@@ -768,7 +768,7 @@ At the end, provide a clear list of:
 1. What is fully implemented.
 2. What requires external API credentials.
 3. Exact environment variables required.
-4. Exact Supabase setup/migrations required.
+4. Exact Neon setup/migrations required.
 5. Exact Telegram Bot setup/webhook steps required.
 
 The final result must be a REAL working production-oriented AI Sales Agent platform, not a visual prototype.

@@ -1,4 +1,4 @@
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { supabaseAdmin } from "@/lib/platform.server";
 import { describeError } from "./error-capture";
 import { errorBucket, errorFingerprint, normalizeRoute } from "./error-events";
 

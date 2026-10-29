@@ -6,7 +6,7 @@ import fs from "node:fs";
 const url = fs.readFileSync(".env.local", "utf8").match(/NEON_DATABASE_URL="([^"]+)"/)?.[1];
 const sql = postgres(url, { connect_timeout: 20, max: 1 });
 
-const src = fs.readFileSync("src/integrations/supabase/types.ts", "utf8");
+const src = fs.readFileSync("scripts/legacy/supabase-types-snapshot.ts", "utf8");
 
 /** `tables: { name: { Row: { col: type } } }` — qavslar balandligi bo'yicha kesib olamiz. */
 function block(text, start) {

@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireSupabaseAuth } from "@/lib/auth-middleware";
 import { requireBusinessId } from "./tenant.server";
 
 /** Lightweight pickers used by quick-create dialogs (no heavy joins). */
@@ -9,7 +9,7 @@ export const listPickers = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const businessId = await requireBusinessId(context.supabase);
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { supabaseAdmin } = await import("@/lib/platform.server");
     const [customers, members, orders, products] = await Promise.all([
       context.supabase
         .from("customers")

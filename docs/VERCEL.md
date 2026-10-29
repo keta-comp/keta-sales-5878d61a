@@ -20,12 +20,10 @@ Production va Preview uchun quyidagilarni qo'shing:
 
 | Nom | Qiymat |
 | --- | --- |
-| `VITE_SUPABASE_URL` | `https://htydowzamirhpknppglu.supabase.co` |
-| `VITE_SUPABASE_PUBLISHABLE_KEY` | `sb_publishable_...` (ochiq kalit) |
-| `VITE_SUPABASE_PROJECT_ID` | `htydowzamirhpknppglu` |
-| `SUPABASE_URL` | `https://htydowzamirhpknppglu.supabase.co` |
-| `SUPABASE_PUBLISHABLE_KEY` | `sb_publishable_...` |
-| `SUPABASE_SERVICE_ROLE_KEY` | `sb_secret_...` (maxfiy) |
+| `NEON_DATABASE_URL` | `postgresql://neondb_owner:...@ep-...-pooler...aws.neon.tech/neondb?sslmode=require` (maxfiy) |
+| `NEON_AUTH_ISSUER` | `https://ep-....neonauth...aws.neon.tech/neondb/auth` |
+| `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | fayl saqlash — qo'shilmagan holda logo/biriktirma yuklash "sozlanmagan" xatosi beradi |
+| `S3_PUBLIC_BASE_URL` | ixtiyoriy (bo'lmasa presigned GET) |
 | `OPENROUTER_API_KEY` | `sk-or-...` (AI uchun) |
 | `OPENROUTER_MODEL` | `google/gemini-2.5-flash` (ixtiyoriy) |
 | `GEMINI_API_KEY` | ixtiyoriy zaxira |
@@ -35,8 +33,14 @@ Production va Preview uchun quyidagilarni qo'shing:
 | `BOT_TOKEN_ENCRYPTION_KEY` | ixtiyoriy, 64 belgi |
 | `INSTAGRAM_PAGE_ACCESS_TOKEN`, `META_APP_SECRET` | Instagram uchun, ixtiyoriy |
 
-`VITE_` bilan boshlanadigan qiymatlar qurish vaqtida kerak — ularni
-qo'shgandan keyin qayta **Redeploy** qiling.
+Autentifikatsiya va baza to'liq server tomonda — `VITE_` bilan boshlanadigan
+Supabase kalitlari kerak emas. Muhit o'zgaruvchilarini qo'shgandan keyin
+qayta **Redeploy** qiling.
+
+Ro'yxatdan o'tishda Neon Auth email yuborishi uchun Neon dashboard →
+Authentication → Email'da SMTP sozlanadi (yoki default yetkazib beruvchi).
+Parolni tiklash havolasi `{PUBLIC_APP_URL}/auth?mode=recover` manziliga
+qaytadi — `PUBLIC_APP_URL` to'g'ri bo'lishi shart.
 
 ## 3. Domen
 

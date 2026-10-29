@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireSupabaseAuth } from "@/lib/auth-middleware";
 
 /** Current Telegram link for the signed-in user's business (or null). */
 export const getTelegramLink = createServerFn({ method: "GET" })
@@ -23,7 +23,7 @@ export const getTelegramLinkRequest = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { code: string }) => z.object({ code: z.string().min(10) }).parse(input))
   .handler(async ({ data }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { supabaseAdmin } = await import("@/lib/platform.server");
     const { data: row } = await supabaseAdmin
       .from("telegram_link_requests")
       .select("code, telegram_username, telegram_user_id, expires_at, consumed_at")
@@ -55,7 +55,7 @@ export const confirmTelegramLink = createServerFn({ method: "POST" })
     if (memberError) throw new Error(memberError.message);
     if (!member) throw new Error("Biznes topilmadi");
 
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { supabaseAdmin } = await import("@/lib/platform.server");
     const { data: row } = await supabaseAdmin
       .from("telegram_link_requests")
       .select("code, telegram_user_id, telegram_chat_id, telegram_username, expires_at, consumed_at")

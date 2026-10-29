@@ -177,7 +177,7 @@ export async function buildBusinessReport(
   businessId: string,
   range: ReportRange,
 ): Promise<BusinessReport> {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { supabaseAdmin } = await import("@/lib/platform.server");
   const [settings, orders, payments, customers, leads, items] = await Promise.all([
     supabaseAdmin
       .from("business_settings")

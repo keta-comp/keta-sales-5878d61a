@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireSupabaseAuth } from "@/lib/auth-middleware";
 import { logActivity } from "./activity.server";
 import { can, type MemberRole } from "./roles";
 import { requireBusinessId } from "./tenant.server";

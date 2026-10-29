@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireSupabaseAuth } from "@/lib/auth-middleware";
 import { PLAN_IDS } from "./billing";
 
 /** Every function here verifies platform-level authorization inside the handler.
@@ -76,7 +76,7 @@ export const setOrganizationStatus = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const actor = await requireSuperAdmin(context);
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { supabaseAdmin } = await import("@/lib/platform.server");
     const { logAudit } = await import("./audit.server");
 
     const { data: business, error: readError } = await supabaseAdmin
@@ -118,7 +118,7 @@ export const setOrganizationPlan = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const actor = await requireSuperAdmin(context);
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { supabaseAdmin } = await import("@/lib/platform.server");
     const { logAudit } = await import("./audit.server");
 
     const { data: business, error: readError } = await supabaseAdmin
@@ -176,7 +176,7 @@ export const setUserStatus = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const actor = await requireSuperAdmin(context);
     if (data.id === context.userId) throw new Error("O‘z hisobingizni bloklay olmaysiz");
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { supabaseAdmin } = await import("@/lib/platform.server");
     const { logAudit } = await import("./audit.server");
 
     const { data: target, error: readError } = await supabaseAdmin
@@ -218,7 +218,7 @@ export const setUserRole = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const actor = await requireSuperAdmin(context);
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { supabaseAdmin } = await import("@/lib/platform.server");
     const { logAudit } = await import("./audit.server");
 
     const [{ data: target, error: profileError }, { data: adminRow, error: adminError }] = await Promise.all([
@@ -277,7 +277,7 @@ export const sendPasswordResetFor = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
     const actor = await requireSuperAdmin(context);
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { supabaseAdmin } = await import("@/lib/platform.server");
     const { logAudit } = await import("./audit.server");
 
     const { data: target, error: readError } = await supabaseAdmin
@@ -368,7 +368,7 @@ export const getSystemSettings = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await requireSuperAdmin(context);
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { supabaseAdmin } = await import("@/lib/platform.server");
     const { data } = await supabaseAdmin.from("system_settings").select("*").limit(1).maybeSingle();
     return data;
   });
@@ -390,7 +390,7 @@ export const saveSystemSettings = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const actor = await requireSuperAdmin(context);
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { supabaseAdmin } = await import("@/lib/platform.server");
     const { logAudit } = await import("./audit.server");
 
     const payload = { ...data, maintenance_message: data.maintenance_message ?? null };
@@ -418,7 +418,7 @@ export const getFeatureFlags = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await requireSuperAdmin(context);
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { supabaseAdmin } = await import("@/lib/platform.server");
     const [{ data: flags }, { data: businesses }] = await Promise.all([
       supabaseAdmin.from("feature_flags").select("*").order("label"),
       supabaseAdmin.from("businesses").select("id, name, plan").order("name"),
@@ -441,7 +441,7 @@ export const saveFeatureFlag = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const actor = await requireSuperAdmin(context);
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { supabaseAdmin } = await import("@/lib/platform.server");
     const { logAudit } = await import("./audit.server");
 
     const { error } = await supabaseAdmin.from("feature_flags").upsert(
@@ -502,7 +502,7 @@ export const sendSystemNotification = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const actor = await requireSuperAdmin(context);
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { supabaseAdmin } = await import("@/lib/platform.server");
     const { logAudit } = await import("./audit.server");
     const { audienceCount, buildNotificationAudiences } = await import("./super-admin.server");
 
@@ -561,7 +561,7 @@ export const deleteSystemNotification = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
     const actor = await requireSuperAdmin(context);
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { supabaseAdmin } = await import("@/lib/platform.server");
     const { logAudit } = await import("./audit.server");
 
     const { data: removed, error } = await supabaseAdmin

@@ -1,7 +1,7 @@
 import { generateText, stepCountIs, tool } from "ai";
 import { z } from "zod";
 
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { supabaseAdmin } from "@/lib/platform.server";
 import { gatewayErrorMessage, resolveAiRuntime } from "./ai-gateway.server";
 import { logAiUsage } from "./audit.server";
 import { getActiveBot } from "./bots.server";

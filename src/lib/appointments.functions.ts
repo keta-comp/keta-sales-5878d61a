@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import type { DbClient } from "./pg-rest.server";
 import { z } from "zod";
 
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireSupabaseAuth } from "@/lib/auth-middleware";
 import {
   DEFAULT_BUSINESS_TZ,
   APPOINTMENT_STATUSES,

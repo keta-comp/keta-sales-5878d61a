@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import type { DbClient } from "./pg-rest.server";
 import { z } from "zod";
 
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireSupabaseAuth } from "@/lib/auth-middleware";
 import { can, type MemberRole } from "./roles";
 import { requireBusinessId } from "./tenant.server";
 

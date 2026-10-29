@@ -1,4 +1,4 @@
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { supabaseAdmin } from "@/lib/platform.server";
 import { requestIp } from "./request.server";
 
 export interface AuditEntry {

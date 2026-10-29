@@ -30,7 +30,7 @@ const BUSINESS_TTL_MS = 300_000;
 /** The single workspace that owns every conversation. Cached to keep the webhook fast. */
 export async function singleBusinessId(): Promise<string> {
   if (businessIdCache && Date.now() - businessIdCache.at < BUSINESS_TTL_MS) return businessIdCache.value;
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { supabaseAdmin } = await import("@/lib/platform.server");
   const { data, error } = await supabaseAdmin
     .from("businesses")
     .select("id")

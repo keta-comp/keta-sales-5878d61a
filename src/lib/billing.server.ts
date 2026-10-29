@@ -6,10 +6,10 @@ export function md5(s: string) {
   return createHash("md5").update(s).digest("hex");
 }
 
-type Admin = Awaited<typeof import("@/integrations/supabase/client.server")>["supabaseAdmin"];
+type Admin = Awaited<typeof import("@/lib/platform.server")>["supabaseAdmin"];
 
 export async function getAdmin(): Promise<Admin> {
-  return (await import("@/integrations/supabase/client.server")).supabaseAdmin;
+  return (await import("@/lib/platform.server")).supabaseAdmin;
 }
 
 /** Marks invoice paid and extends the workspace subscription. Idempotent. */

@@ -1,13 +1,13 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireSupabaseAuth } from "@/lib/auth-middleware";
 
 /** Successful sign-in: trustworthy, the caller is authenticated. */
 export const recordLogin = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { supabaseAdmin } = await import("@/lib/platform.server");
     const { logAudit } = await import("./audit.server");
 
     const { data: profile } = await supabaseAdmin
@@ -44,7 +44,7 @@ export const recordLogin = createServerFn({ method: "POST" })
 export const recordFailedLogin = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => z.object({ email: z.string().max(200) }).parse(input))
   .handler(async ({ data }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { supabaseAdmin } = await import("@/lib/platform.server");
     const { logAudit } = await import("./audit.server");
 
     // Throttle: this endpoint is anonymous, so cap per-email writes to prevent audit-log spam.
@@ -71,7 +71,7 @@ export const recordFailedLogin = createServerFn({ method: "POST" })
 export const recordRegistration = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { supabaseAdmin } = await import("@/lib/platform.server");
     const { logAudit } = await import("./audit.server");
 
     const { data: membership } = await supabaseAdmin

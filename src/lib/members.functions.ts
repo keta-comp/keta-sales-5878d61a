@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import type { DbClient } from "./pg-rest.server";
 import { z } from "zod";
 
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireSupabaseAuth } from "@/lib/auth-middleware";
 import { requireBusinessId } from "./tenant.server";
 import { ASSIGNABLE_ROLES, isAdminRole, isDemotionBelow, ROLE_LABELS, type MemberRole } from "./roles";
 
@@ -22,7 +22,7 @@ export type TeamMember = {
 
 async function loadTeam(context: AuthedContext) {
   const businessId = await requireBusinessId(context.supabase);
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { supabaseAdmin } = await import("@/lib/platform.server");
 
   const [{ data: myRole }, { data: rows, error }] = await Promise.all([
     context.supabase.rpc("business_role", { _business_id: businessId }),
@@ -145,7 +145,7 @@ export const setMemberBranch = createServerFn({ method: "POST" })
     if (!target) throw new Error("A'zo topilmadi.");
 
     if (data.branchId) {
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { supabaseAdmin } = await import("@/lib/platform.server");
       const { data: branch } = await supabaseAdmin
         .from("branches")
         .select("id")

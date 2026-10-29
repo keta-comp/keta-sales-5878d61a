@@ -28,6 +28,26 @@ function ident(name: string): string {
   return `"${name}"`;
 }
 
+/** Ustun ifodasi. PostgREST jsonb yo'llarini (`data->>status`, `data->items->0`)
+ *  qo'llab-quvvatlaymiz: har qism alohida tekshiriladi, shuning uchun kiruvchi
+ *  satr SQL'ga buzib kira olmaydi. */
+function columnExpr(column: string, prefix: string): string {
+  if (IDENT.test(column)) return `${prefix}${ident(column)}`;
+  const segments = column.split(/(->>|->)/);
+  const base = segments[0] ?? "";
+  if (segments.length < 3 || !IDENT.test(base)) throw new Error(`Noto'g'ri identifikator: ${column}`);
+  let expr = `${prefix}${ident(base)}`;
+  for (let i = 1; i < segments.length; i += 2) {
+    const operator = segments[i] ?? "";
+    const key = (segments[i + 1] ?? "").replace(/^['"]|['"]$/g, "");
+    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key) && !/^\d+$/.test(key))
+      throw new Error(`Noto'g'ri identifikator: ${column}`);
+    // Matn kaliti kvototaladi, son indeksi shunday qoladi (jsonb array access).
+    expr += `${operator}${/^\d+$/.test(key) ? key : `'${key}'`}`;
+  }
+  return expr;
+}
+
 class Params {
   readonly values: any[] = [];
   add(value: any): string {
@@ -218,7 +238,7 @@ function condition(
   p: Params,
   types: Map<string, ColumnType> | undefined,
 ): string {
-  const col = `${prefix}${ident(column)}`;
+  const col = columnExpr(column, prefix);
   const type = types?.get(column);
 
   if (op === "is") {

@@ -15,7 +15,7 @@ const FLAG: Record<NotifyKind, string> = {
 export async function notifyBusiness(businessId: string, kind: NotifyKind, text: string) {
   try {
     const [{ supabaseAdmin }, single, bot] = await Promise.all([
-      import("@/integrations/supabase/client.server"),
+      import("@/lib/platform.server"),
       import("./single-bot.server"),
       import("./telegram-report.server"),
     ]);

@@ -1,4 +1,4 @@
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { supabaseAdmin } from "@/lib/platform.server";
 import { audienceCount, countAudiences, type NotificationAudiences } from "./notification-targets";
 
 /** Platform-level data layer for the Super Admin Control Center.

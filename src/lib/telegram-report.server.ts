@@ -86,7 +86,7 @@ export async function sendDocument(
 }
 
 export async function findLink(telegramUserId: string): Promise<TelegramLinkRow | null> {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { supabaseAdmin } = await import("@/lib/platform.server");
   const { data } = await supabaseAdmin
     .from("telegram_links")
     .select(
@@ -104,7 +104,7 @@ export async function createLinkRequest(input: {
   telegramChatId: string;
   telegramUsername: string | null;
 }): Promise<string> {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { supabaseAdmin } = await import("@/lib/platform.server");
   const code = randomBytes(24).toString("base64url");
   const { error } = await supabaseAdmin.from("telegram_link_requests").insert({
     code,
@@ -222,7 +222,7 @@ export async function handleTelegramText(input: {
   }
 
   if (String(link.telegram_chat_id) !== String(chatId)) {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { supabaseAdmin } = await import("@/lib/platform.server");
     await supabaseAdmin
       .from("telegram_links")
       .update({ telegram_chat_id: String(chatId) })

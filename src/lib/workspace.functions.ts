@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { generateText } from "ai";
 import { z } from "zod";
 
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireSupabaseAuth } from "@/lib/auth-middleware";
 import { gatewayErrorMessage, resolveAiRuntime } from "./ai-gateway.server";
 import { logAiUsage } from "./audit.server";
 import { crmLabel } from "./crm-core";

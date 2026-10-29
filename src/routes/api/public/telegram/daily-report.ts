@@ -15,7 +15,7 @@ export const Route = createFileRoute("/api/public/telegram/daily-report")({
         if (!matchesSecret(provided, secret)) return new Response("Unauthorized", { status: 401 });
 
         const [{ supabaseAdmin }, single, bot, reports] = await Promise.all([
-          import("@/integrations/supabase/client.server"),
+          import("@/lib/platform.server"),
           import("@/lib/single-bot.server"),
           import("@/lib/telegram-report.server"),
           import("@/lib/report-service.server"),

@@ -23,7 +23,7 @@ export const Route = createFileRoute("/api/public/instagram/webhook")({
           import("@/lib/instagram.server"),
           import("@/lib/agent.server"),
           import("@/lib/single-bot.server"),
-          import("@/integrations/supabase/client.server"),
+          import("@/lib/platform.server"),
           import("@/lib/perf.server"),
         ]);
         const timer = perf.createTimer();
