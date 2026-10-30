@@ -269,6 +269,10 @@ export async function handleAppointmentCallback(input: {
     await startQuickBooking(token, link);
     return true;
   }
+  if (data === "book:new" || data.startsWith("book:cust:")) {
+    await handleCustomerChoiceCallback({ token, chatId, link, data });
+    return true;
+  }
   if (!data.startsWith("appt:")) return false;
 
   const [, action, id] = data.split(":");
@@ -306,18 +310,211 @@ export async function handleAppointmentCallback(input: {
 /* ----------------------------- tez qabul yaratish ----------------------------- */
 
 export async function startQuickBooking(token: string, link: TelegramLinkRow) {
-  await setBotState({
-    telegramUserId: link.telegram_user_id,
-    chatId: link.telegram_chat_id,
-    step: "booking_name",
-    data: { booking: {} },
-  });
+  await askCustomer(token, link.telegram_user_id, link.telegram_chat_id, {});
+}
+
+/* ---------------------------- mijozni qidirish ---------------------------- */
+
+type CustomerRow = { id: string; full_name: string | null; phone: string | null };
+
+/** `or(...)` ifodasi vergul bilan bo'linadi — qatorga tushgan belgilar tashlanadi. */
+function searchTerm(text: string): string {
+  return text.replace(/[(),]/g, " ").replace(/\s+/g, " ").trim().slice(0, 60);
+}
+
+/** "901234567" va "998901234567" → 9 xonali raqam; boshqa holatda null. */
+function localPhone(text: string): string | null {
+  const digits = text.replace(/\D/g, "");
+  if (digits.length === 9) return digits;
+  if (digits.length === 12 && digits.startsWith("998")) return digits.slice(3);
+  return null;
+}
+
+async function searchCustomers(
+  client: DbClient,
+  businessId: string,
+  expression: string,
+): Promise<CustomerRow[]> {
+  const { data } = await client
+    .from("customers")
+    .select("id, full_name, phone")
+    .eq("business_id", businessId)
+    .or(expression)
+    .limit(8);
+  return (data ?? []) as unknown as CustomerRow[];
+}
+
+function customerLabel(row: CustomerRow): string {
+  const name = escapeHtml((row.full_name ?? "Nomaʼlum mijoz").trim());
+  const phone = row.phone ? ` · ${escapeHtml(row.phone)}` : "";
+  return `${name}${phone}`;
+}
+
+async function askCustomer(token: string, telegramUserId: string, chatId: string | number, draft: BotBookingDraft) {
+  await setBotState({ telegramUserId, chatId: String(chatId), step: "booking_name", data: { booking: draft } });
   await sendMessage(
     token,
-    link.telegram_chat_id,
-    "➕ <b>Yangi qabul</b>\n\n1-qadam: mijozning <b>ismini</b> yozing.",
+    chatId,
+    draft.phone
+      ? `🆕 <b>Yangi mijoz</b>\n\n<b>+998${draft.phone}</b> uchun mijoz <b>ismni</b> yozing.`
+      : "➕ <b>Yangi qabul</b>\n\n1-qadam: mijoz <b>ismi</b> yoki <b>telefon raqami</b>ni yozing.\n\nMasalan: <code>Aziza</code> yoki <code>901234567</code>",
     CANCEL_MARKUP,
   );
+}
+
+async function askPhone(token: string, telegramUserId: string, chatId: string | number, draft: BotBookingDraft) {
+  await setBotState({ telegramUserId, chatId: String(chatId), step: "booking_phone", data: { booking: draft } });
+  await sendMessage(
+    token,
+    chatId,
+    `2-qadam: <b>${escapeHtml(draft.name ?? "mijoz")}</b> uchun <b>telefon raqami</b>ni yuboring.\n\nMasalan: <code>901234567</code>`,
+    CANCEL_MARKUP,
+  );
+}
+
+async function askTime(token: string, telegramUserId: string, chatId: string | number, draft: BotBookingDraft) {
+  await setBotState({ telegramUserId, chatId: String(chatId), step: "booking_when", data: { booking: draft } });
+  await sendMessage(
+    token,
+    chatId,
+    `👤 <b>${escapeHtml(customerDisplayName(draft))}</b>\n\nQabul <b>vaqtini</b> yozing.\n\nMasalan: <code>30.10 15:00</code> yoki <code>ertaga 11:30</code>.`,
+    CANCEL_MARKUP,
+  );
+}
+
+function customerDisplayName(draft: BotBookingDraft): string {
+  return draft.customerName || draft.name || "Mijoz";
+}
+
+/** Topilgan mijozlar ro'yxati — tanlansa qabul o'sha yozuvga bog'lanadi. */
+async function offerCustomers(
+  token: string,
+  telegramUserId: string,
+  chatId: string | number,
+  draft: BotBookingDraft,
+  rows: CustomerRow[],
+) {
+  const next: BotBookingDraft = { ...draft, picking: true };
+  await setBotState({ telegramUserId, chatId: String(chatId), step: "booking_pick", data: { booking: next } });
+  await sendMessage(
+    token,
+    chatId,
+    `👥 <b>${rows.length}</b> ta mijoz topildi. Qaysi biriga qabul ochamiz?\n\n` +
+      rows.map((row) => `• ${customerLabel(row)}`).join("\n"),
+    {
+      inline_keyboard: [
+        ...rows.map((row) => [{ text: customerLabel(row), callback_data: `book:cust:${row.id}` }]),
+        [{ text: "➕ Yangi mijoz qo‘shish", callback_data: "book:new" }],
+        [{ text: "✖️ Bekor qilish", callback_data: "auth:cancel" }],
+      ],
+    },
+  );
+}
+
+/** 1-qadam: ism yoki raqam bo'yicha mavjud mijozni qidiradi, topilmasa yangi oqimga o'tadi. */
+async function handleCustomerSearch(input: {
+  token: string;
+  chatId: string | number;
+  telegramUserId: string;
+  link: TelegramLinkRow;
+  draft: BotBookingDraft;
+  text: string;
+  picking?: boolean;
+}) {
+  const { token, chatId, telegramUserId, link, text } = input;
+  // Ro'yxat ochiq bo'lganda vaqtni oldin yozib yuborishadi: avval mijoz kerak.
+  if (input.picking && !/\p{L}/u.test(text)) {
+    await sendMessage(
+      token,
+      chatId,
+      "Avval <b>mijozni tanlang</b> ro'yxatdan yoki <b>➕ Yangi mijoz qo‘shish</b> tugmasini bosing.",
+      CANCEL_MARKUP,
+    );
+    return;
+  }
+  // Oldingi tanlash qatnab qolmasligi uchun mijoz maydonlari tozalanadi.
+  const draft: BotBookingDraft = { search: text.trim() };
+  if (input.draft.name) draft.name = input.draft.name;
+  if (input.draft.phone) draft.phone = input.draft.phone;
+  const client = await rlsClient(link);
+  const phone = localPhone(text);
+
+  if (phone) {
+    const rows = await searchCustomers(client, link.business_id, `phone.eq.+998${phone},phone.eq.${phone}`);
+    if (rows.length) return offerCustomers(token, telegramUserId, chatId, draft, rows);
+    draft.phone = phone;
+    delete draft.search;
+    return askCustomer(token, telegramUserId, chatId, draft);
+  }
+
+  const name = text.trim();
+  if (name.length < 2 || name.length > 120) {
+    await sendMessage(token, chatId, "Ismni 2–120 belgi bilan yozing yoki telefon raqamini yuboring.", CANCEL_MARKUP);
+    return;
+  }
+  const term = searchTerm(name);
+  const rows = term
+    ? await searchCustomers(client, link.business_id, `full_name.ilike.%${term}%,phone.ilike.%${term}%`)
+    : [];
+  if (rows.length) return offerCustomers(token, telegramUserId, chatId, draft, rows);
+
+  draft.name = name;
+  delete draft.search;
+  if (draft.phone) return askTime(token, telegramUserId, chatId, draft);
+  return askPhone(token, telegramUserId, chatId, draft);
+}
+
+/** Mijoz ro'yxatidagi tugmalar: mavjud yozuvni tanlash yoki yangisini ochish. */
+export async function handleCustomerChoiceCallback(input: {
+  token: string;
+  chatId: string | number;
+  link: TelegramLinkRow;
+  data: string;
+}): Promise<void> {
+  const { token, chatId, link, data } = input;
+  const telegramUserId = link.telegram_user_id;
+  const state = await getBotState(telegramUserId);
+  const draft = state?.data.booking ?? {};
+  if (state?.state !== "booking_pick") {
+    await sendMessage(
+      token,
+      chatId,
+      "⏱️ Mijoz tanlash tugagi eskirgan — <b>➕ Yangi qabul</b> tugmasidan qayta boshlang.",
+    );
+    return;
+  }
+
+  if (data === "book:new") {
+    const search = draft.search ?? "";
+    const next: BotBookingDraft = {};
+    const searchPhone = localPhone(search);
+    if (draft.phone) next.phone = draft.phone;
+    else if (searchPhone) next.phone = searchPhone;
+    if (search && !searchPhone) next.name = search;
+    await sendMessage(token, chatId, `🆕 <b>Yangi mijoz</b>${next.name ? `: ${escapeHtml(next.name)}` : ""}`);
+    if (next.name && next.phone) return askTime(token, telegramUserId, chatId, next);
+    if (next.name) return askPhone(token, telegramUserId, chatId, next);
+    return askCustomer(token, telegramUserId, chatId, next);
+  }
+
+  const customerId = data.slice("book:cust:".length);
+  const client = await rlsClient(link);
+  const { data: row } = await client
+    .from("customers")
+    .select("id, full_name, phone")
+    .eq("business_id", link.business_id)
+    .eq("id", customerId)
+    .maybeSingle();
+  const chosen = row as CustomerRow | null | undefined;
+  if (!chosen) {
+    await sendMessage(token, chatId, "⚠️ Bu mijoz topilmadi yoki sizning biznesingizga tegishli emas.");
+    return;
+  }
+  await askTime(token, telegramUserId, chatId, {
+    customerId: chosen.id,
+    customerName: chosen.full_name ?? "Mijoz",
+    customerPhone: chosen.phone ?? "",
+  });
 }
 
 /** "15:00", "30.10 15:00", "ertaga 15:00" → UTC ISO. Vaqt majburiy, sana — ixtiyoriy. */
@@ -469,8 +666,9 @@ async function createFromDraft(token: string, link: TelegramLinkRow, draft: BotB
   }
 
   const client = await rlsClient(link);
-  const name = (draft.name ?? "").trim();
+  const name = (draft.name ?? draft.customerName ?? "").trim();
   const phone = (draft.phone ?? "").replace(/\D/g, "");
+  const phoneLabel = phone ? `+998${phone}` : (draft.customerPhone ?? "").trim() || "raqam kiritilmagan";
 
   const { data: serviceRow } = await client
     .from("services")
@@ -505,7 +703,8 @@ async function createFromDraft(token: string, link: TelegramLinkRow, draft: BotB
     return;
   }
 
-  const customerId = await findOrCreateCustomer(client, link.business_id, name, phone);
+  // Tanlangan mijoz mavjud yozuvga bog'lanadi; yangi bo'lsa shu yerda ochiladi.
+  const customerId = draft.customerId ?? (await findOrCreateCustomer(client, link.business_id, name, phone));
   const { data: created, error } = await client
     .from("appointments")
     .insert({
@@ -534,11 +733,12 @@ async function createFromDraft(token: string, link: TelegramLinkRow, draft: BotB
   }
 
   await clearBotState(link.telegram_user_id);
+  const who = customerDisplayName(draft);
   await sendMenu(
     token,
     link.telegram_chat_id,
     `✅ <b>Qabul qo‘shildi</b>\n\n${clock(startsAt, link.timezone)}–${clock(endsAt, link.timezone)}\n` +
-      `${escapeHtml(name)} (+998${phone})\n${escapeHtml(service?.name ?? "Xizmat")}` +
+      `${escapeHtml(who)} · ${escapeHtml(phoneLabel)}\n${escapeHtml(service?.name ?? "Xizmat")}` +
       `${chosen ? ` · ${escapeHtml(chosen.full_name)}` : ""}`,
   );
 
@@ -551,8 +751,8 @@ async function createFromDraft(token: string, link: TelegramLinkRow, draft: BotB
         startsAt,
         serviceName: service?.name ?? "Xizmat",
         employeeName: chosen?.full_name ?? null,
-        customerName: name,
-        customerPhone: `+998${phone}`,
+        customerName: who,
+        customerPhone: phoneLabel,
         source: "Telegram botdan qo'shildi",
       },
       link.telegram_user_id,
@@ -569,7 +769,14 @@ export async function handleBookingText(input: {
 }): Promise<boolean> {
   const state = await getBotState(input.telegramUserId);
   const step = state?.state;
-  if (step !== "booking_name" && step !== "booking_phone" && step !== "booking_when") return false;
+  if (
+    step !== "booking_name" &&
+    step !== "booking_pick" &&
+    step !== "booking_phone" &&
+    step !== "booking_when"
+  ) {
+    return false;
+  }
 
   const { token, chatId, telegramUserId, link } = input;
   const text = input.text.trim();
@@ -584,25 +791,23 @@ export async function handleBookingText(input: {
   // foydalanuvchi hisobotni ko'rib formsaga qaytishi mumkin.
   if (isMainMenuText(text)) return false;
 
-  if (step === "booking_name") {
-    if (text.length < 2 || text.length > 120) {
-      await sendMessage(token, chatId, "Ismni 2–120 belgi bilan yozing.", CANCEL_MARKUP);
-      return true;
-    }
-    draft.name = text;
-    await setBotState({ telegramUserId, chatId: String(chatId), step: "booking_phone", data: { booking: draft } });
-    await sendMessage(
+  // Ism yozilgan bosqichda matn qayta qidiruv: ro'yxat ochiq bo'lsa ham,
+  // boshqa nom yozib mavjud mijozni topish mumkin.
+  if (step === "booking_name" || step === "booking_pick") {
+    await handleCustomerSearch({
       token,
       chatId,
-      `2-qadam: <b>${escapeHtml(text)}</b> uchun <b>telefon raqami</b>ni yuboring.\n\nMasalan: <code>901234567</code>`,
-      CANCEL_MARKUP,
-    );
+      telegramUserId,
+      link,
+      draft,
+      text,
+      picking: step === "booking_pick",
+    });
     return true;
   }
 
   if (step === "booking_phone") {
-    const digits = text.replace(/\D/g, "");
-    const local = digits.length === 9 ? digits : digits.startsWith("998") && digits.length === 12 ? digits.slice(3) : "";
+    const local = localPhone(text);
     if (!local) {
       await sendMessage(
         token,
@@ -613,13 +818,8 @@ export async function handleBookingText(input: {
       return true;
     }
     draft.phone = local;
-    await setBotState({ telegramUserId, chatId: String(chatId), step: "booking_when", data: { booking: draft } });
-    await sendMessage(
-      token,
-      chatId,
-      "3-qadam: qabul <b>vaqtini</b> yozing.\n\nMasalan: <code>30.10 15:00</code> yoki <code>ertaga 11:30</code>.",
-      CANCEL_MARKUP,
-    );
+    delete draft.search;
+    await askTime(token, telegramUserId, chatId, draft);
     return true;
   }
 

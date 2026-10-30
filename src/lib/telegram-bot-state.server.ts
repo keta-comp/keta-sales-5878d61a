@@ -19,6 +19,7 @@ export type BotStep =
   | "awaiting_password"
   | "awaiting_business"
   | "booking_name"
+  | "booking_pick"
   | "booking_phone"
   | "booking_when";
 
@@ -27,6 +28,14 @@ export type BotBusiness = { id: string; name: string };
 export type BotBookingDraft = {
   name?: string;
   phone?: string;
+  /** Mavjud mijoz tanlangan — qabul shu id'ga bog'lanadi, yangi yozuv ochilmaydi. */
+  customerId?: string;
+  customerName?: string;
+  customerPhone?: string;
+  /** Ro'yxat ko'rsatilgan: keyingi matn yangi qidiruv sifatida o'qiladi. */
+  picking?: boolean;
+  /** Qidiruvda kiritilgan matn — "Yangi mijoz" tugmasida ism/raqam sifatida qoladi. */
+  search?: string;
   serviceId?: string;
   serviceName?: string;
   durationMinutes?: number;
