@@ -56,6 +56,27 @@ export type CoreKey =
   | "payroll"
   | "team";
 
+/**
+ * Yakka forma — sahifa sarlavhalari, "Yangi …" tugmalari va toastlar uchun.
+ * Preset `singles` keltirmasa shu umumiy nom ishlatiladi.
+ */
+const CORE_SINGLES: Record<CoreKey, string> = {
+  pipeline: "Sotuv quvuri",
+  customers: "Mijoz",
+  leads: "Murojaat",
+  orders: "Buyurtma",
+  products: "Xizmat yoki mahsulot",
+  inventory: "Ombordagi pozitsiya",
+  appointments: "Qabul",
+  tasks: "Vazifa",
+  payments: "To‘lov",
+  finance: "Moliyaviy amal",
+  employees: "Xodim",
+  branches: "Filial",
+  payroll: "Oylik",
+  team: "A’zo",
+};
+
 /** Legacy CRM entry points kept in the shared navigation (AGENTS.md rule). */
 const LEGACY_CORE_KEYS: CoreKey[] = ["customers", "orders", "products"];
 
@@ -102,6 +123,11 @@ export interface IndustryPreset {
   extraCoreKeys: CoreKey[];
   /** Renames of legacy/extra core items ("Bemorlar" instead of "Mijozlar"). */
   labels?: Partial<Record<CoreKey, string>>;
+  /**
+   * Yakka forma — sahifa sarlavhasi va "Yangi …" tugmalari uchun ("Kurs", "Bemor").
+   * Keltirilmagan holda umumiylashgan shakl ishlatiladi.
+   */
+  singles?: Partial<Record<CoreKey, string>>;
   /** One entry per dynamic (non-linked) module of the industry config. */
   industryItems: PresetMenuItem[];
   /** Industry modules this preset does not use at all. */
@@ -180,6 +206,7 @@ const PRESET_LIST: IndustryPreset[] = [
     bookingType: "appointment",
     extraCoreKeys: ["appointments", "tasks", "payments", "finance", "inventory", "employees", "payroll", "team"],
     labels: { customers: "Bemorlar", products: "Stomatologik xizmatlar" },
+    singles: { customers: "Bemor", products: "Stomatologik xizmat" },
     industryItems: [
       dynamicItem("qabul", "Qabul", "calendar"),
       medicalItem("odontogramma", "Odontogramma", "activity"),
@@ -204,6 +231,7 @@ const PRESET_LIST: IndustryPreset[] = [
     bookingType: "appointment",
     extraCoreKeys: ["appointments", "tasks", "payments", "finance", "inventory", "employees", "payroll", "team"],
     labels: { customers: "Bemorlar", products: "Tibbiy xizmatlar" },
+    singles: { customers: "Bemor", products: "Tibbiy xizmat" },
     industryItems: [
       dynamicItem("qabul", "Qabul va navbat", "calendar"),
       dynamicItem("bolimlar", "Bo‘limlar", "building"),
@@ -230,8 +258,9 @@ const PRESET_LIST: IndustryPreset[] = [
     bookingType: "trial_lesson",
     extraCoreKeys: ["appointments", "tasks", "payments", "finance", "employees", "payroll", "team"],
     labels: { customers: "O‘quvchilar", products: "Kurslar" },
+    singles: { customers: "O‘quvchi", products: "Kurs", appointments: "Sinov darsi" },
     industryItems: [
-      dynamicItem("kurslar", "Kurslar", "book"),
+      dynamicItem("kurslar", "Kurslar ro‘yxati", "book"),
       dynamicItem("guruhlar", "Guruhlar", "layers"),
       dynamicItem("oqituvchilar", "O‘qituvchilar", "user"),
       dynamicItem("davomat", "Davomat", "check"),
@@ -251,6 +280,7 @@ const PRESET_LIST: IndustryPreset[] = [
     bookingType: "order",
     extraCoreKeys: ["inventory", "tasks", "payments", "finance", "team"],
     labels: { products: "Mahsulotlar" },
+    singles: { products: "Mahsulot" },
     industryItems: [paymentsItem()],
     hiddenModuleKeys: [],
     reports: ["revenue", "expenses", "profit", "customers", "stock"],
@@ -265,6 +295,7 @@ const PRESET_LIST: IndustryPreset[] = [
     bookingType: "appointment",
     extraCoreKeys: ["pipeline", "appointments", "tasks", "inventory", "payments", "finance", "employees", "payroll", "team"],
     labels: { orders: "Servis buyurtmalari", products: "Xizmatlar va qismlar" },
+    singles: { orders: "Servis buyurtmasi", products: "Xizmat yoki qism" },
     industryItems: [
       dynamicItem("avtomobillar", "Avtomobillar", "car"),
       dynamicItem("servis", "Servis buyurtmalari", "wrench"),
@@ -284,6 +315,7 @@ const PRESET_LIST: IndustryPreset[] = [
     bookingType: "viewing",
     extraCoreKeys: ["pipeline", "appointments", "tasks", "payments", "finance", "employees", "payroll", "team"],
     labels: { products: "Xizmatlar va komissiyalar", appointments: "Ko‘rish jadvali" },
+    singles: { products: "Xizmat yoki komissiya", appointments: "Ko‘rish" },
     industryItems: [
       dynamicItem("obyekt", "Obyektlar", "home"),
       dynamicItem("korishlar", "Ko‘rishlar", "eye"),
@@ -303,6 +335,7 @@ const PRESET_LIST: IndustryPreset[] = [
     bookingType: "appointment",
     extraCoreKeys: ["appointments", "tasks", "inventory", "payments", "finance", "employees", "payroll", "team"],
     labels: { products: "Xizmatlar" },
+    singles: { products: "Xizmat" },
     industryItems: [
       dynamicItem("qabul", "Qabul", "calendar"),
       dynamicItem("xizmatlar", "Xizmatlar", "package"),
@@ -323,6 +356,7 @@ const PRESET_LIST: IndustryPreset[] = [
     bookingType: "appointment",
     extraCoreKeys: ["appointments", "payments"],
     labels: { products: "Xizmatlar va narxlar", appointments: "Onlayn qabul" },
+    singles: { products: "Xizmat", appointments: "Qabul" },
     industryItems: [
       dynamicItem("qabul", "Qabul", "calendar"),
       dynamicItem("xizmatlar", "Xizmatlar va narxlar", "package"),
@@ -342,6 +376,7 @@ const PRESET_LIST: IndustryPreset[] = [
     bookingType: "project_meeting",
     extraCoreKeys: ["pipeline", "appointments", "tasks", "inventory", "payments", "finance", "employees", "branches", "payroll", "team"],
     labels: { orders: "Bajarilgan ishlar", products: "Ishlar va materiallar" },
+    singles: { orders: "Bajarilgan ish", products: "Ish yoki material" },
     industryItems: [
       dynamicItem("loyihalar", "Loyihalar", "building"),
       dynamicItem("pudratchilar", "Pudratchilar", "user"),
@@ -360,6 +395,7 @@ const PRESET_LIST: IndustryPreset[] = [
     bookingType: "home_visit",
     extraCoreKeys: ["pipeline", "appointments", "tasks", "inventory", "payments", "finance", "employees", "branches", "team"],
     labels: { orders: "Buyurtmalar", products: "Xizmatlar", appointments: "Jadval va marshrut" },
+    singles: { products: "Xizmat", appointments: "Manzilga chiqish" },
     industryItems: [dynamicItem("xizmatlar", "Xizmatlar", "package"), paymentsItem()],
     hiddenModuleKeys: [],
     reports: ["revenue", "expenses", "profit", "customers", "appointments", "staff"],
@@ -374,6 +410,7 @@ const PRESET_LIST: IndustryPreset[] = [
     bookingType: "project_meeting",
     extraCoreKeys: ["pipeline", "tasks", "payments", "finance", "employees", "team"],
     labels: { products: "Xizmat paketlari" },
+    singles: { products: "Xizmat paketi" },
     industryItems: [dynamicItem("loyihalar", "Loyihalar", "building"), paymentsItem("Oylik to‘lovlar")],
     hiddenModuleKeys: [],
     reports: ["revenue", "expenses", "profit", "customers", "pipeline", "staff"],
@@ -561,6 +598,27 @@ export function applyMissingParts(
     dashboardWidgets: [...config.dashboardWidgets, ...missing.widgets],
   };
   return { config: next, missing };
+}
+
+/**
+ * Yakka/ko‘plik nom ("Kurs"/"Kurslar", "Bemor"/"Bemorlar"). Sahifa sarlavhalari,
+ * "Yangi …" tugmalari va toastlar shu yerdan oladi — menyu nomi bilan janjal bo'lmasligi uchun.
+ */
+export function coreTerm(id: string | null | undefined, key: CoreKey): { one: string; many: string } {
+  const preset = id ? PRESETS[id] : undefined;
+  return {
+    one: preset?.singles?.[key] ?? CORE_SINGLES[key],
+    many: preset?.labels?.[key] ?? CORE_ITEMS[key].label,
+  };
+}
+
+/** All core terms of a preset at once, so a page calls the resolver once. */
+export function termsForPreset(id: string | null | undefined): Record<CoreKey, { one: string; many: string }> {
+  const keys = Object.keys(CORE_ITEMS) as CoreKey[];
+  return Object.fromEntries(keys.map((key) => [key, coreTerm(id, key)])) as Record<
+    CoreKey,
+    { one: string; many: string }
+  >;
 }
 
 export function menuForPreset(id: string): PresetMenuItem[] {
