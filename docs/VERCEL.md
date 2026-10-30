@@ -50,14 +50,29 @@ registrarda Vercel ko'rsatgan DNS yozuvlarini kiritasiz.
 ## 4. Telegram webhook'ni yangi manzilga ko'chirish
 
 ```bash
-curl "https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/setWebhook?url=https://ketaone.uz/api/public/telegram/webhook"
+node scripts/telegram-setup.mjs          # setWebhook + /buyruqlar ro'yxati
+node scripts/telegram-setup.mjs --check  # faqat tekshirish
 ```
 
-## 5. Kunlik hisobot jadvali (ixtiyoriy)
+Skript `TELEGRAM_BOT_TOKEN` va `PUBLIC_APP_URL` ni `.env.local` (yoki muhit
+o'zgaruvchilaridan) oladi, webhook maxfiy so'zni esa kod bilan bir xil usulda
+hisoblaydi. Qo'lda qilsangiz: Telegram `secret_token` sarlavhasisiz so'rov yuborsa
+webhook 401 qaytadi — shuning uchun skriptdan foydalangan ma'qul.
 
-Vercel Cron (`vercel.json` ga qo'shish mumkin) yoki tashqi scheduler orqali
-har 15 daqiqada `POST /api/public/cron/daily-report` chaqiriladi va
-`x-cron-secret` sarlavhasiga `LOVABLE_CRON_SECRET` qiymati qo'yiladi.
+## 5. Kunlik hisobot va eslatmalar jadvali
+
+`vercel.json` da `crons` bloki allaqachon bor — u har 15 daqiqada bu ikki
+manzilni **GET** qiladi:
+
+- `/api/public/telegram/daily-report`
+- `/api/public/reminders`
+
+Vercel so'rovni `Authorization: Bearer <CRON_SECRET>` bilan imzolaydi, shuning
+uchun **`CRON_SECRET` ni `LOVABLE_CRON_SECRET` bilan bir xil qo'ying** (yoki
+`LOVABLE_CRON_SECRET` bo'lmasa, `CRON_SECRET` o'zi ishlatiladi). Vercel Hobby
+tarifida bittadan ko'p cron bo'lmaydi: shunda `vercel.json` dagi `crons` blokini
+butunlay o'chirib, ikkala ishni ham `.github/workflows/scheduler.yml` orqali
+yuriting (u ham har 15 daqiqada ishlaydi).
 
 ---
 

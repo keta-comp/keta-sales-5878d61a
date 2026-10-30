@@ -28,10 +28,14 @@ Supabase ishtiroki yo'q: 33+ jadval, RLS siyosatlari, funksiyalar va triggerlar
 - `NEON_JWKS_URL` — ixtiyoriy (hozircha kod uni o'qimaydi)
 - `S3_*` — fayl saqlash (Neon Storage / R2 / AWS S3). To'rtalasini
   (`S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_ENDPOINT`)
-  qo'shmaguncha logo/biriktirma yuklash ishlatilmaydi
+  qo'shmaguncha logo/biriktirma yuklash ishlatilmaydi. R2/MinIO uchun
+  `S3_ENDPOINT` bo'lsa path-style ishlatiladi; kalitlar o'zgarsa jarayonni
+  qayta ishga tushiring (S3 klienti keshlanadi)
 - `OPENROUTER_API_KEY` yoki `GEMINI_API_KEY` — AI uchun
-- `TELEGRAM_BOT_TOKEN`, `PUBLIC_APP_URL` — bot va webhook
-- `LOVABLE_CRON_SECRET` — kunlik hisobot cron himoyasi
+- `TELEGRAM_BOT_TOKEN`, `PUBLIC_APP_URL` — bot va webhook (`PUBLIC_APP_URL`
+  bo'lmasa havolalar eski `keta-sales.lovable.app` manziliga tushib qoladi)
+- `LOVABLE_CRON_SECRET` — kunlik hisobot va eslatma cron himoyasi (Vercel'da
+  `CRON_SECRET` ham yaroqli: birinchi kalit bo'lsa u, bo'lmasa ikkinchisi ishlatiladi)
 
 ## 3. Sxemani qo'llash
 
@@ -44,8 +48,16 @@ almashadi), `scripts/neon-apply.mjs` uni Neon'ga tushiradi:
 node scripts/neon-sync.mjs            # toza bazaga: reset + qurish + introspect + tekshiruv
 node scripts/neon-sync.mjs --no-reset # mavjud ma'lumotni saqlab qayta qurish
 node scripts/neon-apply.mjs           # faqat sxema faylini qo'llash
+node scripts/neon-apply.mjs --file=supabase/migrations/<so'nggi_fayl>.sql
+                                      # mavjud bazaga faqat bitta migratsiyani tushirish
 node scripts/neon-drift.mjs           # sxema/migratsiya drift solishtiruvi
 ```
+
+Mavjud (jonli) bazaga yangi migratsiya kerak bo'lsa `--file=` dan foydalaning.
+Butun `neon/0001_neon_schema.sql` ni qayta qo'llash ham ma'lumotni buzmaydi,
+ammo allaqachon bor obyektlar xato deb qaytadi (masalan `CREATE POLICY` da
+`IF NOT EXISTS` yo'q), shuning uchun jernal shovqinli bo'ladi.
+`NEON_DATABASE_URL` `.env.local` da qo'shtirnoq ichida bo'lishi shart.
 
 `node_modules/.bin` orqali `drizzle-kit introspect` `src/db/schema.ts` ni
 yangilaydi — kod uning ustidan ishlaydigan PostgREST moslik qatlamini
@@ -64,20 +76,37 @@ on conflict do nothing;
 
 Shundan keyin `/super-admin` bo'limi shu hisobga ochiladi.
 
-## 5. Telegram webhook
+## 5. Telegram webhook va /buyruqlar
 
+Bitta buyruq bilan — webhook manzili, maxfiy sarlavha so'zi va bot menyusi:
+
+```bash
+node scripts/telegram-setup.mjs          # setWebhook + setMyCommands
+node scripts/telegram-setup.mjs --check  # faqat joriy holatni ko'rsatadi
 ```
-https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/setWebhook?url=https://SIZNING-DOMEN/api/public/telegram/webhook
-```
 
-`PUBLIC_APP_URL` to'g'ri bo'lsa tizim buni o'zi ham sozlaydi.
+`TELEGRAM_BOT_TOKEN` va `PUBLIC_APP_URL` `.env.local` dan (yoki muhit
+o'zgaruvchilaridan) olinadi. Skriptni ishga tushirmasdan turing bo'lmaydi:
+webhook o'rnatilmasa Telegram hech qachon botga xabar yetkazmaydi.
 
-## 6. Kunlik hisobot jadvali (ixtiyoriy)
+Qo'lda (maxfiy sarlavhasiz) qilingan `setWebhook` app'dagi tekshiruvni yiqitadi —
+webhook so'rovlar `x-telegram-bot-api-secret-token` bilan kelishini kutadi.
 
-Vercel Cron yoki tashqi scheduler har 15 daqiqada
-`POST /api/public/telegram/daily-report` chaqiradi va `x-cron-secret`
-sarlavhasiga `LOVABLE_CRON_SECRET` qiymatini qo'yadi. (Ilgari Supabase `pg_cron`
-+ `net.http_post` ishlatilardi — Neon'da tashqi scheduler ishonchliroq.)
+## 6. Kunlik hisobot va eslatmalar jadvali
+
+Ikkita manzil ham har 15 daqiqada chaqiriladi; kalit `x-cron-secret` yoki
+`Authorization: Bearer` sarlavhasida keladi, GET va POST ikkalasi ham qabul
+qilinadi (Vercel Cron GET yuboradi):
+
+- `POST|GET /api/public/telegram/daily-report` — har bir ulanuvchiga o'z
+  `report_time` + `timezone` bo'yicha kunlik hisobot
+- `POST|GET /api/public/reminders` — qabul/to'lov eslatmalari
+
+Vercel'da `vercel.json` dagi `crons` bloki buni bajaradi; Cloudflare Workers,
+Lovable yoki VPS'da `.github/workflows/scheduler.yml` ni yoqing (cron trigger'lar
+faqat `/` ga GET yuborgani uchun Cloudflare'ning o'z jadvali mos kelmaydi).
+(Ilgari Supabase `pg_cron` + `net.http_post` ishlatilardi — Neon'da tashqi
+scheduler ishonchliroq.)
 
 ---
 
@@ -86,7 +115,10 @@ sarlavhasiga `LOVABLE_CRON_SECRET` qiymatini qo'yadi. (Ilgari Supabase `pg_cron`
 - [ ] Sayt o'z domeningizda ochiladi, ro'yxatdan o'tish va kirish ishlaydi
 - [ ] Yangi hisob uchun onboarding (soha tanlash) ishlaydi
 - [ ] `/super-admin` faqat platform_admins ro'yxatidagi hisobga ochiladi
-- [ ] Telegram bot /start ga javob beradi va hisobot yuboradi
+- [ ] `node scripts/telegram-setup.mjs` ishga tushirilgan va bot `/start` ga javob beradi
+- [ ] Botda email+parol bilan kirish ishlaydi (`telegram_bot_state` migratsiyasi tushirilgan)
+- [ ] Botdan 📊 hisobot, 🗓 bugungi qabullar va ➕ yangi qabul olinadi
+- [ ] Saytdagi `/b/...` sahifasidan qabul ochilganda 🆕 bildirishnoma keladi
 
 ## Lovable'ga bog'liqlik qoldimi?
 
@@ -115,7 +147,8 @@ bo'sh branchga `psql "$NEON_DATABASE_URL" -f backups/full-YYYY-MM-DD.sql`.
 - Server (SSR) tomonidagi qayta tiklangan og'ir xatolar avtomatik `error_events` jadvaliga yoziladi: bitta xato (fingerprint = holat kodi + yo'l + birinchi qator) 10 daqiqada ko'pi bilan bir marta. `/super-admin/errors` sahifasi shu jurnalni ko'rsatadi va eskilarini tozalaydi.
 - Migratsiya hali tushirilmagan bo'lsa yoki ruxsat yetishmasa, yig'uvchi o'zini o'chiq holatga o'tkazadi. Majburan o'chirish: `ERROR_EVENTS_DISABLED=true`.
 - Xatolar server konsolida `[telegram-webhook]`, `[instagram-webhook]` kabi belgilar bilan ham chiqadi.
-- Kunlik hisobot cron'iga `LOVABLE_CRON_SECRET` bilan `POST /api/public/telegram/daily-report` sozlangan (6-bo'lim).
+- Kunlik hisobot va eslatmalar jadvali ishlayapti (6-bo'lim: ikkala manzil ham
+  `LOVABLE_CRON_SECRET` bilan har 15 daqiqada chaqiriladi).
 
 `error_events` jadvali faqat `app_service` roli uchun (RLS yoqilgan, `app_anon`
 va `app_user`'dan `REVOKE`). Shu sababli uni Super Admin o'zi ham SQL orqali

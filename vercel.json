@@ -8,5 +8,15 @@
     "env": {
       "NITRO_PRESET": "vercel"
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/public/telegram/daily-report",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/public/reminders",
+      "schedule": "*/15 * * * *"
+    }
+  ]
 }

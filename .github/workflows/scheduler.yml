@@ -1,0 +1,40 @@
+# Vercel'dan tashqaridagi hosting (Cloudflare Workers, Lovable, VPS) uchun soat.
+# Cloudflare cron trigger'i faqat `/` ga GET yuboradi, shuning uchun ishni shu
+# workflow bajaradi. Sozlash:
+#   Settings → Secrets and variables → Actions
+#     Secret:    CRON_SECRET        = LOVABLE_CRON_SECRET bilan bir xil qiymat
+#     Variable:  APP_URL            = https://ketaone.uz
+# Agar repo 60 kun faolsiz qolsa GitHub schedule'ni to'xtatadi — bu yerda qayta yoqing.
+name: Scheduler (kunlik hisobot + eslatmalar)
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+concurrency:
+  group: scheduler
+  cancel-in-progress: false
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    env:
+      APP_URL: ${{ vars.APP_URL }}
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
+    steps:
+      - name: Kunlik hisobotlar
+        run: |
+          test -n "$APP_URL" || { echo "APP_URL variabli sozlanmagan"; exit 1; }
+          test -n "$CRON_SECRET" || { echo "CRON_SECRET sirli sozlanmagan"; exit 1; }
+          curl --fail-with-body --silent --show-error --max-time 60 \
+            -H "x-cron-secret: $CRON_SECRET" \
+            "$APP_URL/api/public/telegram/daily-report"
+
+      - name: Qabul eslatmalari
+        run: |
+          curl --fail-with-body --silent --show-error --max-time 60 \
+            -H "x-cron-secret: $CRON_SECRET" \
+            "$APP_URL/api/public/reminders"

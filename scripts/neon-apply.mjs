@@ -1,18 +1,22 @@
 // neon/0001_neon_schema.sql ni Neon'ga qo'llaydi.
-// node scripts/neon-apply.mjs [--reset] [--one]
-//   --reset : avval public sxemasini tozalaydi
-//   --one   : hammasini bitta tranzaktsiyada (atomic); aks holda har bir operator alohida va xatolarni yig'adi
+// node scripts/neon-apply.mjs [--reset] [--one] [--file=<yo'l>].
+//   --reset  : avval public sxemasini tozalaydi
+//   --one    : hammasini bitta tranzaktsiyada (atomic); aks holda har bir operator alohida va xatolarni yig'adi
+//   --file=  : butun sxema o'rniga bitta faylni qo'llaydi (masalan so'nggi migratsiya)
 import fs from "node:fs";
 import postgres from "postgres";
 import { splitStatements } from "./sql-split.mjs";
 
-const url = fs.readFileSync(".env.local", "utf8").match(/NEON_DATABASE_URL="([^"]+)"/)?.[1];
-if (!url) throw new Error("NEON_DATABASE_URL .env.local'da yo'q");
+const raw = fs.readFileSync(".env.local", "utf8").match(/NEON_DATABASE_URL="([^"]*)"/);
+const url = raw?.[1]?.trim();
+if (!raw) throw new Error("NEON_DATABASE_URL .env.local'da yo'q (qo'shtirnoq ichida yozing)");
+if (!url) throw new Error("NEON_DATABASE_URL .env.local'da bo'sh — Neon pooler manzilini kiriting");
 
 const argv = process.argv.slice(2);
 const reset = argv.includes("--reset");
 const atomic = argv.includes("--one");
-const FILE = "neon/0001_neon_schema.sql";
+const fileArg = argv.find((arg) => arg.startsWith("--file="));
+const FILE = fileArg ? fileArg.slice("--file=".length) : "neon/0001_neon_schema.sql";
 
 
 // Migratsiya fayllarining o'z BEGIN/COMMIT'lari tashlanadi: butun sxema bitta
