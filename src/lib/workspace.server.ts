@@ -169,7 +169,6 @@ export async function buildTodoActions(supabase: Client, hidden = new Set<string
       count: newLeads.count ?? 0,
       label: "yangi murojaatga javob berilmagan",
       to: "/dashboard/leads",
-      search: { status: "new" },
       tone: "warning",
     },
     {
