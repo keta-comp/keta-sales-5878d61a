@@ -29,8 +29,7 @@ Production va Preview uchun quyidagilarni qo'shing:
 | `GEMINI_API_KEY` | ixtiyoriy zaxira |
 | `TELEGRAM_BOT_TOKEN` | BotFather tokeni |
 | `PUBLIC_APP_URL` | saytning haqiqiy manzili, masalan `https://ketaone.uz` |
-| `LOVABLE_CRON_SECRET` | kunlik hisobot cron chaqiruvi uchun maxfiy so'z |
-| `BOT_TOKEN_ENCRYPTION_KEY` | ixtiyoriy, 64 belgi |
+| `LOVABLE_CRON_SECRET` | kunlik hisobot va eslatma cron chaqiruvi uchun maxfiy so'z (Vercel'da `CRON_SECRET` ham yaroqli) |
 | `INSTAGRAM_PAGE_ACCESS_TOKEN`, `META_APP_SECRET` | Instagram uchun, ixtiyoriy |
 
 Autentifikatsiya va baza to'liq server tomonda — `VITE_` bilan boshlanadigan
