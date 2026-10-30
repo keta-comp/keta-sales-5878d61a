@@ -13,10 +13,14 @@ export type CrmFieldType =
   | "number"
   | "money"
   | "date"
+  | "time"
   | "select"
   | "textarea"
   | "relation"
   | "file";
+
+/** Core tables a dynamic CRM module can be backed by (see CrmModule.table). */
+export type CrmBackedTable = "payments" | "appointments";
 
 /** Relation target: "customers" (core customers table) or a dynamic module key. */
 export interface CrmField {
@@ -37,7 +41,6 @@ export function relationIdKey(fieldKey: string): string {
 export type CrmModuleLink =
   | "/dashboard/leads"
   | "/dashboard/customers"
-  | "/dashboard/conversations"
   | "/dashboard/orders"
   | "/dashboard/inventory"
   | "/dashboard/products";
@@ -50,7 +53,18 @@ export interface CrmModule {
   link?: CrmModuleLink;
   /** Marks modules whose records live on the pipeline board. */
   pipeline?: boolean;
+  /**
+   * When set, the module's rows are stored in this core table instead of crm_records, so
+   * the legacy page (To‘lovlar / Qabul va bron), the dashboard KPIs and the public booking
+   * page all read and write the very same record.
+   */
+  table?: CrmBackedTable;
   fields?: CrmField[];
+  /**
+   * Field whose value names the record. Needed when the first field is a
+   * back-reference (e.g. a car's owner) and the record's own identity comes later.
+   */
+  titleField?: string;
 }
 
 export interface CrmWidget {
@@ -103,8 +117,11 @@ function textField(key: string, label: string, required = true): CrmField {
 function phoneField(): CrmField {
   return { key: "telefon", label: "Telefon", type: "phone" };
 }
-function dateField(key: string, label: string): CrmField {
-  return { key, label, type: "date" };
+function dateField(key: string, label: string, required = false): CrmField {
+  return { key, label, type: "date", required };
+}
+function timeField(key: string, label: string, required = false): CrmField {
+  return { key, label, type: "time", required };
 }
 function selectField(key: string, label: string, options: string[], required = false): CrmField {
   return { key, label, type: "select", options, required };
@@ -120,11 +137,13 @@ function paymentModule(label = "To‘lovlar"): CrmModule {
   return {
     key: "tolovlar",
     label,
+    table: "payments",
     fields: [
       textField("kim", "Kim uchun"),
       moneyField("summa", "Summa", true),
       dateField("sana", "Sana"),
       selectField("holat", "Holat", ["To‘landi", "To‘lanmagan", "Qisman"]),
+      selectField("tur", "To‘lov turi", ["Naqd", "Karta", "Pul o‘tkazma", "Boshqa"]),
       noteField(),
     ],
   };
@@ -169,7 +188,6 @@ export const GENERIC_PIPELINE = [
 const GENERIC_MODULES: CrmModule[] = [
   { key: "murojaatlar", label: "Murojaatlar", icon: "target", link: "/dashboard/leads", pipeline: true },
   { key: "mijozlar", label: "Mijozlar", icon: "users", link: "/dashboard/customers" },
-  { key: "suhbatlar", label: "Suhbatlar", icon: "messages", link: "/dashboard/conversations" },
   { key: "buyurtmalar", label: "Buyurtmalar", icon: "cart", link: "/dashboard/orders" },
   { key: "mahsulotlar", label: "Mahsulotlar / Xizmatlar", icon: "package", link: "/dashboard/products" },
   paymentModule(),
@@ -191,13 +209,14 @@ const BASE_PRESETS: Record<string, CrmConfigData> = {
         key: "qabul",
         label: "Qabul",
         icon: "calendar",
-        pipeline: true,
+        table: "appointments",
         fields: [
           textField("bemor", "Bemor ismi"),
           phoneField(),
           { key: "xizmat", label: "Xizmat", type: "select", options: ["Konsultatsiya", "Davolash", "Protezlash", "Implantatsiya", "Gigiyena"], required: true },
           textField("shifokor", "Shifokor"),
-          dateField("qabul_sanasi", "Qabul sanasi"),
+          dateField("qabul_sanasi", "Qabul sanasi", true),
+          timeField("vaqt", "Vaqt", true),
           { key: "tashxis", label: "Tashxis", type: "textarea" },
           moneyField("tolov", "To‘lov"),
           noteField(),
@@ -352,7 +371,6 @@ const BASE_PRESETS: Record<string, CrmConfigData> = {
       { key: "mijozlar", label: "Mijozlar", icon: "users", link: "/dashboard/customers" },
       { key: "mahsulotlar", label: "Mahsulotlar", icon: "package", link: "/dashboard/products" },
       { key: "ombor", label: "Ombor", icon: "boxes", link: "/dashboard/inventory" },
-      { key: "suhbatlar", label: "Suhbatlar", icon: "messages", link: "/dashboard/conversations" },
       paymentModule(),
     ],
     pipelineStages: ["Yangi buyurtma", "Tasdiqlandi", "Tayyorlanmoqda", "Yetkazilmoqda", "Yetkazildi", "Yakunlandi"],
@@ -427,11 +445,14 @@ const BASE_PRESETS: Record<string, CrmConfigData> = {
         key: "korishlar",
         label: "Ko‘rishlar",
         icon: "eye",
+        table: "appointments",
         fields: [
           textField("mijoz", "Mijoz"),
           textField("obyekt", "Ob'ekt"),
-          dateField("sana", "Sana"),
+          dateField("sana", "Sana", true),
+          timeField("vaqt", "Vaqt", true),
           selectField("holat", "Holat", ["Rejalashtirildi", "Bo‘lib o‘tdi", "Bekor qilindi"], true),
+          noteField(),
         ],
       },
       {
@@ -464,13 +485,15 @@ const BASE_PRESETS: Record<string, CrmConfigData> = {
         key: "qabul",
         label: "Qabul",
         icon: "calendar",
-        pipeline: true,
+        table: "appointments",
         fields: [
           textField("mijoz", "Mijoz ismi"),
           phoneField(),
           textField("xizmat", "Xizmat"),
           textField("usta", "Usta"),
-          dateField("sana", "Qabul sanasi"),
+          dateField("sana", "Qabul sanasi", true),
+          timeField("vaqt", "Vaqt", true),
+          { key: "davomiylik", label: "Davomiyligi (daqiqa)", type: "number" },
           moneyField("tolov", "To‘lov"),
           noteField(),
         ],
@@ -589,13 +612,14 @@ const BASE_PRESETS: Record<string, CrmConfigData> = {
         key: "qabul",
         label: "Qabul",
         icon: "calendar",
-        pipeline: true,
+        table: "appointments",
         fields: [
           textField("bemor", "Bemor ismi"),
           phoneField(),
           textField("bolim", "Bo‘lim"),
           textField("shifokor", "Shifokor"),
-          dateField("sana", "Qabul sanasi"),
+          dateField("sana", "Qabul sanasi", true),
+          timeField("vaqt", "Vaqt", true),
           selectField("holat", "Holat", ["Navbatda", "Qabulda", "Yakunlandi", "Kelmadi"], true),
           textField("xona", "Xona / kabinet", false),
           moneyField("tolov", "To‘lov"),
@@ -779,6 +803,29 @@ export const RELATION_MAP: Record<string, Record<string, Record<string, string>>
   xizmat: { tolovlar: { kim: "customers" } },
 };
 
+/**
+ * Records are named after their first field, but when that field is a
+ * back-reference (a car's owner) the list loses the record's own identity.
+ * Maps an industry module to the field that names it.
+ */
+export const TITLE_FIELD_MAP: Record<string, Record<string, string>> = {
+  avtoservis: { avtomobillar: "marka", servis: "avtomobil" },
+};
+
+/**
+ * Modules that store rows in a core table instead of crm_records (adapters live in
+ * lib/crm-backed.ts). Stamped onto saved configs at read time, so tenants that onboarded
+ * before this switch start writing to the real payments/appointments tables immediately.
+ */
+export const BACKED_MODULE_TABLES: Record<string, CrmBackedTable> = {
+  tolovlar: "payments",
+  qabul: "appointments",
+  korishlar: "appointments",
+};
+
+/** Yuqoridagi bo'limdan olib tashlangan modullar — saqlangan konfiguratsiyalardan ham tushib qoladi. */
+export const RETIRED_MODULE_KEYS = ["suhbatlar"];
+
 /** Turns mapped text fields into relation fields; also upgrades saved configs. */
 export function applyRelations(industry: string | null | undefined, config: CrmConfigData): CrmConfigData {
   // Saved configs predate the retire of the sales-agent "operator" wording.
@@ -786,19 +833,32 @@ export function applyRelations(industry: string | null | undefined, config: CrmC
     widget.key === "operator" ? { ...widget, key: "attention", label: "E'tibor kutilmoqda" } : widget,
   );
 
-  const map = RELATION_MAP[industry ?? ""];
-  if (!map) return { ...config, dashboardWidgets };
-  const keys = new Set(config.modules.map((m) => m.key));
+  const industryKey = industry ?? "";
+  const map = RELATION_MAP[industryKey];
+  const titleMap = TITLE_FIELD_MAP[industryKey];
+  const modules = config.modules
+    // "Suhbatlar" bo'limi sahifasi o'chirilgan — saqlangan konfiguratsiyalarda ham qolmasin.
+    .filter((m) => !RETIRED_MODULE_KEYS.includes(m.key) && m.link !== ("/dashboard/conversations" as string))
+    .map((m) => {
+      const table = BACKED_MODULE_TABLES[m.key];
+      if (!table || m.link) return m;
+      // Bosqich crm_records.stage'ni boshqaradi — yadro jadvalida o'z holat ustuni bor.
+      return { ...m, table, pipeline: false };
+    });
+  if (!map && !titleMap) return { ...config, dashboardWidgets, modules };
+  const keys = new Set(modules.map((m) => m.key));
   return {
     ...config,
     dashboardWidgets,
-    modules: config.modules.map((m) => {
-      const fm = map[m.key];
-      if (!fm || !m.fields) return m;
+    modules: modules.map((m) => {
+      const fm = map?.[m.key];
+      const titleField = titleMap?.[m.key];
+      if (!titleField && (!fm || !m.fields)) return m;
       return {
         ...m,
-        fields: m.fields.map((f) => {
-          const target = fm[f.key];
+        ...(titleField ? { titleField } : {}),
+        fields: (m.fields ?? []).map((f) => {
+          const target = fm?.[f.key];
           if (!target || f.type === "relation") return f;
           if (target !== "customers" && !keys.has(target)) return f;
           return { ...f, type: "relation" as const, targetModule: target };

@@ -15,6 +15,13 @@ import {
 } from "./crm-config";
 import { invalidateCrmAgentContext } from "./crm-config.server";
 import {
+  backedTableOf,
+  deleteBackedRecord,
+  listBackedRecords,
+  saveBackedRecord,
+  backedWidgetValue,
+} from "./crm-backed";
+import {
   applyMissingParts,
   attachPresetId,
   crmConfigForPreset,
@@ -46,7 +53,8 @@ async function tenantCrm(supabase: SbClient) {
     .maybeSingle();
   if (error) throw new Error(error.message);
   if (!row) throw new Error("CRM konfiguratsiyasi topilmadi");
-  const config = attachPresetId(row.industry, row.config as unknown as CrmConfigData);
+  // Saqlangan JSON eskirganda ham yadro jadvaliga ulangan modullar shu yerda tiklanadi.
+  const config = attachPresetId(row.industry, applyRelations(row.industry, row.config as unknown as CrmConfigData));
   return { businessId, config };
 }
 
@@ -131,7 +139,18 @@ function normalizeField(raw: unknown): CrmField | null {
   if (!raw || typeof raw !== "object") return null;
   const r = raw as Record<string, unknown>;
   if (typeof r["key"] !== "string" || !r["key"].trim()) return null;
-  const types = ["text", "phone", "number", "money", "date", "select", "textarea", "relation", "file"] as const;
+  const types = [
+    "text",
+    "phone",
+    "number",
+    "money",
+    "date",
+    "time",
+    "select",
+    "textarea",
+    "relation",
+    "file",
+  ] as const;
   const type = types.includes(r["type"] as (typeof types)[number]) ? (r["type"] as CrmField["type"]) : "text";
   return {
     key: r["key"].trim(),
@@ -156,6 +175,8 @@ function normalizeModule(raw: unknown): CrmModule | null {
   if (typeof r["icon"] === "string") module.icon = r["icon"];
   if (typeof r["link"] === "string" && r["link"].startsWith("/dashboard")) module.link = r["link"] as CrmModuleLink;
   if (r["pipeline"] === true) module.pipeline = true;
+  if (r["table"] === "payments" || r["table"] === "appointments") module.table = r["table"];
+  if (typeof r["titleField"] === "string" && r["titleField"].trim()) module.titleField = r["titleField"].trim();
   if (Array.isArray(r["fields"])) {
     const fields = r["fields"].map(normalizeField).filter((f): f is CrmField => f !== null);
     if (fields.length) module.fields = fields;
@@ -296,7 +317,24 @@ export const searchRelatedRecords = createServerFn({ method: "GET" })
       }));
     }
     const crm = await tenantCrm(context.supabase);
-    await requireModuleAccess(context.supabase, businessId, crm.config, data.targetModule);
+    const module = await requireModuleAccess(context.supabase, businessId, crm.config, data.targetModule);
+    const table = backedTableOf(module);
+    if (table) {
+      // Yadro jadvalidagi modul (to'lov/qabul) variantlari shu jadvaldan olinadi.
+      const labelColumn = table === "payments" ? "note" : "service_name";
+      const { data: rows, error } = await context.supabase
+        .from(table)
+        .select(`id, ${labelColumn}, customers:customer_id(full_name)`)
+        .eq("business_id", businessId)
+        .order("created_at", { ascending: false })
+        .limit(20);
+      if (error) throw new Error(error.message);
+      return (rows ?? []).map((r: any) => ({
+        id: r.id,
+        label: r.customers?.full_name || r[labelColumn] || "—",
+        hint: null as string | null,
+      }));
+    }
     let q = context.supabase
       .from("crm_records")
       .select("id, title")
@@ -357,6 +395,24 @@ export const listCustomerLinkedRecords = createServerFn({ method: "GET" })
     if (filters.length === 0) return [];
     const results = await Promise.all(
       filters.map(async (f) => {
+        const linkedModule = cfg.modules.find((m) => m.key === f.moduleKey);
+        const table = backedTableOf(linkedModule);
+        if (linkedModule && table) {
+          // To'lov/qabul yozuvlari yadro jadvalida — bog'lash customer_id ustuni bo'yicha.
+          const backed = await listBackedRecords(context.supabase, businessId, linkedModule);
+          return backed
+            .filter((r) => String(r.data?.[f.idKey] ?? "") === data.customerId)
+            .slice(0, 50)
+            .map((r) => ({
+              id: r.id,
+              title: r.title,
+              stage: r.stage,
+              created_at: r.created_at,
+              moduleKey: f.moduleKey,
+              moduleLabel: f.moduleLabel,
+              data: linkedValues(r.data),
+            }));
+        }
         const { data: rows } = await context.supabase
           .from("crm_records")
           .select("id, title, stage, created_at, data")
@@ -423,7 +479,7 @@ export const generateCrmConfig = createServerFn({ method: "POST" })
         "",
         "Quyidagi boshlang'ich konfiguratsiyani ushbu biznesga moslab, FAQAT JSON qaytaring.",
         "Qoidalar:",
-        "- modules: har bir obyektda key (lotin-harflar, chiziqcha), label (o'zbekcha), ixtiyoriy icon, link (faqat mavjud sahifalar uchun: /dashboard/leads, /dashboard/customers, /dashboard/conversations, /dashboard/orders, /dashboard/inventory, /dashboard/products), pipeline (true — pipeline bosqichlari qo'llaniladigan modul), fields (universal modullar uchun maydonlar: key, label, type: text|phone|number|money|date|select|textarea, ixtiyoriy required, select uchun options).",
+        "- modules: har bir obyektda key (lotin-harflar, chiziqcha), label (o'zbekcha), ixtiyoriy icon, link (faqat mavjud sahifalar uchun: /dashboard/leads, /dashboard/customers, /dashboard/orders, /dashboard/inventory, /dashboard/products), pipeline (true — pipeline bosqichlari qo'llaniladigan modul), fields (universal modullar uchun maydonlar: key, label, type: text|phone|number|money|date|time|select|textarea, ixtiyoriy required, select uchun options).",
         "- pipelineStages: savdo/qiziqish oqimi bosqichlari nomlari o'zbekcha.",
         "- terminology: customer/lead/order uchun ushbu biznesdagi atamalar.",
         "- dashboardWidgets: widgetlar (key, label, kind: module_count|module_count_today|field_sum|legacy_today_revenue|legacy_today_orders|legacy_today_leads|legacy_hot_leads|legacy_handoffs, universal widgetlar uchun moduleKey, field_sum uchun fieldKey, ixtiyoriy where: {field, value}).",
@@ -698,7 +754,16 @@ export const listCrmRecords = createServerFn({ method: "GET" })
   )
   .handler(async ({ data, context }) => {
     const { businessId, config } = await tenantCrm(context.supabase);
-    await requireModuleAccess(context.supabase, businessId, config, data.moduleKey);
+    const module = await requireModuleAccess(context.supabase, businessId, config, data.moduleKey);
+    auditMedicalAccess(config, businessId, data.moduleKey, "medical.records_listed");
+    const table = backedTableOf(module);
+    if (table) {
+      // To'lov/qabul modullari yadro jadvalida yashaydi: ular Ish ekrani, Moliya va
+      // kalendar bilan bir xil qatorlarni ko'rsin.
+      const rows = await listBackedRecords(context.supabase, businessId, module);
+      const term = (data.search ?? "").toLowerCase();
+      return term ? rows.filter((row) => row.title.toLowerCase().includes(term)) : rows;
+    }
     let query = context.supabase
       .from("crm_records")
       .select("*")
@@ -709,7 +774,6 @@ export const listCrmRecords = createServerFn({ method: "GET" })
     if (data.search) query = query.ilike("title", `%${data.search}%`);
     const { data: rows, error } = await query;
     if (error) throw new Error(error.message);
-    auditMedicalAccess(config, businessId, data.moduleKey, "medical.records_listed");
     return rows;
   });
 
@@ -726,7 +790,19 @@ export const saveCrmRecord = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => recordInput.parse(input))
   .handler(async ({ data, context }) => {
     const { businessId, config } = await tenantCrm(context.supabase);
-    await requireModuleAccess(context.supabase, businessId, config, data.moduleKey, true);
+    const module = await requireModuleAccess(context.supabase, businessId, config, data.moduleKey, true);
+    const table = backedTableOf(module);
+    if (table) {
+      const saved = await saveBackedRecord(context.supabase, {
+        businessId,
+        userId: context.userId,
+        module,
+        id: data.id,
+        data: data.data,
+      });
+      auditMedicalAccess(config, businessId, data.moduleKey, "medical.record_saved", { recordId: saved.id });
+      return saved;
+    }
     const payload = {
       business_id: businessId,
       module_key: data.moduleKey,
@@ -759,9 +835,24 @@ export const saveCrmRecord = createServerFn({ method: "POST" })
 
 export const deleteCrmRecord = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => z.object({ id: z.string() }).parse(input))
+  .inputValidator((input: unknown) =>
+    z.object({ id: z.string(), moduleKey: z.string().optional() }).parse(input),
+  )
   .handler(async ({ data, context }) => {
     const { businessId, config } = await tenantCrm(context.supabase);
+
+    // Modul nomlanganda yozuv qayerda yashaganini o'sha joydan bilib olamiz.
+    const module = data.moduleKey
+      ? await requireModuleAccess(context.supabase, businessId, config, data.moduleKey, true)
+      : null;
+    const table = backedTableOf(module ?? undefined);
+    if (module && table) {
+      const removed = await deleteBackedRecord(context.supabase, businessId, table, data.id);
+      if (!removed) throw new Error("Yozuv topilmadi yoki bu biznesga tegishli emas.");
+      auditMedicalAccess(config, businessId, module.key, "medical.record_deleted", { recordId: data.id });
+      return { ok: true };
+    }
+
     // The caller only names an id, so the owning module must be read back before deleting.
     const { data: target, error: findError } = await context.supabase
       .from("crm_records")
@@ -784,18 +875,30 @@ export const deleteCrmRecord = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/**
+ * Bog'langan modullarning yozuvlari `crm_records`da emas, yadro jadvalida yashaydi.
+ * Vidget sanovi shu jadvaldan olinadi, aks holda "Bemorlar / Faol o'quvchilar"
+ * hech qachon 0 dan chiqmaydi.
+ */
+const LINKED_COUNT_TABLE: Partial<Record<CrmModuleLink, string>> = {
+  "/dashboard/customers": "customers",
+  "/dashboard/orders": "orders",
+  "/dashboard/leads": "leads",
+  "/dashboard/products": "products",
+};
+
 export const getWidgetStats = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const businessId = await requireBusinessId(context.supabase);
     const { data: row } = await context.supabase
       .from("crm_configs")
-      .select("config")
+      .select("industry, config")
       .eq("business_id", businessId)
       .maybeSingle();
     if (!row) return { widgets: {} as Record<string, number> };
 
-    const cfg = row.config as unknown as CrmConfigData;
+    const cfg = applyRelations(row.industry, row.config as unknown as CrmConfigData);
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
     const stats: Record<string, number> = {};
@@ -810,6 +913,28 @@ export const getWidgetStats = createServerFn({ method: "GET" })
             widget.kind === "field_sum"
           ) {
             if (!widget.moduleKey) return;
+            const linkedModule = cfg.modules.find((m) => m.key === widget.moduleKey);
+            if (linkedModule) {
+              const table = backedTableOf(linkedModule);
+              if (table) {
+                stats[widget.key] = await backedWidgetValue(sb, businessId, linkedModule, widget.kind, {
+                  where: widget.where,
+                  todayStart: todayStart.toISOString(),
+                });
+                return;
+              }
+            }
+            const linkedTable = linkedModule?.link ? LINKED_COUNT_TABLE[linkedModule.link] : undefined;
+            if (linkedTable && widget.kind !== "field_sum") {
+              let linkedQuery = sb.from(linkedTable).select("id").eq("business_id", businessId);
+              if (widget.kind === "module_count_today") {
+                linkedQuery = linkedQuery.gte("created_at", todayStart.toISOString());
+              }
+              const { data: linkedRows, error: linkedError } = await linkedQuery;
+              if (linkedError) return;
+              stats[widget.key] = linkedRows?.length ?? 0;
+              return;
+            }
             let query = sb.from("crm_records").select(widget.kind === "field_sum" ? "data" : "id");
             if (widget.kind === "field_sum") query = query.limit(1000);
             query = query.eq("business_id", businessId).eq("module_key", widget.moduleKey);
@@ -829,18 +954,22 @@ export const getWidgetStats = createServerFn({ method: "GET" })
             return;
           }
           if (widget.kind === "legacy_today_revenue") {
+            // Tushum — `payments` jadvalidan (KPI kartasi bilan bitta manba).
+            // `orders` faqat savdo moduli bor sohalarda to'ldiriladi.
             const { data: rows } = await sb
-              .from("orders")
-              .select("total")
-              .gte("created_at", todayStart.toISOString())
-              .neq("status", "cancelled");
-            stats[widget.key] = (rows ?? []).reduce((acc, o) => acc + Number(o.total), 0);
+              .from("payments")
+              .select("amount")
+              .eq("business_id", businessId)
+              .in("status", ["paid", "partial"])
+              .gte("paid_at", todayStart.toISOString());
+            stats[widget.key] = (rows ?? []).reduce((acc, r) => acc + Number(r.amount), 0);
             return;
           }
           if (widget.kind === "legacy_today_orders") {
             const { count } = await sb
               .from("orders")
               .select("id", { count: "exact", head: true })
+              .eq("business_id", businessId)
               .gte("created_at", todayStart.toISOString());
             stats[widget.key] = count ?? 0;
             return;
@@ -849,6 +978,7 @@ export const getWidgetStats = createServerFn({ method: "GET" })
             const { count } = await sb
               .from("leads")
               .select("id", { count: "exact", head: true })
+              .eq("business_id", businessId)
               .gte("created_at", todayStart.toISOString());
             stats[widget.key] = count ?? 0;
             return;
@@ -857,6 +987,7 @@ export const getWidgetStats = createServerFn({ method: "GET" })
             const { count } = await sb
               .from("leads")
               .select("id", { count: "exact", head: true })
+              .eq("business_id", businessId)
               .eq("score", "hot");
             stats[widget.key] = count ?? 0;
             return;
@@ -865,6 +996,7 @@ export const getWidgetStats = createServerFn({ method: "GET" })
             const { count } = await sb
               .from("leads")
               .select("id", { count: "exact", head: true })
+              .eq("business_id", businessId)
               .eq("status", "needs_attention");
             stats[widget.key] = count ?? 0;
           }

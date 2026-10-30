@@ -28,7 +28,6 @@ import {
   getSettings,
   issueLogoUploadUrl,
   removeBrandingLogo,
-  saveAiSettings,
   saveBranding,
   saveBusinessSettings,
 } from "@/lib/settings.functions";
@@ -51,7 +50,6 @@ function SettingsPage() {
   const queryClient = useQueryClient();
   const fetchSettings = useServerFn(getSettings);
   const saveBusiness = useServerFn(saveBusinessSettings);
-  const saveAi = useServerFn(saveAiSettings);
 
   const settings = useQuery({ queryKey: ["settings"], queryFn: () => fetchSettings() });
 
@@ -65,25 +63,14 @@ function SettingsPage() {
     onError: (error: unknown) => toast.error(error instanceof Error ? error.message : t("Saqlash amalga oshmadi")),
   });
 
-  const aiMutation = useMutation({
-    mutationFn: (input: Parameters<typeof saveAi>[0] extends { data: infer D } ? D : never) =>
-      saveAi({ data: input }),
-    onSuccess: () => {
-      toast.success(t("AI sozlamalari saqlandi"));
-      void queryClient.invalidateQueries({ queryKey: ["settings"] });
-    },
-    onError: (error: unknown) => toast.error(error instanceof Error ? error.message : t("Saqlash amalga oshmadi")),
-  });
-
   if (settings.isPending) return <LoadingState />;
   if (settings.error) return <ErrorState error={settings.error} onRetry={() => void settings.refetch()} />;
 
   const business = settings.data.business;
-  const ai = settings.data.ai;
 
   return (
     <>
-      <PageHeader title={t("Sozlamalar")} description={t("Biznes bilimlari va AI savdo agentining xatti-harakati.")} />
+      <PageHeader title={t("Sozlamalar")} description={t("Biznes bilimlari, brend va bron havolasi sozlamalari.")} />
 
       <PresetCard isAdmin={settings.data.isAdmin} />
 
@@ -95,16 +82,6 @@ function SettingsPage() {
           initial={business}
           onSave={(values) => businessMutation.mutate(values as never)}
           saving={businessMutation.isPending}
-        />
-      ) : null}
-
-      {ai ? (
-        <AiForm
-          key={ai.id}
-          initial={ai}
-          aiKeyConfigured={settings.data.aiKeyConfigured}
-          onSave={(values) => aiMutation.mutate(values as never)}
-          saving={aiMutation.isPending}
         />
       ) : null}
 
@@ -655,121 +632,6 @@ function BusinessForm({
       </div>
       <Button type="submit" disabled={saving}>
         {t("Biznes sozlamalarini saqlash")}
-      </Button>
-    </form>
-  );
-}
-
-type AiRow = {
-  id: string;
-  model: string;
-  tone_of_voice: string;
-  sales_strategy: string;
-  language_instruction: string;
-  escalation_rules: string;
-  custom_instructions: string;
-  max_discount_percent: number;
-  enabled: boolean;
-};
-
-function AiForm({
-  initial,
-  aiKeyConfigured,
-  onSave,
-  saving,
-}: {
-  initial: AiRow;
-  aiKeyConfigured: boolean;
-  onSave: (values: AiRow) => void;
-  saving: boolean;
-}) {
-  const [form, setForm] = useState<AiRow>(initial);
-
-  return (
-    <form
-      className="clay-panel space-y-3 p-4"
-      onSubmit={(event) => {
-        event.preventDefault();
-        onSave(form);
-      }}
-    >
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="font-display text-base font-semibold">{t("AI savdo agenti")}</h2>
-          <p className="text-sm text-muted-foreground">
-            {aiKeyConfigured ? t("Lovable AI ulangan.") : t("AI kaliti yo'q — javoblar ishlamaydi.")}
-          </p>
-        </div>
-        <label className="flex items-center gap-2 text-sm">
-          {t("Agent yoqilgan")}
-          <Switch checked={form.enabled} onCheckedChange={(checked) => setForm({ ...form, enabled: checked })} />
-        </label>
-      </div>
-
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div>
-          <Label htmlFor="a-model">{t("Model")}</Label>
-          <Input id="a-model" value={form.model} onChange={(event) => setForm({ ...form, model: event.target.value })} />
-        </div>
-        <div>
-          <Label htmlFor="a-discount">{t("Maksimal chegirma %")}</Label>
-          <Input
-            id="a-discount"
-            type="number"
-            min={0}
-            max={100}
-            value={form.max_discount_percent}
-            onChange={(event) => setForm({ ...form, max_discount_percent: Number(event.target.value) })}
-          />
-        </div>
-        <div>
-          <Label htmlFor="a-tone">{t("Muloqot ohangi")}</Label>
-          <Textarea
-            id="a-tone"
-            rows={2}
-            value={form.tone_of_voice}
-            onChange={(event) => setForm({ ...form, tone_of_voice: event.target.value })}
-          />
-        </div>
-        <div>
-          <Label htmlFor="a-language">{t("Til qoidalari")}</Label>
-          <Textarea
-            id="a-language"
-            rows={2}
-            value={form.language_instruction}
-            onChange={(event) => setForm({ ...form, language_instruction: event.target.value })}
-          />
-        </div>
-        <div>
-          <Label htmlFor="a-strategy">{t("Savdo strategiyasi")}</Label>
-          <Textarea
-            id="a-strategy"
-            rows={3}
-            value={form.sales_strategy}
-            onChange={(event) => setForm({ ...form, sales_strategy: event.target.value })}
-          />
-        </div>
-        <div>
-          <Label htmlFor="a-escalation">{t("Eskalatsiya qoidalari")}</Label>
-          <Textarea
-            id="a-escalation"
-            rows={3}
-            value={form.escalation_rules}
-            onChange={(event) => setForm({ ...form, escalation_rules: event.target.value })}
-          />
-        </div>
-        <div className="sm:col-span-2">
-          <Label htmlFor="a-custom">{t("Qo'shimcha ko'rsatmalar")}</Label>
-          <Textarea
-            id="a-custom"
-            rows={4}
-            value={form.custom_instructions}
-            onChange={(event) => setForm({ ...form, custom_instructions: event.target.value })}
-          />
-        </div>
-      </div>
-      <Button type="submit" disabled={saving}>
-        {t("AI sozlamalarini saqlash")}
       </Button>
     </form>
   );

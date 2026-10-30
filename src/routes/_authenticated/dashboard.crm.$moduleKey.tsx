@@ -32,7 +32,7 @@ import {
   removeCrmAttachments,
 } from "@/lib/crm-config.functions";
 import { LIVE_REFETCH_MS } from "@/lib/polling";
-import { relationIdKey, type CrmField } from "@/lib/crm-config";
+import { relationIdKey, type CrmField, type CrmModule } from "@/lib/crm-config";
 import { AttachmentCell, AttachmentField } from "@/components/app/CrmAttachment";
 import { RelationCombobox } from "@/components/app/RelationCombobox";
 import { Link } from "@tanstack/react-router";
@@ -50,6 +50,15 @@ type RecordRow = {
   data: Record<string, unknown>;
   created_at: string;
 };
+
+/**
+ * Nomlanuvchi maydon bo'sh qolganda (masalan, tezan-qo'shilgan yozuv) oldingi
+ * nomni saqlab qolamiz — aks holda saqlash yozuvni "Nomsiz"ga aylantiradi.
+ */
+function recordTitle(module: CrmModule, form: Record<string, string>, previous?: string): string {
+  const key = module.titleField ?? module.fields?.[0]?.key ?? "";
+  return String(form[key] ?? "").trim() || String(previous ?? "").trim() || "Nomsiz";
+}
 
 function CrmModulePage() {
   const { moduleKey } = Route.useParams();
@@ -121,7 +130,7 @@ function CrmModulePage() {
         data[f.key] = form[f.key] ?? "";
         if (f.type === "relation") data[relationIdKey(f.key)] = form[relationIdKey(f.key)] || null;
       }
-      const title = String(form[module.fields?.[0]?.key ?? ""] ?? "").trim() || "Nomsiz";
+      const title = recordTitle(module, form, editing?.title);
       await saveRecord({
         data: { id: editing?.id, moduleKey: module.key, title, stage: stage || null, data },
       });
@@ -145,7 +154,7 @@ function CrmModulePage() {
     setSaving(true);
     try {
       const files = recordAttachments(module?.fields ?? [], editing.data);
-      await removeRecord({ data: { id: editing.id } });
+      await removeRecord({ data: { id: editing.id, moduleKey } });
       if (files.length) {
         await removeCrmAttachments({ data: { moduleKey, paths: files } }).catch(() => undefined);
       }
@@ -240,7 +249,7 @@ function CrmModulePage() {
                         className="ml-auto size-4 text-muted-foreground hover:text-destructive"
                         onClick={(e) => {
                           e.stopPropagation();
-                          void removeRecord({ data: { id: row.id } }).then(() => void records.refetch());
+                          void removeRecord({ data: { id: row.id, moduleKey } }).then(() => void records.refetch());
                         }}
                       />
                     </td>
@@ -417,9 +426,11 @@ function FieldInput({
       ? "number"
       : field.type === "date"
         ? "date"
-        : field.type === "phone"
-          ? "tel"
-          : "text";
+        : field.type === "time"
+          ? "time"
+          : field.type === "phone"
+            ? "tel"
+            : "text";
   return (
     <div className="flex flex-col gap-2">
       {label}

@@ -8,6 +8,7 @@ import {
   ClipboardList,
   ShoppingCart,
   Target,
+  TrendingDown,
   TrendingUp,
   UserRoundPlus,
   Wallet,
@@ -106,6 +107,14 @@ function Overview() {
             value={formatMoney(data.revenueToday, currency)}
             hint={`Bu oy: ${formatMoney(data.revenueMonth, currency)}`}
             icon={<TrendingUp className="size-4" />}
+          />
+        </Link>
+        <Link to="/dashboard/finance" className="block">
+          <StatCard
+            label={t("Bugungi xarajat")}
+            value={formatMoney(data.expenseToday, currency)}
+            hint={`Bu oy: ${formatMoney(data.expenseMonth, currency)}`}
+            icon={<TrendingDown className="size-4" />}
           />
         </Link>
         <Link to="/dashboard/customers" className="block">

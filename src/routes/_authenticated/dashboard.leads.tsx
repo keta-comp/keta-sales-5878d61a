@@ -305,15 +305,6 @@ function LeadsPage() {
                 {lead.handoff_reason ? (
                   <p className="mt-2 text-xs text-warning">{t("Uzatish sababi:")}{" "}{lead.handoff_reason}</p>
                 ) : null}
-                {(lead.conversations as { id: string } | null)?.id ? (
-                  <Link
-                    to="/dashboard/conversations"
-                    search={{ id: (lead.conversations as { id: string }).id }}
-                    className="mt-2 inline-block text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-                  >
-                    {t("Suhbatni ochish")}
-                  </Link>
-                ) : null}
               </div>
 
               <LeadFacts

@@ -3353,6 +3353,17 @@ CREATE POLICY "billing_invoices owner insert" ON public.billing_invoices
 CREATE TRIGGER billing_invoices_updated_at BEFORE UPDATE ON public.billing_invoices
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+-- 20261029093000_7d1c4e9b-2a63-4f18-9c0d-5b8e2a47c631.sql
+-- CRM modullari endi yadro jadvallariga yoziladi (tolovlar → payments,
+-- qabul/ko‘rishlar → appointments). Formadagi xaritaga tushmagan maydonlar
+-- shu `data` ustunida saqlanadi, shunda yozuv ikki tarafda ham bir xil qoladi.
+ALTER TABLE public.payments
+  ADD COLUMN IF NOT EXISTS data JSONB NOT NULL DEFAULT '{}'::jsonb;
+
+-- 20261029093000_7d1c4e9b-2a63-4f18-9c0d-5b8e2a47c631.sql
+ALTER TABLE public.appointments
+  ADD COLUMN IF NOT EXISTS data JSONB NOT NULL DEFAULT '{}'::jsonb;
+
 -- ============ epilogue ============
 -- Migratsiyalar yaratgan barcha ketma-ketliklarga huquq (default privileges
 -- faqat keyingi obyektlarga ta'sir qiladi). Jadval huquqlari har migratsiyada

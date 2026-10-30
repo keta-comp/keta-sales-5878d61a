@@ -71,7 +71,6 @@ function CustomerProfile() {
     payments,
     tasks,
     activities,
-    conversations,
     canErase,
     canConsent,
   } = query.data;
@@ -255,28 +254,6 @@ function CustomerProfile() {
             }
           />
           <Field label="Telegram" value={customer.telegram_username ? `@${customer.telegram_username}` : "—"} />
-          <div>
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">{t("Suhbatlar")}</p>
-            <div className="mt-2 space-y-2">
-              {conversations.length === 0 ? (
-                <p className="text-sm text-muted-foreground">{t("Suhbat yo‘q.")}</p>
-              ) : (
-                conversations.map((conversation) => (
-                  <Link
-                    key={conversation.id}
-                    to="/dashboard/conversations"
-                    search={{ id: conversation.id }}
-                    className="clay-inset clay-hover block rounded-2xl px-3 py-2 text-sm"
-                  >
-                    <span className="font-medium">{crmLabel(conversation.channel)}</span>
-                    <span className="ml-2 text-muted-foreground">
-                      {conversation.last_message_preview ?? "—"}
-                    </span>
-                  </Link>
-                ))
-              )}
-            </div>
-          </div>
           {anamnesis ? (
             <div className="clay-inset rounded-2xl px-4 py-3">
               <p className="text-xs uppercase tracking-wide text-muted-foreground">{t("Bemor kartasi")}</p>

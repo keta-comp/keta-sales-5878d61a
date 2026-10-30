@@ -1,6 +1,7 @@
 import type { DbClient } from "./pg-rest.server";
 
 import { assigneeNameMap } from "./assignee.server";
+import { DEFAULT_BUSINESS_TZ } from "./booking";
 import { requireBusinessId } from "./tenant.server";
 
 type Client = DbClient;
@@ -14,8 +15,14 @@ export function dayStart(offsetDays = 0) {
 
 const num = (v: unknown) => Number(v ?? 0);
 
+/** Biznik zonasi (Toshkent) bo'yicha bugungi sana — `date` ustunlari shu ko'rinishda saqlanadi. */
+function zonedDay(date: Date): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: DEFAULT_BUSINESS_TZ }).format(date);
+}
+
 /** Dashboard KPI strip — every value comes from the live database. */
 export async function buildKpis(supabase: Client) {
+  const businessId = await requireBusinessId(supabase);
   const today = dayStart().toISOString();
   const monthStart = (() => {
     const d = dayStart();
@@ -23,26 +30,74 @@ export async function buildKpis(supabase: Client) {
     return d.toISOString();
   })();
   const soon = dayStart(3).toISOString().slice(0, 10);
+  // Xarajat sanasi oddiy kun — biznes zonasidagi bugungi/oy boshi bilan solinadi.
+  const todayDay = zonedDay(new Date());
+  const monthDay = `${todayDay.slice(0, 7)}-01`;
 
-  const [settings, paidToday, paidMonth, newCustomers, newLeads, activeLeads, newOrders, pendingPayments, openTasks] =
-    await Promise.all([
-      supabase.from("business_settings").select("currency").limit(1).maybeSingle(),
-      supabase.from("payments").select("amount").in("status", ["paid", "partial"]).gte("paid_at", today),
-      supabase.from("payments").select("amount").in("status", ["paid", "partial"]).gte("paid_at", monthStart),
-      supabase.from("customers").select("id", { count: "exact", head: true }).gte("created_at", today),
-      supabase.from("leads").select("id", { count: "exact", head: true }).gte("created_at", today),
-      supabase
-        .from("leads")
-        .select("id", { count: "exact", head: true })
-        .in("status", ["new", "needs_attention", "assigned", "contacted", "negotiating"]),
-      supabase.from("orders").select("id", { count: "exact", head: true }).gte("created_at", today),
-      supabase.from("payments").select("amount, due_date").eq("status", "pending"),
-      supabase
-        .from("tasks")
-        .select("id", { count: "exact", head: true })
-        .neq("status", "completed")
-        .lte("due_date", soon),
-    ]);
+  const [
+    settings,
+    paidToday,
+    paidMonth,
+    spentToday,
+    spentMonth,
+    newCustomers,
+    newLeads,
+    activeLeads,
+    newOrders,
+    pendingPayments,
+    openTasks,
+  ] = await Promise.all([
+    supabase.from("business_settings").select("currency").eq("business_id", businessId).limit(1).maybeSingle(),
+    supabase
+      .from("payments")
+      .select("amount")
+      .eq("business_id", businessId)
+      .in("status", ["paid", "partial"])
+      .gte("paid_at", today),
+    supabase
+      .from("payments")
+      .select("amount")
+      .eq("business_id", businessId)
+      .in("status", ["paid", "partial"])
+      .gte("paid_at", monthStart),
+    supabase
+      .from("expenses")
+      .select("amount")
+      .eq("business_id", businessId)
+      .gte("expense_date", todayDay),
+    supabase
+      .from("expenses")
+      .select("amount")
+      .eq("business_id", businessId)
+      .gte("expense_date", monthDay),
+    supabase
+      .from("customers")
+      .select("id", { count: "exact", head: true })
+      .eq("business_id", businessId)
+      .gte("created_at", today),
+    supabase.from("leads").select("id", { count: "exact", head: true }).eq("business_id", businessId).gte("created_at", today),
+    supabase
+      .from("leads")
+      .select("id", { count: "exact", head: true })
+      .eq("business_id", businessId)
+      .in("status", ["new", "needs_attention", "assigned", "contacted", "negotiating"]),
+    supabase
+      .from("orders")
+      .select("id", { count: "exact", head: true })
+      .eq("business_id", businessId)
+      .gte("created_at", today),
+    supabase
+      .from("payments")
+      .select("amount, due_date")
+      .eq("business_id", businessId)
+      .eq("status", "pending"),
+    supabase
+      .from("tasks")
+      .select("id", { count: "exact", head: true })
+      .eq("business_id", businessId)
+      .neq("status", "completed")
+      .lte("due_date", soon),
+  ]);
 
   const revenueToday = (paidToday.data ?? []).reduce((s, r) => s + num(r.amount), 0);
   const revenueMonth = (paidMonth.data ?? []).reduce((s, r) => s + num(r.amount), 0);
@@ -53,6 +108,8 @@ export async function buildKpis(supabase: Client) {
     currency: settings.data?.currency ?? "UZS",
     revenueToday,
     revenueMonth,
+    expenseToday: (spentToday.data ?? []).reduce((s, r) => s + num(r.amount), 0),
+    expenseMonth: (spentMonth.data ?? []).reduce((s, r) => s + num(r.amount), 0),
     newCustomers: newCustomers.count ?? 0,
     newLeads: newLeads.count ?? 0,
     activeLeads: activeLeads.count ?? 0,

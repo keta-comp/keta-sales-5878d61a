@@ -44,7 +44,6 @@ export type CoreKey =
   | "pipeline"
   | "customers"
   | "leads"
-  | "conversations"
   | "orders"
   | "products"
   | "inventory"
@@ -58,7 +57,7 @@ export type CoreKey =
   | "team";
 
 /** Legacy CRM entry points that stay reachable in every preset (AGENTS.md rule). */
-const LEGACY_CORE_KEYS: CoreKey[] = ["customers", "leads", "conversations", "orders", "products"];
+const LEGACY_CORE_KEYS: CoreKey[] = ["customers", "leads", "orders", "products"];
 
 export interface PresetMenuItem {
   to: string;
@@ -120,7 +119,6 @@ const CORE_ITEMS: Record<CoreKey, PresetMenuItem> = {
   pipeline: { to: "/dashboard/pipeline", label: "Pipeline", icon: "pipeline", section: "core" },
   customers: { to: "/dashboard/customers", label: "Mijozlar", icon: "users", section: "core" },
   leads: { to: "/dashboard/leads", label: "Murojaatlar", icon: "target", section: "core" },
-  conversations: { to: "/dashboard/conversations", label: "Muloqotlar", icon: "messages", section: "core" },
   orders: { to: "/dashboard/orders", label: "Buyurtmalar", icon: "cart", section: "core" },
   products: { to: "/dashboard/products", label: "Xizmatlar va mahsulotlar", icon: "package", section: "core" },
   inventory: { to: "/dashboard/inventory", label: "Ombor", icon: "boxes", section: "core", permission: "catalog.manage" },
@@ -172,7 +170,7 @@ const PRESET_LIST: IndustryPreset[] = [
     name: "Stomatologiya",
     description: "Bemorlar, qabul jadvali, davolash rejalari va shifokorlar ulushi.",
     bookingType: "appointment",
-    extraCoreKeys: ["pipeline", "appointments", "tasks", "payments", "finance", "inventory", "employees", "payroll", "team"],
+    extraCoreKeys: ["appointments", "tasks", "payments", "finance", "inventory", "employees", "payroll", "team"],
     labels: { customers: "Bemorlar", products: "Stomatologik xizmatlar" },
     industryItems: [
       dynamicItem("qabul", "Qabul", "calendar"),
@@ -195,7 +193,7 @@ const PRESET_LIST: IndustryPreset[] = [
     name: "Klinika / Tibbiyot",
     description: "Bemorlar, qabul va navbat, bo‘limlar, tahlillar va to‘lovlar.",
     bookingType: "appointment",
-    extraCoreKeys: ["pipeline", "appointments", "tasks", "payments", "finance", "inventory", "employees", "payroll", "team"],
+    extraCoreKeys: ["appointments", "tasks", "payments", "finance", "inventory", "employees", "payroll", "team"],
     labels: { customers: "Bemorlar", products: "Tibbiy xizmatlar" },
     industryItems: [
       dynamicItem("qabul", "Qabul va navbat", "calendar"),
@@ -220,7 +218,7 @@ const PRESET_LIST: IndustryPreset[] = [
     name: "O‘quv markazi",
     description: "Lidlar, o‘quvchilar, kurslar, guruhlar, davomat va oylik to‘lovlar.",
     bookingType: "trial_lesson",
-    extraCoreKeys: ["pipeline", "appointments", "tasks", "payments", "finance", "employees", "payroll", "team"],
+    extraCoreKeys: ["appointments", "tasks", "payments", "finance", "employees", "payroll", "team"],
     labels: { customers: "O‘quvchilar", leads: "Leadlar", products: "Kurslar" },
     industryItems: [
       dynamicItem("kurslar", "Kurslar", "book"),
@@ -230,7 +228,7 @@ const PRESET_LIST: IndustryPreset[] = [
       paymentsItem(),
     ],
     hiddenModuleKeys: [],
-    reports: ["revenue", "expenses", "profit", "customers", "pipeline", "staff"],
+    reports: ["revenue", "expenses", "profit", "customers", "staff"],
     defaults: { ...DEFAULTS, slotMinutes: 90 },
   },
   {
@@ -292,7 +290,7 @@ const PRESET_LIST: IndustryPreset[] = [
     shortName: "Beauty salon",
     description: "Ustalar, xizmatlar, onlayn qabul, kassa va abonementlar.",
     bookingType: "appointment",
-    extraCoreKeys: ["pipeline", "appointments", "tasks", "inventory", "payments", "finance", "employees", "payroll", "team"],
+    extraCoreKeys: ["appointments", "tasks", "inventory", "payments", "finance", "employees", "payroll", "team"],
     labels: { products: "Xizmatlar" },
     industryItems: [
       dynamicItem("qabul", "Qabul", "calendar"),

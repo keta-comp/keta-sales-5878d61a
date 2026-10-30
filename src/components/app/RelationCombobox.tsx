@@ -45,15 +45,37 @@ export function RelationCombobox({
   const saveRecord = useServerFn(saveCrmRecord);
   const queryClient = useQueryClient();
   const [adding, setAdding] = useState(false);
+
+  /**
+   * Tezan qo'shishda nom faqat title'ga tushsa, modul jadvalidagi maydonlar
+   * bo'sh qoladi (ular title'ni ko'rsatmaydi). Shablondagi nomlovchi maydonni
+   * oldindan to'ldirib, qatorni ko'rinadigan qilamiz.
+   */
+  const titleKeyOf = (moduleKey: string): string | undefined => {
+    const cfg = queryClient.getQueryData<{
+      config?: { modules?: { key: string; titleField?: string; fields?: { key: string }[] }[] };
+    }>(["crm-config"])?.config;
+    const module = cfg?.modules?.find((m) => m.key === moduleKey);
+    return module?.titleField ?? module?.fields?.[0]?.key;
+  };
+
   const quickAdd = async () => {
     const name = term.trim();
     if (!name) return;
     setAdding(true);
     try {
+      const titleKey = titleKeyOf(targetModule);
       const created =
         targetModule === "customers"
           ? await saveCustomer({ data: { full_name: name } })
-          : await saveRecord({ data: { moduleKey: targetModule, title: name, stage: null, data: {} } });
+          : await saveRecord({
+              data: {
+                moduleKey: targetModule,
+                title: name,
+                stage: null,
+                data: titleKey ? { [titleKey]: name } : {},
+              },
+            });
       onChange({ id: created.id, label: name });
       void queryClient.invalidateQueries({ queryKey: ["relation-search", targetModule] });
       setTerm("");

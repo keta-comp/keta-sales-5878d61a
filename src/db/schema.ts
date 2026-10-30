@@ -340,6 +340,7 @@ export const payments = pgTable("payments", {
 	createdBy: uuid("created_by"),
 	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
 	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+	data: jsonb().default({}).notNull(),
 }, (table) => [
 	index("payments_business_paid_idx").using("btree", table.businessId.asc().nullsLast().op("uuid_ops"), table.paidAt.desc().nullsFirst().op("timestamptz_ops")),
 	index("payments_business_status_idx").using("btree", table.businessId.asc().nullsLast().op("uuid_ops"), table.status.asc().nullsLast().op("uuid_ops")),
@@ -552,6 +553,7 @@ export const appointments = pgTable("appointments", {
 	serviceName: text("service_name"),
 	price: numeric({ precision: 14, scale:  2 }),
 	durationMinutes: integer("duration_minutes"),
+	data: jsonb().default({}).notNull(),
 }, (table) => [
 	index("idx_appointments_business_branch").using("btree", table.businessId.asc().nullsLast().op("timestamptz_ops"), table.branchId.asc().nullsLast().op("uuid_ops"), table.startsAt.asc().nullsLast().op("uuid_ops")),
 	index("idx_appointments_business_start").using("btree", table.businessId.asc().nullsLast().op("timestamptz_ops"), table.startsAt.asc().nullsLast().op("uuid_ops")),

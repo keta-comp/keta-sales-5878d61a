@@ -131,35 +131,6 @@ export const removeBrandingLogo = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-export const saveAiSettings = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])  .inputValidator((input: unknown) =>
-    z
-      .object({
-        id: z.string(),
-        model: z.string().min(1),
-        tone_of_voice: z.string(),
-        sales_strategy: z.string(),
-        language_instruction: z.string(),
-        escalation_rules: z.string(),
-        custom_instructions: z.string(),
-        max_discount_percent: z.number().min(0).max(100),
-        enabled: z.boolean(),
-      })
-      .parse(input),
-  )
-  .handler(async ({ data, context }) => {
-    const { id, ...patch } = data;
-    const businessId = await requireBusinessAdmin(context.supabase);
-    const { error } = await context.supabase
-      .from("ai_settings")
-      .update(compact(patch) as never)
-      .eq("id", id);
-    if (error) throw new Error(error.message);
-    const { invalidateSettingsCache } = await import("./agent.server");
-    invalidateSettingsCache(businessId);
-    return { ok: true };
-  });
-
 export const notifyLeadStaff = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>

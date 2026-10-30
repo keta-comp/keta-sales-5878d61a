@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/lib/auth-middleware";
-import { currentMembershipId, withAssigneeName, withAssigneeNames } from "./assignee.server";
+import { withAssigneeName, withAssigneeNames } from "./assignee.server";
 import { compact } from "./compact";
 
 export const listLeads = createServerFn({ method: "GET" })
@@ -39,7 +39,7 @@ export const getLead = createServerFn({ method: "GET" })
     const [lead, events] = await Promise.all([
       context.supabase
         .from("leads")
-        .select("*, customers(*), conversations(id)")
+        .select("*, customers(*)")
         .eq("id", data.id)
         .single(),
       context.supabase
@@ -158,147 +158,5 @@ export const updateCustomer = createServerFn({ method: "POST" })
     const { id, ...patch } = data;
     const { error } = await context.supabase.from("customers").update(compact(patch) as never).eq("id", id);
     if (error) throw new Error(error.message);
-    return { ok: true };
-  });
-
-export const listConversations = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) =>
-    z.object({ mode: z.string().optional(), search: z.string().optional() }).parse(input ?? {}),
-  )
-  .handler(async ({ data, context }) => {
-    let query = context.supabase
-      .from("conversations")
-      .select("*, customers(id, full_name, telegram_username)")
-      .order("last_message_at", { ascending: false })
-      .limit(200);
-    if (data.mode && data.mode !== "all") query = query.eq("mode", data.mode as never);
-    const { data: rows, error } = await query;
-    if (error) throw new Error(error.message);
-    const term = data.search?.toLowerCase();
-    const filtered = term
-      ? (rows ?? []).filter((row) => {
-          const c = row.customers as { full_name: string | null; telegram_username: string | null } | null;
-          return (
-            (c?.full_name ?? "").toLowerCase().includes(term) ||
-            (c?.telegram_username ?? "").toLowerCase().includes(term) ||
-            (row.last_message_preview ?? "").toLowerCase().includes(term)
-          );
-        })
-      : (rows ?? []);
-
-    const ids = filtered.map((r) => r.id);
-    const leadMap: Record<string, { id: string; status: string; score: string }> = {};
-    if (ids.length) {
-      const { data: leadRows } = await context.supabase
-        .from("leads")
-        .select("id, conversation_id, status, score")
-        .in("conversation_id", ids);
-      for (const lead of leadRows ?? []) {
-        if (lead.conversation_id) leadMap[lead.conversation_id] = { id: lead.id, status: lead.status, score: lead.score };
-      }
-    }
-    const named = await withAssigneeNames(context.supabase, filtered);
-    return named.map((row) => ({ ...row, lead: leadMap[row.id] ?? null }));
-  });
-
-export const getConversation = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => z.object({ id: z.string() }).parse(input))
-  .handler(async ({ data, context }) => {
-    const [conversation, messages, lead] = await Promise.all([
-      context.supabase
-        .from("conversations")
-        .select("*, customers(*)")
-        .eq("id", data.id)
-        .single(),
-      context.supabase
-        .from("messages")
-        .select("*")
-        .eq("conversation_id", data.id)
-        .order("created_at", { ascending: true }),
-      context.supabase
-        .from("leads")
-        .select("id, status, score")
-        .eq("conversation_id", data.id)
-        .maybeSingle(),
-    ]);
-    if (conversation.error) throw new Error(conversation.error.message);
-    await context.supabase.from("conversations").update({ unread_count: 0 }).eq("id", data.id);
-    const named = await withAssigneeName(context.supabase, conversation.data);
-    return { conversation: { ...named, lead: lead.data ?? null }, messages: messages.data ?? [] };
-  });
-
-export const setConversationMode = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) =>
-    z.object({ id: z.string(), mode: z.enum(["ai", "human"]) }).parse(input),
-  )
-  .handler(async ({ data, context }) => {
-    const { error } = await context.supabase
-      .from("conversations")
-      .update({ mode: data.mode })
-      .eq("id", data.id);
-    if (error) throw new Error(error.message);
-    return { ok: true };
-  });
-
-export const sendStaffMessage = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) =>
-    z.object({ conversationId: z.string(), content: z.string().min(1).max(4000) }).parse(input),
-  )
-  .handler(async ({ data, context }) => {
-    const { data: conversation, error } = await context.supabase
-      .from("conversations")
-      .select("id, telegram_chat_id, business_id, channel")
-      .eq("id", data.conversationId)
-      .single();
-    if (error) throw new Error(error.message);
-    if (!conversation.telegram_chat_id) throw new Error("Suhbatga bog'langan chat topilmadi");
-
-    let telegramMessageId: number | null = null;
-    if ((conversation as { channel?: string }).channel === "instagram") {
-      const { sendInstagramMessage } = await import("./instagram.server");
-      try {
-        await sendInstagramMessage(conversation.telegram_chat_id, data.content);
-      } catch (sendError) {
-        console.error("[staff-message]", sendError);
-        throw new Error(
-          sendError instanceof Error ? sendError.message : "Instagram xabarini yetkazib bo'lmadi",
-        );
-      }
-    } else {
-      const { getActiveBot } = await import("./bots.server");
-      const { sendTelegramMessage } = await import("./telegram.server");
-      const bot = await getActiveBot(conversation.business_id);
-      if (!bot) throw new Error("Connect your Telegram bot in Settings before replying.");
-      try {
-        const sent = await sendTelegramMessage(bot.token, conversation.telegram_chat_id, data.content);
-        telegramMessageId = sent.message_id;
-      } catch (sendError) {
-        console.error("[staff-message]", sendError);
-        throw new Error(
-          sendError instanceof Error ? sendError.message : "Could not deliver the Telegram message",
-        );
-      }
-    }
-
-    const { error: insertError } = await context.supabase.from("messages").insert({
-      conversation_id: data.conversationId,
-      role: "staff",
-      content: data.content,
-      telegram_message_id: telegramMessageId,
-      member_id: await currentMembershipId(context.supabase, context.userId),
-    });
-    if (insertError) throw new Error(insertError.message);
-    await context.supabase
-      .from("conversations")
-      .update({
-        mode: "human",
-        last_message_at: new Date().toISOString(),
-        last_message_preview: data.content.slice(0, 160),
-      })
-      .eq("id", data.conversationId);
     return { ok: true };
   });

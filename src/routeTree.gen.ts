@@ -23,7 +23,6 @@ import { Route as AuthenticatedDashboardAppointmentsRouteImport } from './routes
 import { Route as AuthenticatedDashboardAssistantRouteImport } from './routes/_authenticated/dashboard.assistant'
 import { Route as AuthenticatedDashboardBillingRouteImport } from './routes/_authenticated/dashboard.billing'
 import { Route as AuthenticatedDashboardBranchesRouteImport } from './routes/_authenticated/dashboard.branches'
-import { Route as AuthenticatedDashboardConversationsRouteImport } from './routes/_authenticated/dashboard.conversations'
 import { Route as AuthenticatedDashboardCrmBuilderRouteImport } from './routes/_authenticated/dashboard.crm-builder'
 import { Route as AuthenticatedDashboardCustomersRouteImport } from './routes/_authenticated/dashboard.customers'
 import { Route as AuthenticatedDashboardEmployeesRouteImport } from './routes/_authenticated/dashboard.employees'
@@ -134,12 +133,6 @@ const AuthenticatedDashboardBranchesRoute =
   AuthenticatedDashboardBranchesRouteImport.update({
     id: '/branches',
     path: '/branches',
-    getParentRoute: () => AuthenticatedDashboardRoute,
-  } as any)
-const AuthenticatedDashboardConversationsRoute =
-  AuthenticatedDashboardConversationsRouteImport.update({
-    id: '/conversations',
-    path: '/conversations',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
 const AuthenticatedDashboardCrmBuilderRoute =
@@ -370,7 +363,6 @@ export interface FileRoutesByFullPath {
   '/dashboard/assistant': typeof AuthenticatedDashboardAssistantRoute
   '/dashboard/billing': typeof AuthenticatedDashboardBillingRoute
   '/dashboard/branches': typeof AuthenticatedDashboardBranchesRoute
-  '/dashboard/conversations': typeof AuthenticatedDashboardConversationsRoute
   '/dashboard/crm-builder': typeof AuthenticatedDashboardCrmBuilderRoute
   '/dashboard/customers': typeof AuthenticatedDashboardCustomersRouteWithChildren
   '/dashboard/employees': typeof AuthenticatedDashboardEmployeesRoute
@@ -420,7 +412,6 @@ export interface FileRoutesByTo {
   '/dashboard/assistant': typeof AuthenticatedDashboardAssistantRoute
   '/dashboard/billing': typeof AuthenticatedDashboardBillingRoute
   '/dashboard/branches': typeof AuthenticatedDashboardBranchesRoute
-  '/dashboard/conversations': typeof AuthenticatedDashboardConversationsRoute
   '/dashboard/crm-builder': typeof AuthenticatedDashboardCrmBuilderRoute
   '/dashboard/employees': typeof AuthenticatedDashboardEmployeesRoute
   '/dashboard/finance': typeof AuthenticatedDashboardFinanceRoute
@@ -473,7 +464,6 @@ export interface FileRoutesById {
   '/_authenticated/dashboard/assistant': typeof AuthenticatedDashboardAssistantRoute
   '/_authenticated/dashboard/billing': typeof AuthenticatedDashboardBillingRoute
   '/_authenticated/dashboard/branches': typeof AuthenticatedDashboardBranchesRoute
-  '/_authenticated/dashboard/conversations': typeof AuthenticatedDashboardConversationsRoute
   '/_authenticated/dashboard/crm-builder': typeof AuthenticatedDashboardCrmBuilderRoute
   '/_authenticated/dashboard/customers': typeof AuthenticatedDashboardCustomersRouteWithChildren
   '/_authenticated/dashboard/employees': typeof AuthenticatedDashboardEmployeesRoute
@@ -527,7 +517,6 @@ export interface FileRouteTypes {
     | '/dashboard/assistant'
     | '/dashboard/billing'
     | '/dashboard/branches'
-    | '/dashboard/conversations'
     | '/dashboard/crm-builder'
     | '/dashboard/customers'
     | '/dashboard/employees'
@@ -577,7 +566,6 @@ export interface FileRouteTypes {
     | '/dashboard/assistant'
     | '/dashboard/billing'
     | '/dashboard/branches'
-    | '/dashboard/conversations'
     | '/dashboard/crm-builder'
     | '/dashboard/employees'
     | '/dashboard/finance'
@@ -629,7 +617,6 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard/assistant'
     | '/_authenticated/dashboard/billing'
     | '/_authenticated/dashboard/branches'
-    | '/_authenticated/dashboard/conversations'
     | '/_authenticated/dashboard/crm-builder'
     | '/_authenticated/dashboard/customers'
     | '/_authenticated/dashboard/employees'
@@ -780,13 +767,6 @@ declare module '@tanstack/react-router' {
       path: '/branches'
       fullPath: '/dashboard/branches'
       preLoaderRoute: typeof AuthenticatedDashboardBranchesRouteImport
-      parentRoute: typeof AuthenticatedDashboardRoute
-    }
-    '/_authenticated/dashboard/conversations': {
-      id: '/_authenticated/dashboard/conversations'
-      path: '/conversations'
-      fullPath: '/dashboard/conversations'
-      preLoaderRoute: typeof AuthenticatedDashboardConversationsRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
     '/_authenticated/dashboard/crm-builder': {
@@ -1068,7 +1048,6 @@ interface AuthenticatedDashboardRouteChildren {
   AuthenticatedDashboardAssistantRoute: typeof AuthenticatedDashboardAssistantRoute
   AuthenticatedDashboardBillingRoute: typeof AuthenticatedDashboardBillingRoute
   AuthenticatedDashboardBranchesRoute: typeof AuthenticatedDashboardBranchesRoute
-  AuthenticatedDashboardConversationsRoute: typeof AuthenticatedDashboardConversationsRoute
   AuthenticatedDashboardCrmBuilderRoute: typeof AuthenticatedDashboardCrmBuilderRoute
   AuthenticatedDashboardCustomersRoute: typeof AuthenticatedDashboardCustomersRouteWithChildren
   AuthenticatedDashboardEmployeesRoute: typeof AuthenticatedDashboardEmployeesRoute
@@ -1096,8 +1075,6 @@ const AuthenticatedDashboardRouteChildren: AuthenticatedDashboardRouteChildren =
     AuthenticatedDashboardAssistantRoute: AuthenticatedDashboardAssistantRoute,
     AuthenticatedDashboardBillingRoute: AuthenticatedDashboardBillingRoute,
     AuthenticatedDashboardBranchesRoute: AuthenticatedDashboardBranchesRoute,
-    AuthenticatedDashboardConversationsRoute:
-      AuthenticatedDashboardConversationsRoute,
     AuthenticatedDashboardCrmBuilderRoute:
       AuthenticatedDashboardCrmBuilderRoute,
     AuthenticatedDashboardCustomersRoute:

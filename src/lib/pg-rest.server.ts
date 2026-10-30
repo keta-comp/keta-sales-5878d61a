@@ -545,20 +545,26 @@ class Builder<T = any[]> implements PromiseLike<PgResult<T>> {
       const rel = `e${embedIndex}`;
       embedIndex += 1;
       const label = node.alias ?? node.table;
-      const outward = pickFk(fks, this.table, node.table, node.alias);
+      // PostgREST `xodimlar:employee_id(...)` ko'rinishida FK ustunini beradi — bunda
+      // `node.table` aslida ustun nomi, shuning uchun jadvalni shu ustundan topamiz.
+      const viaColumn = node.alias
+        ? fks.find((f) => f.src === this.table && f.srcCol === node.table)
+        : undefined;
+      const target = viaColumn?.dst ?? node.table;
+      const outward = viaColumn ?? pickFk(fks, this.table, target, node.alias);
       if (outward) {
-        const object = jsonObject(node.inner, rel, columns.get(node.table));
+        const object = jsonObject(node.inner, rel, columns.get(target));
         pieces.push(
-          `(select ${object} from public.${ident(node.table)} ${rel}` +
+          `(select ${object} from public.${ident(target)} ${rel}` +
             ` where ${rel}.${ident(outward.dstCol)} = ${prefix}${ident(outward.srcCol)}) as ${ident(label)}`,
         );
         continue;
       }
-      const inward = pickFk(fks, node.table, this.table, null);
-      if (!inward) throw new Error(`${this.table} va ${node.table} orasida bog'lanish topilmadi.`);
-      const object = jsonObject(node.inner, rel, columns.get(node.table));
+      const inward = pickFk(fks, target, this.table, null);
+      if (!inward) throw new Error(`${this.table} va ${target} orasida bog'lanish topilmadi.`);
+      const object = jsonObject(node.inner, rel, columns.get(target));
       pieces.push(
-        `(select coalesce(jsonb_agg(${object}), '[]'::jsonb) from public.${ident(node.table)} ${rel}` +
+        `(select coalesce(jsonb_agg(${object}), '[]'::jsonb) from public.${ident(target)} ${rel}` +
           ` where ${rel}.${ident(inward.srcCol)} = ${prefix}${ident(inward.dstCol)}) as ${ident(label)}`,
       );
     }
@@ -575,22 +581,48 @@ class Builder<T = any[]> implements PromiseLike<PgResult<T>> {
     return p.add(value ?? null);
   }
 
-  private shape(rows: any[], count: number | null): PgResult<T> {
+  /**
+   * PostgREST vaqtni ISO satr ko'rinishida qaytaradi, postgres.js esa uni Date
+   * obyektiga aylantiradi. Chaqiruvchilar `a.created_at.localeCompare(b)` kabi
+   * satr amallariga tayanadi, shuning uchun moslik qatlami chiqishda orqaga
+   * qaytaradi. `date` ustunlarini lokal kun sifatida beramiz — toISOString
+   * ularni bir kun oldinga orqaga siljitadi.
+   */
+  private async serializeDates(rows: any[]): Promise<any[]> {
+    if (!rows.some((r) => r && Object.values(r).some((v) => v instanceof Date))) return rows;
+    const types = (await columnTypes()).get(this.table);
+    return rows.map((row) => {
+      if (!row || !Object.values(row).some((v) => v instanceof Date)) return row;
+      return Object.fromEntries(
+        Object.entries(row).map(([key, value]) => {
+          if (!(value instanceof Date)) return [key, value];
+          if (types?.get(key)?.udt === "date") {
+            const pad = (n: number) => String(n).padStart(2, "0");
+            return [
+              key,
+              `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}`,
+            ];
+          }
+          return [key, value.toISOString()];
+        }),
+      );
+    });
+  }
+
+  private async shape(rows: any[], count: number | null): Promise<PgResult<T>> {
+    const out = await this.serializeDates(rows);
     if (this.rowMode === "single" || this.rowMode === "maybe") {
-      if (rows.length === 1) {
-        return { data: rows[0] as T, error: null, count, status: 200, statusText: "OK" };
+      if (out.length === 1) {
+        return { data: out[0] as T, error: null, count, status: 200, statusText: "OK" };
       }
-      if (rows.length === 0 && this.rowMode === "maybe") {
+      if (out.length === 0 && this.rowMode === "maybe") {
         return { data: null as T, error: null, count, status: 200, statusText: "OK" };
       }
       return {
         data: null as T,
         error: {
-          message:
-            rows.length === 0
-              ? "JSON object requested, multiple (or no) rows returned"
-              : "JSON object requested, multiple (or no) rows returned",
-          details: `Natijada ${rows.length} qator`,
+          message: "JSON object requested, multiple (or no) rows returned",
+          details: `Natijada ${out.length} qator`,
           hint: "",
           code: "PGRST116",
         },
@@ -599,7 +631,7 @@ class Builder<T = any[]> implements PromiseLike<PgResult<T>> {
         statusText: "Not Acceptable",
       };
     }
-    return { data: rows as T, error: null, count, status: 200, statusText: "OK" };
+    return { data: out as T, error: null, count, status: 200, statusText: "OK" };
   }
 
   private async execute(tx: TransactionSql): Promise<PgResult<T>> {

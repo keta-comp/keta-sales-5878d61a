@@ -89,7 +89,6 @@ describe("preset registry", () => {
     const required = [
       "/dashboard/customers",
       "/dashboard/leads",
-      "/dashboard/conversations",
       "/dashboard/orders",
       "/dashboard/products",
     ];
