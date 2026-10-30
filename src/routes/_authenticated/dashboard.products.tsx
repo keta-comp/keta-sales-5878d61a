@@ -19,6 +19,7 @@ import {
   saveProduct,
 } from "@/lib/catalog.functions";
 import { formatMoney, stockState } from "@/lib/types";
+import { useTerminology } from "@/lib/terminology";
 import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/dashboard/products")({
@@ -62,6 +63,8 @@ const EMPTY: Draft = {
 
 function ProductsPage() {
   const queryClient = useQueryClient();
+  const { term } = useTerminology();
+  const catalog = term("products");
   const fetchProducts = useServerFn(listProducts);
   const fetchCategories = useServerFn(listCategories);
   const save = useServerFn(saveProduct);
@@ -101,7 +104,7 @@ function ProductsPage() {
         },
       }),
     onSuccess: () => {
-      toast.success(t("Mahsulot saqlandi"));
+      toast.success(t("{term} saqlandi", { term: catalog.one }));
       setDraft(null);
       void queryClient.invalidateQueries({ queryKey: ["products"] });
     },
