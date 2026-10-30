@@ -138,3 +138,45 @@ export async function sendTelegramMessage(token: string, chatId: string | number
     disable_web_page_preview: true,
   });
 }
+
+/** Xabarni chatdan o'chiradi. Muvaffaqiyatsizlikni jim o'tkazamiz: xabar allaqachon
+ *  yo'q bo'lishi yoki botning o'chirish huquqi bo'lmasligi mumkin. */
+export async function deleteMessage(token: string, chatId: string | number, messageId: string | number) {
+  try {
+    await telegramCall(token, "deleteMessage", { chat_id: chatId, message_id: Number(messageId) });
+  } catch (error) {
+    console.error("[telegram] deleteMessage failed", error);
+  }
+}
+
+export async function editMessageText(
+  token: string,
+  chatId: string | number,
+  messageId: string | number,
+  text: string,
+) {
+  return telegramCall(token, "editMessageText", {
+    chat_id: chatId,
+    message_id: Number(messageId),
+    text,
+    parse_mode: "HTML",
+  });
+}
+
+/** Xabar ostidagi tugmalarni o'chiradi (amallar bajarilgandan keyin qayta bosilmasligi uchun). */
+export async function removeInlineButtons(token: string, chatId: string | number, messageId: string | number) {
+  try {
+    await telegramCall(token, "editMessageReplyMarkup", {
+      chat_id: chatId,
+      message_id: Number(messageId),
+      reply_markup: { inline_keyboard: [] },
+    });
+  } catch (error) {
+    console.error("[telegram] editMessageReplyMarkup failed", error);
+  }
+}
+
+/** parse_mode=HTML xabarlarga foydalanuvchi matnini joylashtirishda bu majburiy. */
+export function escapeHtml(value: string): string {
+  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}

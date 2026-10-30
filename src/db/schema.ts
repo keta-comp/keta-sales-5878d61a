@@ -615,7 +615,7 @@ export const telegramLinks = pgTable("telegram_links", {
 	linkedAt: timestamp("linked_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
 	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
 	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
-	notifyBooking: boolean("notify_booking").default(false).notNull(),
+	notifyBooking: boolean("notify_booking").default(true).notNull(),
 }, (table) => [
 	index("telegram_links_business_idx").using("btree", table.businessId.asc().nullsLast().op("uuid_ops")),
 	index("telegram_links_daily_idx").using("btree", table.dailyReports.asc().nullsLast().op("text_ops"), table.reportTime.asc().nullsLast().op("bool_ops")),
@@ -631,6 +631,20 @@ export const telegramLinks = pgTable("telegram_links", {
 		}).onDelete("cascade"),
 	unique("telegram_links_telegram_user_id_key").on(table.telegramUserId),
 	pgPolicy("Members manage their business telegram links", { as: "permissive", for: "all", to: ["app_user"], using: sql`is_business_member(business_id)`, withCheck: sql`is_business_member(business_id)`  }),
+]);
+
+/** Bot ichidagi suhbat bosqichlari. Policy yo'q — faqat app_service qatnaydi. */
+export const telegramBotState = pgTable("telegram_bot_state", {
+	telegramUserId: text("telegram_user_id").primaryKey().notNull(),
+	chatId: text("chat_id").notNull(),
+	state: text().default('idle').notNull(),
+	data: jsonb().default({}).notNull(),
+	attempts: integer().default(0).notNull(),
+	secretMessageId: text("secret_message_id"),
+	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+	expiresAt: timestamp("expires_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+}, (table) => [
+	index("telegram_bot_state_expiry_idx").using("btree", table.expiresAt.asc().nullsLast().op("timestamptz_ops")),
 ]);
 
 export const payrollRules = pgTable("payroll_rules", {

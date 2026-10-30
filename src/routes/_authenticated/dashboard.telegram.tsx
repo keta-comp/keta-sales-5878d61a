@@ -141,8 +141,20 @@ function TelegramPage() {
         <div className="clay-panel space-y-3 p-6">
           <h2 className="text-lg font-semibold">{t("⚪️ Ulanmagan")}</h2>
           <p className="text-sm text-muted-foreground">
-            {t("Telegram botni oching,")}{" "}<span className="font-medium">/start</span> {t("yuboring va")}{" "}
-            <span className="font-medium">{t("“🔗 KetaOne akkauntini ulash”")}</span> {t("tugmasini bosing. Bot sizni shu sahifaga\n            qaytaradi. Parolingiz hech qachon Telegramda so‘ralmaydi.")}
+            {t("Telegram botni oching va")} <span className="font-medium">/start</span> {t("yuboring — ikki kirish usuli bor:")}
+          </p>
+          <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+            <li>
+              <span className="font-medium">{t("“🔑 Email va parol bilan kirish”")}</span> —{" "}
+              {t("hammasi bot ichida. Parol faqat tekshirishga ishlatiladi va tekshirilgach chatdagi xabar o‘chiriladi.")}
+            </li>
+            <li>
+              <span className="font-medium">{t("“🔗 Xavfsiz havola orqali”")}</span> —{" "}
+              {t("bot sizni shu sahifaga qaytaradi, parol Telegramga kirmaydi.")}
+            </li>
+          </ul>
+          <p className="text-sm text-muted-foreground">
+            {t("Botdan hisobotlar, bugungi qabullar ro‘yxati va yangi qabul qo‘shish — hammasi saytga kirmasdan ishlaydi.")}
           </p>
         </div>
       )}

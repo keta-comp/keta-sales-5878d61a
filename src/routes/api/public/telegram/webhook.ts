@@ -15,7 +15,7 @@ type TelegramUpdate = {
     id: string;
     data?: string;
     from: { id: number; username?: string };
-    message?: { chat: { id: number } };
+    message?: { chat: { id: number }; message_id?: number };
   };
 };
 
@@ -65,7 +65,9 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
                 token,
                 callbackId: callback.id,
                 chatId: callback.message.chat.id,
+                messageId: callback.message.message_id ?? 0,
                 telegramUserId: String(callback.from.id),
+                username: callback.from.username ?? null,
                 data: callback.data ?? "",
               });
               return;
@@ -77,6 +79,7 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
                 telegramUserId: String(message.from.id),
                 username: message.from.username ?? null,
                 text: message.text,
+                messageId: message.message_id,
               });
             }
           } catch (error) {

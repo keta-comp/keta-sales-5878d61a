@@ -3353,16 +3353,50 @@ CREATE POLICY "billing_invoices owner insert" ON public.billing_invoices
 CREATE TRIGGER billing_invoices_updated_at BEFORE UPDATE ON public.billing_invoices
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
--- 20261029093000_7d1c4e9b-2a63-4f18-9c0d-5b8e2a47c631.sql
--- CRM modullari endi yadro jadvallariga yoziladi (tolovlar → payments,
--- qabul/ko‘rishlar → appointments). Formadagi xaritaga tushmagan maydonlar
--- shu `data` ustunida saqlanadi, shunda yozuv ikki tarafda ham bir xil qoladi.
-ALTER TABLE public.payments
-  ADD COLUMN IF NOT EXISTS data JSONB NOT NULL DEFAULT '{}'::jsonb;
+-- 20261029090000_3e8b5c47-06a1-4d9f-bb2e-57c4ad9e1f33.sql
+update crm_configs
+   set config = (config #>> '{}')::jsonb
+ where config is not null
+   and jsonb_typeof(config) = 'string'
+   and left(ltrim(config #>> '{}'), 1) in ('{', '[');
 
--- 20261029093000_7d1c4e9b-2a63-4f18-9c0d-5b8e2a47c631.sql
-ALTER TABLE public.appointments
-  ADD COLUMN IF NOT EXISTS data JSONB NOT NULL DEFAULT '{}'::jsonb;
+-- 20261029090000_3e8b5c47-06a1-4d9f-bb2e-57c4ad9e1f33.sql
+update audit_logs
+   set metadata = (metadata #>> '{}')::jsonb
+ where metadata is not null
+   and jsonb_typeof(metadata) = 'string'
+   and left(ltrim(metadata #>> '{}'), 1) in ('{', '[');
+
+-- 20261030150000_b7f2c41d-9e35-4a68-b0c7-2d41ea8f6b19.sql
+CREATE TABLE IF NOT EXISTS public.telegram_bot_state (
+  telegram_user_id TEXT NOT NULL PRIMARY KEY,
+  chat_id TEXT NOT NULL,
+  state TEXT NOT NULL DEFAULT 'idle',
+  data JSONB NOT NULL DEFAULT '{}'::jsonb,
+  attempts INTEGER NOT NULL DEFAULT 0,
+  secret_message_id TEXT,
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  expires_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT (now() + interval '15 minutes')
+);
+
+-- 20261030150000_b7f2c41d-9e35-4a68-b0c7-2d41ea8f6b19.sql
+CREATE INDEX IF NOT EXISTS telegram_bot_state_expiry_idx
+  ON public.telegram_bot_state (expires_at);
+
+-- 20261030150000_b7f2c41d-9e35-4a68-b0c7-2d41ea8f6b19.sql
+ALTER TABLE public.telegram_bot_state ENABLE ROW LEVEL SECURITY;
+
+-- 20261030150000_b7f2c41d-9e35-4a68-b0c7-2d41ea8f6b19.sql
+GRANT ALL ON public.telegram_bot_state TO app_service;
+
+-- 20261030150000_b7f2c41d-9e35-4a68-b0c7-2d41ea8f6b19.sql
+ALTER TABLE public.telegram_links ALTER COLUMN notify_booking SET DEFAULT true;
+
+-- 20261030150000_b7f2c41d-9e35-4a68-b0c7-2d41ea8f6b19.sql
+UPDATE public.telegram_links
+   SET notify_booking = true
+ WHERE status = 'active'
+   AND notify_booking = false;
 
 -- ============ epilogue ============
 -- Migratsiyalar yaratgan barcha ketma-ketliklarga huquq (default privileges

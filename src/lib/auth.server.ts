@@ -101,16 +101,33 @@ export async function signUpWithPassword(input: { email: string; password: strin
   return { userId: upstreamUserId(response.body) };
 }
 
-export async function signInWithPassword(input: { email: string; password: string }) {
+async function verifyPassword(input: { email: string; password: string }): Promise<{ userId: string; cookie: string }> {
   const response = await authFetch("/sign-in/email", {
     method: "POST",
     body: { email: input.email, password: input.password },
   });
-  if (response.status >= 400 || !response.cookie) {
+  const userId = upstreamUserId(response.body);
+  if (response.status >= 400 || !response.cookie || !userId) {
     throw new Error(upstreamMessage(response.body, "Email yoki parol xato."));
   }
-  persist(response.cookie);
-  return { userId: upstreamUserId(response.body) };
+  return { userId, cookie: response.cookie };
+}
+
+export async function signInWithPassword(input: { email: string; password: string }) {
+  const { userId, cookie } = await verifyPassword(input);
+  persist(cookie);
+  return { userId };
+}
+
+/**
+ * Brauzersiz kirish tekshiruvi (Telegram boti). Cookie saqlanmaydi va tekshiruv uchun
+ * ochilgan sessiya darhol yopiladi — botda ishonch manbai faqat telegram_links
+ * yozuvi, parol esa hech qayerda qolmaydi.
+ */
+export async function authenticateWithoutSession(input: { email: string; password: string }) {
+  const { userId, cookie } = await verifyPassword(input);
+  await authFetch("/sign-out", { method: "POST", body: {}, cookie }).catch(() => {});
+  return { userId };
 }
 
 export async function signOut() {

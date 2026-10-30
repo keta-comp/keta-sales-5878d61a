@@ -353,41 +353,45 @@ export const createPublicBooking = createServerFn({ method: "POST" })
       customerId = created?.id ?? null;
     }
 
-    const { error } = await supabaseAdmin.from("appointments").insert({
-      business_id: business.id,
-      service_id: service.id,
-      service_name: service.name,
-      price: Number(service.price),
-      duration_minutes: service.duration_minutes,
-      customer_id: customerId,
-      employee_id: chosen?.id ?? null,
-      branch_id: null,
-      starts_at: data.starts_at,
-      ends_at: endsAt,
-      status: "new",
-      note: data.note ? `Onlayn: ${data.note}` : "Onlayn bron",
-    });
+    const { data: createdAppointment, error } = await supabaseAdmin
+      .from("appointments")
+      .insert({
+        business_id: business.id,
+        service_id: service.id,
+        service_name: service.name,
+        price: Number(service.price),
+        duration_minutes: service.duration_minutes,
+        customer_id: customerId,
+        employee_id: chosen?.id ?? null,
+        branch_id: null,
+        starts_at: data.starts_at,
+        ends_at: endsAt,
+        status: "new",
+        note: data.note ? `Onlayn: ${data.note}` : "Onlayn bron",
+      })
+      .select("id")
+      .maybeSingle();
     if (error) {
       if (error.code === "23P01") throw new Error("Bu vaqt endi band — boshqa vaqtni tanlang.");
       throw new Error(error.message);
     }
+    const appointmentId = (createdAppointment as { id: string } | null)?.id ?? null;
 
-    try {
-      const { notifyBusiness } = await import("./telegram-notify.server");
-      const timeText = new Date(data.starts_at).toLocaleString("uz-UZ", {
-        day: "2-digit",
-        month: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-        timeZone: "Asia/Tashkent",
-      });
-      await notifyBusiness(
-        business.id,
-        "booking",
-        `🆕 Yangi onlayn bron: ${service.name}\n${timeText}${chosen ? ` — ${chosen.full_name}` : ""}\n${data.full_name} (${data.phone})\nTasdiqlash talab qiladi.`,
-      );
-    } catch {
-      // Notifications are best-effort and must never fail a booking.
+    if (appointmentId) {
+      try {
+        const { sendBookingCard } = await import("./telegram-appointments.server");
+        await sendBookingCard(business.id, {
+          id: appointmentId,
+          startsAt: data.starts_at,
+          serviceName: service.name,
+          employeeName: chosen?.full_name ?? null,
+          customerName: data.full_name,
+          customerPhone: canonicalPhone,
+          source: "Onlayn qabul (sayt)",
+        });
+      } catch {
+        // Notifications are best-effort and must never fail a booking.
+      }
     }
 
     return { ok: true, starts_at: data.starts_at, ends_at: endsAt, employee_name: chosen?.full_name ?? "" };
