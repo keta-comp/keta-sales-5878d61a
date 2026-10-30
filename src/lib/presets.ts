@@ -228,8 +228,8 @@ const PRESET_LIST: IndustryPreset[] = [
     name: "O‘quv markazi",
     description: "Lidlar, o‘quvchilar, kurslar, guruhlar, davomat va oylik to‘lovlar.",
     bookingType: "trial_lesson",
-    extraCoreKeys: ["appointments", "tasks", "payments", "finance", "employees", "payroll", "team"],
-    labels: { customers: "O‘quvchilar", products: "Kurslar" },
+    extraCoreKeys: ["leads", "appointments", "tasks", "payments", "finance", "employees", "payroll", "team"],
+    labels: { customers: "O‘quvchilar", leads: "Murojaatlar", products: "Kurslar" },
     industryItems: [
       dynamicItem("kurslar", "Kurslar", "book"),
       dynamicItem("guruhlar", "Guruhlar", "layers"),
@@ -238,7 +238,7 @@ const PRESET_LIST: IndustryPreset[] = [
       paymentsItem(),
     ],
     hiddenModuleKeys: [],
-    hiddenCoreKeys: ["orders", "inventory"],
+    hiddenCoreKeys: ["orders", "products", "inventory"],
     reports: ["revenue", "expenses", "profit", "customers", "staff"],
     defaults: { ...DEFAULTS, slotMinutes: 90 },
   },
@@ -476,7 +476,7 @@ export function isModuleEnabled(id: string, moduleKey: string): boolean {
 /** Core routes this preset must not show anywhere: menu entry, cross-page link, page. */
 export function hiddenRoutesForPreset(id: string): Set<string> {
   const preset = PRESETS[id] ?? UNIVERSAL_PRESET;
-  const hidden = new Set(ALWAYS_HIDDEN_ROUTES);
+  const hidden = new Set(preset.extraCoreKeys.includes("leads") ? [] : ALWAYS_HIDDEN_ROUTES);
   for (const key of preset.hiddenCoreKeys ?? []) hidden.add(CORE_ITEMS[key].to);
   return hidden;
 }
