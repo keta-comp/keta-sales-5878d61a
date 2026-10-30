@@ -12,7 +12,16 @@ const FLAG: Record<NotifyKind, string> = {
   booking: "notify_booking",
 };
 
-export async function notifyBusiness(businessId: string, kind: NotifyKind, text: string) {
+/**
+ * Returns: necha manzilga yuborishga urilingani (0 — bog'lanish yo'q yoki xato).
+ * Eslatma skaneri shu sondan keyin belgi qo'yadi: hech kimga ketmagan eslatma
+ * yozuvda "yuborilgan" bo'lib qolmasligi kerak.
+ */
+export async function notifyBusiness(
+  businessId: string,
+  kind: NotifyKind,
+  text: string,
+): Promise<number> {
   try {
     const [{ supabaseAdmin }, single, bot] = await Promise.all([
       import("@/lib/platform.server"),
@@ -26,7 +35,7 @@ export async function notifyBusiness(businessId: string, kind: NotifyKind, text:
       .eq("status", "active");
     const rows = (data ?? []) as unknown as Record<string, unknown>[];
     const targets = rows.filter((row) => row[FLAG[kind]] === true);
-    if (!targets.length) return;
+    if (!targets.length) return 0;
     const token = single.singleBotToken();
     await Promise.all(
       targets.map((row) =>
@@ -35,8 +44,10 @@ export async function notifyBusiness(businessId: string, kind: NotifyKind, text:
         }),
       ),
     );
+    return targets.length;
   } catch (error) {
     console.error("[telegram-notify]", error);
+    return 0;
   }
 }
 

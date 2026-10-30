@@ -50,6 +50,7 @@ import { Route as AuthenticatedSuperAdminSecurityRouteImport } from './routes/_a
 import { Route as AuthenticatedSuperAdminSettingsRouteImport } from './routes/_authenticated/super-admin.settings'
 import { Route as AuthenticatedSuperAdminUsersRouteImport } from './routes/_authenticated/super-admin.users'
 import { Route as ApiPublicPaymeRouteImport } from './routes/api/public/payme'
+import { Route as ApiPublicRemindersRouteImport } from './routes/api/public/reminders'
 import { Route as AuthenticatedDashboardCrmModuleKeyRouteImport } from './routes/_authenticated/dashboard.crm.$moduleKey'
 import { Route as AuthenticatedDashboardCustomersIndexRouteImport } from './routes/_authenticated/dashboard.customers.index'
 import { Route as AuthenticatedDashboardCustomersIdRouteImport } from './routes/_authenticated/dashboard.customers.$id'
@@ -296,6 +297,11 @@ const ApiPublicPaymeRoute = ApiPublicPaymeRouteImport.update({
   path: '/api/public/payme',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicRemindersRoute = ApiPublicRemindersRouteImport.update({
+  id: '/api/public/reminders',
+  path: '/api/public/reminders',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedDashboardCrmModuleKeyRoute =
   AuthenticatedDashboardCrmModuleKeyRouteImport.update({
     id: '/crm/$moduleKey',
@@ -389,6 +395,7 @@ export interface FileRoutesByFullPath {
   '/super-admin/settings': typeof AuthenticatedSuperAdminSettingsRoute
   '/super-admin/users': typeof AuthenticatedSuperAdminUsersRoute
   '/api/public/payme': typeof ApiPublicPaymeRoute
+  '/api/public/reminders': typeof ApiPublicRemindersRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/super-admin/': typeof AuthenticatedSuperAdminIndexRoute
   '/dashboard/crm/$moduleKey': typeof AuthenticatedDashboardCrmModuleKeyRoute
@@ -437,6 +444,7 @@ export interface FileRoutesByTo {
   '/super-admin/settings': typeof AuthenticatedSuperAdminSettingsRoute
   '/super-admin/users': typeof AuthenticatedSuperAdminUsersRoute
   '/api/public/payme': typeof ApiPublicPaymeRoute
+  '/api/public/reminders': typeof ApiPublicRemindersRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
   '/super-admin': typeof AuthenticatedSuperAdminIndexRoute
   '/dashboard/crm/$moduleKey': typeof AuthenticatedDashboardCrmModuleKeyRoute
@@ -490,6 +498,7 @@ export interface FileRoutesById {
   '/_authenticated/super-admin/settings': typeof AuthenticatedSuperAdminSettingsRoute
   '/_authenticated/super-admin/users': typeof AuthenticatedSuperAdminUsersRoute
   '/api/public/payme': typeof ApiPublicPaymeRoute
+  '/api/public/reminders': typeof ApiPublicRemindersRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/_authenticated/super-admin/': typeof AuthenticatedSuperAdminIndexRoute
   '/_authenticated/dashboard/crm/$moduleKey': typeof AuthenticatedDashboardCrmModuleKeyRoute
@@ -543,6 +552,7 @@ export interface FileRouteTypes {
     | '/super-admin/settings'
     | '/super-admin/users'
     | '/api/public/payme'
+    | '/api/public/reminders'
     | '/dashboard/'
     | '/super-admin/'
     | '/dashboard/crm/$moduleKey'
@@ -591,6 +601,7 @@ export interface FileRouteTypes {
     | '/super-admin/settings'
     | '/super-admin/users'
     | '/api/public/payme'
+    | '/api/public/reminders'
     | '/dashboard'
     | '/super-admin'
     | '/dashboard/crm/$moduleKey'
@@ -643,6 +654,7 @@ export interface FileRouteTypes {
     | '/_authenticated/super-admin/settings'
     | '/_authenticated/super-admin/users'
     | '/api/public/payme'
+    | '/api/public/reminders'
     | '/_authenticated/dashboard/'
     | '/_authenticated/super-admin/'
     | '/_authenticated/dashboard/crm/$moduleKey'
@@ -663,6 +675,7 @@ export interface RootRouteChildren {
   ApiHealthRoute: typeof ApiHealthRoute
   BSlugRoute: typeof BSlugRoute
   ApiPublicPaymeRoute: typeof ApiPublicPaymeRoute
+  ApiPublicRemindersRoute: typeof ApiPublicRemindersRoute
   ApiPublicClickActionRoute: typeof ApiPublicClickActionRoute
   ApiPublicInstagramWebhookRoute: typeof ApiPublicInstagramWebhookRoute
   ApiPublicTelegramDailyReportRoute: typeof ApiPublicTelegramDailyReportRoute
@@ -958,6 +971,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicPaymeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/reminders': {
+      id: '/api/public/reminders'
+      path: '/api/public/reminders'
+      fullPath: '/api/public/reminders'
+      preLoaderRoute: typeof ApiPublicRemindersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/dashboard/crm/$moduleKey': {
       id: '/_authenticated/dashboard/crm/$moduleKey'
       path: '/crm/$moduleKey'
@@ -1167,6 +1187,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiHealthRoute: ApiHealthRoute,
   BSlugRoute: BSlugRoute,
   ApiPublicPaymeRoute: ApiPublicPaymeRoute,
+  ApiPublicRemindersRoute: ApiPublicRemindersRoute,
   ApiPublicClickActionRoute: ApiPublicClickActionRoute,
   ApiPublicInstagramWebhookRoute: ApiPublicInstagramWebhookRoute,
   ApiPublicTelegramDailyReportRoute: ApiPublicTelegramDailyReportRoute,
