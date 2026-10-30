@@ -130,17 +130,11 @@ export interface TodoAction {
 }
 
 /** "Bugun nima qilish kerak?" — derived only from real CRM rows. */
-export async function buildTodoActions(supabase: Client): Promise<TodoAction[]> {
-  const staleBefore = dayStart(-3).toISOString();
+export async function buildTodoActions(supabase: Client, hidden = new Set<string>()): Promise<TodoAction[]> {
   const soon = dayStart(3).toISOString().slice(0, 10);
   const todayDate = dayStart().toISOString().slice(0, 10);
 
-  const [followUp, unconfirmedOrders, duePayments, waitingLeads, overdueTasks] = await Promise.all([
-    supabase
-      .from("leads")
-      .select("id", { count: "exact", head: true })
-      .in("status", ["contacted", "negotiating", "assigned"])
-      .or(`last_contact_at.is.null,last_contact_at.lt.${staleBefore}`),
+  const [unconfirmedOrders, duePayments, overdueTasks, unconfirmedAppointments] = await Promise.all([
     supabase
       .from("orders")
       .select("id", { count: "exact", head: true })
@@ -150,23 +144,22 @@ export async function buildTodoActions(supabase: Client): Promise<TodoAction[]> 
       .select("id", { count: "exact", head: true })
       .eq("status", "pending")
       .lte("due_date", soon),
-    supabase.from("leads").select("id", { count: "exact", head: true }).eq("status", "needs_attention"),
     supabase
       .from("tasks")
       .select("id", { count: "exact", head: true })
       .neq("status", "completed")
       .lte("due_date", todayDate),
+    supabase
+      .from("appointments")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "new")
+      .gte("starts_at", dayStart().toISOString())
+      .lt("starts_at", dayStart(1).toISOString()),
   ]);
 
+  // "Murojaatlar" bo'limi butunlay olib tashlandi — shu sahifaga olib boradigan
+  // vazifalar ro'yxatda qolmaydi (qayta aloqa hisobi Telegram hisobotida saqlanadi).
   const actions: TodoAction[] = [
-    {
-      key: "follow-up",
-      count: followUp.count ?? 0,
-      label: "mijozga qayta aloqa qilish kerak",
-      to: "/dashboard/leads",
-      search: { view: "list", follow: "stale" },
-      tone: "warning",
-    },
     {
       key: "orders",
       count: unconfirmedOrders.count ?? 0,
@@ -176,19 +169,18 @@ export async function buildTodoActions(supabase: Client): Promise<TodoAction[]> 
       tone: "info",
     },
     {
+      key: "appointments",
+      count: unconfirmedAppointments.count ?? 0,
+      label: "bugungi qabul tasdiqlanmagan",
+      to: "/dashboard/appointments",
+      tone: "warning",
+    },
+    {
       key: "payments",
       count: duePayments.count ?? 0,
       label: "to‘lov muddati yaqin",
       to: "/dashboard/payments",
       search: { status: "pending" },
-      tone: "danger",
-    },
-    {
-      key: "handoff",
-      count: waitingLeads.count ?? 0,
-      label: "yangi lead mas'ulni kutmoqda",
-      to: "/dashboard/leads",
-      search: { view: "list", status: "needs_attention" },
       tone: "danger",
     },
     {
@@ -201,21 +193,17 @@ export async function buildTodoActions(supabase: Client): Promise<TodoAction[]> 
     },
   ];
 
-  return actions.filter((a) => a.count > 0);
+  return actions.filter((a) => a.count > 0 && !hidden.has(a.to));
 }
 
 export async function buildSearch(supabase: Client, term: string) {
   const like = `%${term.replace(/[,()]/g, " ")}%`;
-  const [customers, leads, orders, payments, tasks] = await Promise.all([
+  // Murojaatlar bo'limi yo'q: ular qidiruv natijalarida ham chiqmaydi.
+  const [customers, orders, payments, tasks] = await Promise.all([
     supabase
       .from("customers")
       .select("id, full_name, phone")
       .or(`full_name.ilike.${like},phone.ilike.${like},email.ilike.${like}`)
-      .limit(5),
-    supabase
-      .from("leads")
-      .select("id, requested_product, status, customers(full_name)")
-      .or(`requested_product.ilike.${like},notes.ilike.${like}`)
       .limit(5),
     supabase.from("orders").select("id, order_number, total, status").ilike("order_number", like).limit(5),
     supabase.from("payments").select("id, amount, status, note").ilike("note", like).limit(5),
@@ -232,16 +220,6 @@ export async function buildSearch(supabase: Client, term: string) {
       subtitle: c.phone ?? "",
       to: `/dashboard/customers/${c.id}`,
     });
-  for (const l of leads.data ?? []) {
-    const cust = l.customers as { full_name: string | null } | null;
-    hits.push({
-      type: "Murojaat",
-      id: l.id,
-      title: l.requested_product ?? cust?.full_name ?? "Murojaat",
-      subtitle: cust?.full_name ?? "",
-      to: `/dashboard/leads`,
-    });
-  }
   for (const o of orders.data ?? [])
     hits.push({
       type: "Buyurtma",

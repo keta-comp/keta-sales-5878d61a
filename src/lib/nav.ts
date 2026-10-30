@@ -5,6 +5,7 @@
  */
 
 import {
+  hiddenRoutesForPreset,
   isModuleEnabled,
   menuForPreset,
   resolvePresetId,
@@ -56,14 +57,13 @@ export function buildNavItems(crm: NavSource | undefined): PresetMenuItem[] {
   }
 
   // Modules this business added itself (AI builder output) join the industry section.
+  const hidden = hiddenRoutesForPreset(presetId);
   for (const module of crm.config?.modules ?? []) {
     if (!isModuleEnabled(presetId, module.key)) continue;
-    push({
-      to: module.link ?? `/dashboard/crm/${module.key}`,
-      label: module.label,
-      icon: module.icon ?? "layers",
-      section: "industry",
-    });
+    const to = module.link ?? `/dashboard/crm/${module.key}`;
+    // A configured module never resurrects a section this preset dropped (Ombor, Buyurtmalar).
+    if (hidden.has(to)) continue;
+    push({ to, label: module.label, icon: module.icon ?? "layers", section: "industry" });
   }
 
   // Multi-branch is a platform feature: a tenant that already has branches keeps the

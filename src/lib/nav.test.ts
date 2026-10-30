@@ -64,6 +64,19 @@ describe("sidebar navigation", () => {
     expect(customOnly.some((i) => i.to === "/dashboard/crm/yetakchi")).toBe(true);
   });
 
+  test("a module linked to a switched-off section never reaches the menu", () => {
+    for (const [presetId, to] of [
+      ["stomatologiya", "/dashboard/orders"],
+      ["oquv", "/dashboard/inventory"],
+      ["universal", "/dashboard/leads"],
+    ]) {
+      const items = buildNavItems(
+        crm({ industry: presetId, config: { presetId, modules: [{ key: "maxsus", label: "Maxsus", link: to }] } }),
+      );
+      expect(items.some((i) => i.to === to)).toBe(false);
+    }
+  });
+
   test("existing branches keep the entry even when the preset omits it", () => {
     const barbershop = { industry: "beauty", role: "owner", branchCount: 0, config: { presetId: "barbershop", modules: [] } };
     expect(buildNavItems(barbershop).some((i) => i.to === "/dashboard/branches")).toBe(false);

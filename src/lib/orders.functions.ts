@@ -4,6 +4,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/lib/auth-middleware";
 import { withAssigneeNames } from "./assignee.server";
 import { compact } from "./compact";
+import { requireSection } from "./section-guards.server";
 
 export const listOrders = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -94,6 +95,7 @@ export const createOrder = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
+    await requireSection(context.supabase, "/dashboard/orders");
     const { data: products, error: productError } = await context.supabase
       .from("products")
       .select("id, name, sku, price")

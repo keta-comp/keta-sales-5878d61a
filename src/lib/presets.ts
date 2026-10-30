@@ -56,8 +56,8 @@ export type CoreKey =
   | "payroll"
   | "team";
 
-/** Legacy CRM entry points that stay reachable in every preset (AGENTS.md rule). */
-const LEGACY_CORE_KEYS: CoreKey[] = ["customers", "leads", "orders", "products"];
+/** Legacy CRM entry points kept in the shared navigation (AGENTS.md rule). */
+const LEGACY_CORE_KEYS: CoreKey[] = ["customers", "orders", "products"];
 
 export interface PresetMenuItem {
   to: string;
@@ -106,6 +106,8 @@ export interface IndustryPreset {
   industryItems: PresetMenuItem[];
   /** Industry modules this preset does not use at all. */
   hiddenModuleKeys: string[];
+  /** Core sections this preset never shows — menu, cross-page links and the pages themselves. */
+  hiddenCoreKeys?: CoreKey[];
   /**
    * Modules holding patient data. Kept in code (never in the stored config) so a tenant
    * cannot unlock medical records by editing its own CRM JSON; server-side checks use this.
@@ -131,6 +133,12 @@ const CORE_ITEMS: Record<CoreKey, PresetMenuItem> = {
   payroll: { to: "/dashboard/payroll", label: "Oylik", icon: "payroll", section: "money", permission: "finance.view" },
   team: { to: "/dashboard/team", label: "Jamoa va rollar", icon: "team", section: "team", permission: "members.manage" },
 };
+
+/**
+ * Sections no preset offers any more: "Murojaatlar" is gone from the product for every
+ * industry (leads keep flowing in from the Telegram bot, they are just not a tenant page).
+ */
+const ALWAYS_HIDDEN_ROUTES: string[] = [CORE_ITEMS.leads.to];
 
 const ADMIN_TAIL: PresetMenuItem[] = [
   { to: "/dashboard/analytics", label: "Hisobotlar", icon: "chart", section: "admin", permission: "reports.export" },
@@ -182,6 +190,7 @@ const PRESET_LIST: IndustryPreset[] = [
       paymentsItem(),
     ],
     hiddenModuleKeys: [],
+    hiddenCoreKeys: ["orders"],
     medicalModuleKeys: ["odontogramma", "bemor_kartasi", "rentgen"],
     reports: ["revenue", "expenses", "profit", "customers", "appointments", "staff", "stock"],
     defaults: { ...DEFAULTS, slotMinutes: 60 },
@@ -207,6 +216,7 @@ const PRESET_LIST: IndustryPreset[] = [
       paymentsItem(),
     ],
     hiddenModuleKeys: [],
+    hiddenCoreKeys: ["orders"],
     medicalModuleKeys: ["tibbiy_karta", "koriklar", "tahlillar", "hujjatlar"],
     reports: ["revenue", "expenses", "profit", "customers", "appointments", "staff"],
     defaults: { ...DEFAULTS, slotMinutes: 30 },
@@ -219,7 +229,7 @@ const PRESET_LIST: IndustryPreset[] = [
     description: "Lidlar, o‘quvchilar, kurslar, guruhlar, davomat va oylik to‘lovlar.",
     bookingType: "trial_lesson",
     extraCoreKeys: ["appointments", "tasks", "payments", "finance", "employees", "payroll", "team"],
-    labels: { customers: "O‘quvchilar", leads: "Leadlar", products: "Kurslar" },
+    labels: { customers: "O‘quvchilar", products: "Kurslar" },
     industryItems: [
       dynamicItem("kurslar", "Kurslar", "book"),
       dynamicItem("guruhlar", "Guruhlar", "layers"),
@@ -228,6 +238,7 @@ const PRESET_LIST: IndustryPreset[] = [
       paymentsItem(),
     ],
     hiddenModuleKeys: [],
+    hiddenCoreKeys: ["orders", "inventory"],
     reports: ["revenue", "expenses", "profit", "customers", "staff"],
     defaults: { ...DEFAULTS, slotMinutes: 90 },
   },
@@ -462,6 +473,18 @@ export function isModuleEnabled(id: string, moduleKey: string): boolean {
   return !preset.hiddenModuleKeys.includes(moduleKey);
 }
 
+/** Core routes this preset must not show anywhere: menu entry, cross-page link, page. */
+export function hiddenRoutesForPreset(id: string): Set<string> {
+  const preset = PRESETS[id] ?? UNIVERSAL_PRESET;
+  const hidden = new Set(ALWAYS_HIDDEN_ROUTES);
+  for (const key of preset.hiddenCoreKeys ?? []) hidden.add(CORE_ITEMS[key].to);
+  return hidden;
+}
+
+export function isSectionVisible(id: string, to: string): boolean {
+  return !hiddenRoutesForPreset(id).has(to);
+}
+
 /** Modules holding patient data (diagnoses, lab results, medical cards) for this preset. */
 export function medicalModuleKeys(id: string): string[] {
   return PRESETS[id]?.medicalModuleKeys ?? [];
@@ -543,6 +566,7 @@ export function applyMissingParts(
 export function menuForPreset(id: string): PresetMenuItem[] {
   const preset = PRESETS[id];
   if (!preset) return [];
+  const hidden = hiddenRoutesForPreset(id);
   const label = (key: CoreKey) => preset.labels?.[key] ?? CORE_ITEMS[key].label;
   const withLabel = (key: CoreKey): PresetMenuItem => ({ ...CORE_ITEMS[key], label: label(key) });
   const extras = preset.extraCoreKeys.filter((key) => key !== "pipeline");
@@ -554,7 +578,7 @@ export function menuForPreset(id: string): PresetMenuItem[] {
   for (const key of extras) menu.push(withLabel(key));
   menu.push(...preset.industryItems);
   menu.push(...ADMIN_TAIL);
-  return menu;
+  return menu.filter((item) => !hidden.has(item.to));
 }
 
 /** Workflow sets a preset runs on — pipeline stages plus booking statuses. */

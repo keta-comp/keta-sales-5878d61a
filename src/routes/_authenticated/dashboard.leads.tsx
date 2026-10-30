@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, Navigate, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -25,6 +25,7 @@ import { getLead, listLeads, updateLead } from "@/lib/crm.functions";
 import { listAssignees } from "@/lib/members.functions";
 import { notifyLeadStaff } from "@/lib/settings.functions";
 import { LEAD_SCORES, LEAD_STATUSES, type LeadScore, type LeadStatus } from "@/lib/types";
+import { useHiddenSection } from "@/lib/section-visibility";
 import { t } from "@/lib/i18n";
 
 type LeadPatch = {
@@ -70,6 +71,7 @@ function LeadsPage() {
   const fetchAssignees = useServerFn(listAssignees);
   const saveLead = useServerFn(updateLead);
   const notify = useServerFn(notifyLeadStaff);
+  const hidden = useHiddenSection("/dashboard/leads");
 
   const status = params.status ?? "all";
   const openId = params.id ?? null;
@@ -92,6 +94,7 @@ function LeadsPage() {
     queryKey: ["leads", status, score, search],
     queryFn: () => fetchLeads({ data: { status, score, search } }),
     refetchInterval: LIVE_REFETCH_MS,
+    enabled: !hidden,
   });
 
   const detail = useQuery({
@@ -100,7 +103,7 @@ function LeadsPage() {
       if (!openId) throw new Error(t("Lid topilmadi"));
       return fetchLead({ data: { id: openId } });
     },
-    enabled: Boolean(openId),
+    enabled: Boolean(openId) && !hidden,
   });
 
   const fetchTasks = useServerFn(listTasks);
@@ -130,6 +133,8 @@ function LeadsPage() {
   });
 
   const lead = detail.data?.lead;
+
+  if (hidden) return <Navigate to="/dashboard" replace />;
 
   return (
     <Tabs value={view} onValueChange={setView} className="space-y-5">

@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, Navigate, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { LIVE_REFETCH_MS } from "@/lib/polling";
 import { listAssignees } from "@/lib/members.functions";
 import { listOrders, updateOrder } from "@/lib/orders.functions";
+import { useHiddenSection } from "@/lib/section-visibility";
 import {
   ORDER_STATUSES,
   PAYMENT_STATUSES,
@@ -71,6 +72,7 @@ function OrdersPage() {
   const fetchOrders = useServerFn(listOrders);
   const fetchAssignees = useServerFn(listAssignees);
   const save = useServerFn(updateOrder);
+  const hidden = useHiddenSection("/dashboard/orders");
 
   const status = params.status ?? "all";
   const search = params.search ?? "";
@@ -92,6 +94,7 @@ function OrdersPage() {
     queryFn: () =>
       fetchOrders({ data: { status, search, ...(customerId ? { customerId } : {}) } }),
     refetchInterval: LIVE_REFETCH_MS,
+    enabled: !hidden,
   });
   const assignees = useQuery({ queryKey: ["assignees"], queryFn: () => fetchAssignees() });
 
@@ -104,6 +107,8 @@ function OrdersPage() {
     },
     onError: (error: unknown) => toast.error(error instanceof Error ? error.message : t("Yangilash amalga oshmadi")),
   });
+
+  if (hidden) return <Navigate to="/dashboard" replace />;
 
   return (
     <>
@@ -212,18 +217,6 @@ function OrdersPage() {
                       ) : (
                         t("Biriktirilmagan")
                       )}
-                      {order.lead_id ? (
-                        <>
-                          {" · "}
-                          <Link
-                            to="/dashboard/leads"
-                            search={{ id: order.lead_id }}
-                            className="underline-offset-4 hover:underline"
-                          >
-                            {t("Lid")}
-                          </Link>
-                        </>
-                      ) : null}
                       {order.order_number ? (
                         <>
                           {" · "}

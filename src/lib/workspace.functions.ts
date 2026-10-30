@@ -6,15 +6,17 @@ import { requireSupabaseAuth } from "@/lib/auth-middleware";
 import { gatewayErrorMessage, resolveAiRuntime } from "./ai-gateway.server";
 import { logAiUsage } from "./audit.server";
 import { crmLabel } from "./crm-core";
+import { hiddenRoutesForTenant } from "./section-guards.server";
 import { requireBusinessId } from "./tenant.server";
 
 export const getDashboardKpis = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { buildKpis, buildTodoActions } = await import("./workspace.server");
+    const hidden = await hiddenRoutesForTenant(context.supabase);
     const [kpis, todos] = await Promise.all([
       buildKpis(context.supabase),
-      buildTodoActions(context.supabase),
+      buildTodoActions(context.supabase, hidden),
     ]);
     return { kpis, todos };
   });
@@ -154,11 +156,12 @@ export const askBusinessAssistant = createServerFn({ method: "POST" })
     const { buildKpis, buildReport, buildTodoActions, dayStart } = await import("./workspace.server");
     const from = dayStart(-29).toISOString();
     const to = new Date().toISOString();
+    const hidden = await hiddenRoutesForTenant(context.supabase);
 
     const [kpis, report, todos, followUps, openTasks] = await Promise.all([
       buildKpis(context.supabase),
       buildReport(context.supabase, from, to),
-      buildTodoActions(context.supabase),
+      buildTodoActions(context.supabase, hidden),
       context.supabase
         .from("leads")
         .select("requested_product, status, last_contact_at, customers(full_name, phone)")

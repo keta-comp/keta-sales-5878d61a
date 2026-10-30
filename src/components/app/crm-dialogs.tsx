@@ -27,6 +27,7 @@ import { saveCrmCustomer } from "@/lib/customers.functions";
 import { savePayment } from "@/lib/payments.functions";
 import { saveTask } from "@/lib/tasks.functions";
 import { createQuickLead, createQuickOrder, listPickers } from "@/lib/quick.functions";
+import { useSectionVisibility } from "@/lib/section-visibility";
 import {
   CUSTOMER_SOURCES,
   CUSTOMER_STATUSES,
@@ -978,7 +979,13 @@ export function QuickNewButton({
   size?: "default" | "sm";
 }) {
   const labels = quickActionLabels(industry);
+  const { isHidden } = useSectionVisibility();
   const [openKey, setOpenKey] = useState<QuickActionKey | null>(null);
+
+  // Murojaatlar bo'limi butunlay o'chirilgan; buyurtmalar esa presetga qarab yashirinadi.
+  const actions = (["customer", "lead", "order", "payment", "task"] as QuickActionKey[]).filter(
+    (key) => key !== "lead" && !(key === "order" && isHidden("/dashboard/orders")),
+  );
 
   return (
     <>
@@ -989,7 +996,7 @@ export function QuickNewButton({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-48">
-          {(["customer", "lead", "order", "payment", "task"] as QuickActionKey[]).map((key) => (
+          {actions.map((key) => (
             <DropdownMenuItem key={key} onSelect={() => setOpenKey(key)}>
               {labels[key]}
             </DropdownMenuItem>

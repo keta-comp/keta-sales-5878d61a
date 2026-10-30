@@ -158,12 +158,11 @@ interface PresetInput {
 }
 
 const W_TODAY_REVENUE: CrmWidget = { key: "tushum", label: "Bugungi tushum", kind: "legacy_today_revenue" };
-const W_TODAY_LEADS: CrmWidget = { key: "murojaatlar", label: "Bugungi murojaatlar", kind: "legacy_today_leads" };
 const W_TODAY_ORDERS: CrmWidget = { key: "buyurtmalar", label: "Bugungi buyurtmalar", kind: "legacy_today_orders" };
 const W_HANDOFFS: CrmWidget = { key: "attention", label: "E'tibor kutilmoqda", kind: "legacy_handoffs" };
 
 function defaultWidgets(extra: CrmWidget[]): CrmWidget[] {
-  return [...extra, W_TODAY_REVENUE, W_TODAY_LEADS, W_HANDOFFS];
+  return [...extra, W_TODAY_REVENUE, W_HANDOFFS];
 }
 
 function preset(p: PresetInput): CrmConfigData {
@@ -186,7 +185,6 @@ export const GENERIC_PIPELINE = [
 ];
 
 const GENERIC_MODULES: CrmModule[] = [
-  { key: "murojaatlar", label: "Murojaatlar", icon: "target", link: "/dashboard/leads", pipeline: true },
   { key: "mijozlar", label: "Mijozlar", icon: "users", link: "/dashboard/customers" },
   { key: "buyurtmalar", label: "Buyurtmalar", icon: "cart", link: "/dashboard/orders" },
   { key: "mahsulotlar", label: "Mahsulotlar / Xizmatlar", icon: "package", link: "/dashboard/products" },
@@ -203,7 +201,6 @@ export const GENERIC_PRESET: CrmConfigData = preset({
 const BASE_PRESETS: Record<string, CrmConfigData> = {
   stomatologiya: preset({
     modules: [
-      { key: "murojaatlar", label: "Murojaatlar", icon: "target", link: "/dashboard/leads", pipeline: true },
       { key: "bemorlar", label: "Bemorlar", icon: "users", link: "/dashboard/customers" },
       {
         key: "qabul",
@@ -310,7 +307,6 @@ const BASE_PRESETS: Record<string, CrmConfigData> = {
 
   oquv: preset({
     modules: [
-      { key: "leadlar", label: "Leadlar", icon: "target", link: "/dashboard/leads", pipeline: true },
       { key: "oquvchilar", label: "O‘quvchilar", icon: "users", link: "/dashboard/customers" },
       {
         key: "kurslar",
@@ -380,7 +376,6 @@ const BASE_PRESETS: Record<string, CrmConfigData> = {
 
   avtoservis: preset({
     modules: [
-      { key: "murojaatlar", label: "Murojaatlar", icon: "target", link: "/dashboard/leads", pipeline: true },
       { key: "mijozlar", label: "Mijozlar", icon: "users", link: "/dashboard/customers" },
       {
         key: "avtomobillar",
@@ -426,7 +421,6 @@ const BASE_PRESETS: Record<string, CrmConfigData> = {
 
   kochmas_mulk: preset({
     modules: [
-      { key: "leadlar", label: "Leadlar", icon: "target", link: "/dashboard/leads", pipeline: true },
       { key: "mijozlar", label: "Mijozlar", icon: "users", link: "/dashboard/customers" },
       {
         key: "obyekt",
@@ -479,7 +473,6 @@ const BASE_PRESETS: Record<string, CrmConfigData> = {
 
   beauty: preset({
     modules: [
-      { key: "murojaatlar", label: "Murojaatlar", icon: "target", link: "/dashboard/leads", pipeline: true },
       { key: "mijozlar", label: "Mijozlar", icon: "users", link: "/dashboard/customers" },
       {
         key: "qabul",
@@ -526,7 +519,6 @@ const BASE_PRESETS: Record<string, CrmConfigData> = {
 
   qurilish: preset({
     modules: [
-      { key: "murojaatlar", label: "Murojaatlar", icon: "target", link: "/dashboard/leads", pipeline: true },
       { key: "mijozlar", label: "Mijozlar", icon: "users", link: "/dashboard/customers" },
       {
         key: "loyihalar",
@@ -559,7 +551,6 @@ const BASE_PRESETS: Record<string, CrmConfigData> = {
 
   xizmat: preset({
     modules: [
-      { key: "murojaatlar", label: "Murojaatlar", icon: "target", link: "/dashboard/leads", pipeline: true },
       { key: "mijozlar", label: "Mijozlar", icon: "users", link: "/dashboard/customers" },
       {
         key: "xizmatlar",
@@ -581,7 +572,6 @@ const BASE_PRESETS: Record<string, CrmConfigData> = {
 
   smm: preset({
     modules: [
-      { key: "murojaatlar", label: "Murojaatlar", icon: "target", link: "/dashboard/leads", pipeline: true },
       { key: "mijozlar", label: "Mijozlar", icon: "users", link: "/dashboard/customers" },
       {
         key: "loyihalar",
@@ -606,7 +596,6 @@ const BASE_PRESETS: Record<string, CrmConfigData> = {
 
   klinika: preset({
     modules: [
-      { key: "murojaatlar", label: "Murojaatlar", icon: "target", link: "/dashboard/leads", pipeline: true },
       { key: "bemorlar", label: "Bemorlar", icon: "users", link: "/dashboard/customers" },
       {
         key: "qabul",
@@ -824,21 +813,34 @@ export const BACKED_MODULE_TABLES: Record<string, CrmBackedTable> = {
 };
 
 /** Yuqoridagi bo'limdan olib tashlangan modullar — saqlangan konfiguratsiyalardan ham tushib qoladi. */
-export const RETIRED_MODULE_KEYS = ["suhbatlar"];
+export const RETIRED_MODULE_KEYS = ["suhbatlar", "murojaatlar", "leadlar"];
+
+/** Sahifasi bo'lmagan (yoki butunlay o'chirilgan) bo'limga havola qiluvchi modullar. */
+const RETIRED_LINKS: string[] = ["/dashboard/conversations", "/dashboard/leads"];
+
+/** Murojaatlar bo'limi bilan birga ketadigan dashboard vidjetlari. */
+const RETIRED_WIDGET_KEYS: string[] = ["murojaatlar"];
+const RETIRED_WIDGET_KINDS: string[] = ["legacy_today_leads", "legacy_hot_leads"];
 
 /** Turns mapped text fields into relation fields; also upgrades saved configs. */
 export function applyRelations(industry: string | null | undefined, config: CrmConfigData): CrmConfigData {
   // Saved configs predate the retire of the sales-agent "operator" wording.
-  const dashboardWidgets = config.dashboardWidgets.map((widget) =>
-    widget.key === "operator" ? { ...widget, key: "attention", label: "E'tibor kutilmoqda" } : widget,
-  );
+  const dashboardWidgets = config.dashboardWidgets
+    .map((widget) =>
+      widget.key === "operator" ? { ...widget, key: "attention", label: "E'tibor kutilmoqda" } : widget,
+    )
+    // "Murojaatlar" bo'limi yo'q — saqlangan konfiguratsiyalarda ham vidjet qolmasin.
+    .filter((widget) => !RETIRED_WIDGET_KEYS.includes(widget.key) && !RETIRED_WIDGET_KINDS.includes(widget.kind));
 
   const industryKey = industry ?? "";
   const map = RELATION_MAP[industryKey];
   const titleMap = TITLE_FIELD_MAP[industryKey];
   const modules = config.modules
     // "Suhbatlar" bo'limi sahifasi o'chirilgan — saqlangan konfiguratsiyalarda ham qolmasin.
-    .filter((m) => !RETIRED_MODULE_KEYS.includes(m.key) && m.link !== ("/dashboard/conversations" as string))
+    .filter(
+      (m) =>
+        !RETIRED_MODULE_KEYS.includes(m.key) && !(m.link && RETIRED_LINKS.includes(m.link as string)),
+    )
     .map((m) => {
       const table = BACKED_MODULE_TABLES[m.key];
       if (!table || m.link) return m;

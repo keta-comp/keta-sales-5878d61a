@@ -9,6 +9,6 @@
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
 
-- Keep legacy CRM entry points in the shared dashboard navigation, deduplicate configured module links, and make navigation scroll independently so all sections stay reachable on short screens.
+- Offer in the shared dashboard navigation only the CRM entry points the tenant's preset keeps: `hiddenRoutesForPreset` (presets.ts) is the single switch for `hiddenCoreKeys` and the always-hidden leads page, so menu, links, dashboard tiles and page guards can never disagree. Still deduplicate configured module links and let navigation scroll independently so all sections stay reachable on short screens.
 - Use TanStack Router's exported error props for route error components so their signatures follow the installed router contract.
-- Keep the legacy lead Kanban on the existing leads query and authenticated updateLead operation, sharing status grouping with its tests, so board and table cannot diverge from CRM data or authorization.
+- The leads section is switched off for every preset: its page redirects to the dashboard, while the lead board stays wired to the existing leads query and authenticated updateLead operation (sharing status grouping with its tests) so lead records created from Telegram conversations remain correct and authorised.

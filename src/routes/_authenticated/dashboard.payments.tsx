@@ -21,6 +21,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { crmLabel, PAYMENT_METHODS, PAYMENT_RECORD_STATUSES } from "@/lib/crm-core";
 import { deletePayment, listPayments } from "@/lib/payments.functions";
 import { formatMoney } from "@/lib/types";
+import { useSectionVisibility } from "@/lib/section-visibility";
 import { t } from "@/lib/i18n";
 
 const searchSchema = z.object({
@@ -75,6 +76,8 @@ function PaymentsPage() {
       }),
   });
 
+  const { isHidden } = useSectionVisibility();
+
   const totals = useMemo(() => {
     const rows = query.data ?? [];
     const paid = rows.filter((r) => r.status === "paid").reduce((s, r) => s + Number(r.amount), 0);
@@ -85,12 +88,15 @@ function PaymentsPage() {
   }, [query.data]);
 
   const currency = "UZS";
+  const showOrders = !isHidden("/dashboard/orders");
 
   return (
     <>
       <PageHeader
         title={t("To‘lovlar")}
-        description={t("Har bir to‘lov mijoz va buyurtma bilan bog‘lanadi.")}
+        description={
+          showOrders ? t("Har bir to‘lov mijoz va buyurtma bilan bog‘lanadi.") : t("Har bir to‘lov mijozga bog‘lanadi.")
+        }
         actions={
           <Button
             size="sm"
@@ -175,7 +181,7 @@ function PaymentsPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>{t("Mijoz")}</TableHead>
-                <TableHead>{t("Buyurtma")}</TableHead>
+                {showOrders ? <TableHead>{t("Buyurtma")}</TableHead> : null}
                 <TableHead>{t("Summa")}</TableHead>
                 <TableHead>{t("Usul")}</TableHead>
                 <TableHead>{t("Holat")}</TableHead>
@@ -207,19 +213,21 @@ function PaymentsPage() {
                         (customer?.full_name ?? "—")
                       )}
                     </TableCell>
-                    <TableCell>
-                      {order?.order_number ? (
-                        <Link
-                          to="/dashboard/orders"
-                          search={{ search: order.order_number }}
-                          className="underline-offset-4 hover:underline"
-                        >
-                          #{order.order_number}
-                        </Link>
-                      ) : (
-                        "—"
-                      )}
-                    </TableCell>
+                    {showOrders ? (
+                      <TableCell>
+                        {order?.order_number ? (
+                          <Link
+                            to="/dashboard/orders"
+                            search={{ search: order.order_number }}
+                            className="underline-offset-4 hover:underline"
+                          >
+                            #{order.order_number}
+                          </Link>
+                        ) : (
+                          "—"
+                        )}
+                      </TableCell>
+                    ) : null}
                     <TableCell className="tabular-nums">{formatMoney(row.amount, currency)}</TableCell>
                     <TableCell>{methodLabel}</TableCell>
                     <TableCell>

@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useSectionVisibility } from "@/lib/section-visibility";
 import { crmLabel, CUSTOMER_SOURCES, CUSTOMER_STATUSES } from "@/lib/crm-core";
 import { listCrmCustomers } from "@/lib/customers.functions";
 import { getMyCrmConfig } from "@/lib/crm-config.functions";
@@ -52,6 +53,7 @@ function CustomersPage() {
   const [open, setOpen] = useState(false);
 
   const crm = useQuery({ queryKey: ["crm-config"], queryFn: () => fetchConfig() });
+  const { isHidden } = useSectionVisibility();
   const query = useQuery({
     queryKey: ["crm-customers", search, status, source, memberId, sort],
     queryFn: () => fetchCustomers({ data: { search, status, source, memberId, sort } }),
@@ -59,6 +61,7 @@ function CustomersPage() {
 
   const term = crm.data?.config?.terminology?.["customer"] ?? "Mijozlar";
   const currency = "UZS";
+  const showOrders = !isHidden("/dashboard/orders");
 
   return (
     <>
@@ -152,8 +155,8 @@ function CustomersPage() {
                 <TableHead>{t("Aloqa")}</TableHead>
                 <TableHead>{t("Holat")}</TableHead>
                 <TableHead>{t("Manba")}</TableHead>
-                <TableHead>{t("Buyurtma")}</TableHead>
-                <TableHead>{t("Xarid")}</TableHead>
+                {showOrders ? <TableHead>{t("Buyurtma")}</TableHead> : null}
+                {showOrders ? <TableHead>{t("Xarid")}</TableHead> : null}
                 <TableHead>{t("Mas’ul")}</TableHead>
                 <TableHead className="text-right">{t("Amal")}</TableHead>
               </TableRow>
@@ -179,16 +182,20 @@ function CustomersPage() {
                       <StatusBadge value={row.status} />
                     </TableCell>
                     <TableCell className="text-xs">{crmLabel(row.source)}</TableCell>
-                    <TableCell className="tabular-nums">
-                      <Link
-                        to="/dashboard/orders"
-                        search={{ customerId: row.id }}
-                        className="underline-offset-4 hover:underline"
-                      >
-                        {row.total_orders}
-                      </Link>
-                    </TableCell>
-                    <TableCell className="tabular-nums">{formatMoney(row.total_spent, currency)}</TableCell>
+                    {showOrders ? (
+                      <TableCell className="tabular-nums">
+                        <Link
+                          to="/dashboard/orders"
+                          search={{ customerId: row.id }}
+                          className="underline-offset-4 hover:underline"
+                        >
+                          {row.total_orders}
+                        </Link>
+                      </TableCell>
+                    ) : null}
+                    {showOrders ? (
+                      <TableCell className="tabular-nums">{formatMoney(row.total_spent, currency)}</TableCell>
+                    ) : null}
                     <TableCell className="text-xs text-muted-foreground">
                       {assignee ? (
                         <Link to="/dashboard/team" className="underline-offset-4 hover:text-foreground hover:underline">

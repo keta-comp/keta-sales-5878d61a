@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/select";
 import { crmLabel, TASK_PRIORITIES, TASK_STATUSES } from "@/lib/crm-core";
 import { deleteTask, listTasks, setTaskStatus } from "@/lib/tasks.functions";
+import { useSectionVisibility } from "@/lib/section-visibility";
 import { t } from "@/lib/i18n";
 
 const searchSchema = z.object({
@@ -69,6 +70,9 @@ function TasksPage() {
         [next]: value === "all" || value === "" ? undefined : value,
       }),
     });
+
+  const { isHidden } = useSectionVisibility();
+  const showOrders = !isHidden("/dashboard/orders");
 
   const query = useQuery({
     queryKey: ["tasks", status, priority, search, customerId, leadId, memberId],
@@ -232,12 +236,7 @@ function TasksPage() {
                       <span>{t("Muddat: {v0}", { v0: new Date(task.due_date).toLocaleDateString("uz-UZ") })}</span>
                     ) : null}
                     {overdue ? <span className="text-destructive">{t("Muddati o‘tgan")}</span> : null}
-                    {task.lead_id ? (
-                      <Link to="/dashboard/leads" search={{ id: task.lead_id }} className="underline-offset-4 hover:underline">
-                        {t("Lid")}
-                      </Link>
-                    ) : null}
-                    {order?.order_number ? (
+                    {showOrders && order?.order_number ? (
                       <Link
                         to="/dashboard/orders"
                         search={{ search: order.order_number }}
@@ -246,7 +245,7 @@ function TasksPage() {
                         #{order.order_number}
                       </Link>
                     ) : null}
-                    {!customer?.full_name && !assignee && !task.due_date && !task.lead_id && !order?.order_number ? (
+                    {!customer?.full_name && !assignee && !task.due_date && !(showOrders && order?.order_number) ? (
                       <span>{t("Qo‘shimcha ma’lumot yo‘q")}</span>
                     ) : null}
                   </p>

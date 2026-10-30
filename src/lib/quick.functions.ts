@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/lib/auth-middleware";
+import { requireSection } from "./section-guards.server";
 import { requireBusinessId } from "./tenant.server";
 
 /** Lightweight pickers used by quick-create dialogs (no heavy joins). */
@@ -138,6 +139,7 @@ export const createQuickOrder = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
+    await requireSection(context.supabase, "/dashboard/orders");
     const { logActivity } = await import("./activity.server");
     const lines = data.items.map((item) => ({
       product_id: item.product_id ?? null,

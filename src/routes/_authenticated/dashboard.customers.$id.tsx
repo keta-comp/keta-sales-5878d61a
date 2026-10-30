@@ -21,6 +21,7 @@ import {
   setCustomerConsent,
 } from "@/lib/customers.functions";
 import { formatMoney } from "@/lib/types";
+import { useSectionVisibility } from "@/lib/section-visibility";
 import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/dashboard/customers/$id")({
@@ -29,7 +30,7 @@ export const Route = createFileRoute("/_authenticated/dashboard/customers/$id")(
       { title: t("Mijoz profili — KetaOne") },
       {
         name: "description",
-        content: t("Mijozning murojaatlari, buyurtmalari, to‘lovlari, vazifalari va aloqa tarixi."),
+        content: t("Mijozning to‘lovlari, vazifalari, yozuvlari va aloqa tarixi."),
       },
       { property: "og:title", content: t("Mijoz profili — KetaOne") },
       { property: "og:description", content: t("Bitta ekranda mijoz haqida hamma narsa.") },
@@ -52,6 +53,7 @@ function CustomerProfile() {
 
   const linked = useCustomerLinkedRecords(id);
   const dental = useOdontogrammaEnabled();
+  const { isHidden } = useSectionVisibility();
   const anamnesis = (linked.data ?? [])
     .filter((r) => r.moduleKey === "bemor_kartasi")
     .map((r) => r.data)
@@ -66,7 +68,6 @@ function CustomerProfile() {
 
   const {
     customer,
-    leads,
     orders,
     payments,
     tasks,
@@ -78,6 +79,7 @@ function CustomerProfile() {
   const assignee = customer.assignee_name;
   const currency = "UZS";
   const rowLink = "shrink-0 text-xs font-medium text-primary underline-offset-4 hover:underline";
+  const showOrders = !isHidden("/dashboard/orders");
 
   const runPrivacyAction = async (action: () => Promise<void>) => {
     setBusy(true);
@@ -217,12 +219,16 @@ function CustomerProfile() {
       ) : null}
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <Link to="/dashboard/orders" search={{ customerId: id }} className="block">
-          <StatCard label={t("Buyurtmalar")} value={customer.total_orders} />
-        </Link>
-        <Link to="/dashboard/orders" search={{ customerId: id }} className="block">
-          <StatCard label={t("Umumiy xarid")} value={formatMoney(customer.total_spent, currency)} />
-        </Link>
+        {showOrders ? (
+          <>
+            <Link to="/dashboard/orders" search={{ customerId: id }} className="block">
+              <StatCard label={t("Buyurtmalar")} value={customer.total_orders} />
+            </Link>
+            <Link to="/dashboard/orders" search={{ customerId: id }} className="block">
+              <StatCard label={t("Umumiy xarid")} value={formatMoney(customer.total_spent, currency)} />
+            </Link>
+          </>
+        ) : null}
         <Link to="/dashboard/payments" search={{ customerId: id }} className="block">
           <StatCard label={t("To‘langan")} value={formatMoney(paid, currency)} />
         </Link>
@@ -234,8 +240,7 @@ function CustomerProfile() {
       <Tabs defaultValue="overview">
         <TabsList className="flex-wrap">
           <TabsTrigger value="overview">{t("Umumiy")}</TabsTrigger>
-          <TabsTrigger value="leads">{t("Murojaatlar (")}{leads.length})</TabsTrigger>
-          <TabsTrigger value="orders">{t("Buyurtmalar (")}{orders.length})</TabsTrigger>
+          {showOrders ? <TabsTrigger value="orders">{t("Buyurtmalar (")}{orders.length})</TabsTrigger> : null}
           <TabsTrigger value="payments">{t("To‘lovlar (")}{payments.length})</TabsTrigger>
           <TabsTrigger value="tasks">{t("Vazifalar (")}{tasks.length})</TabsTrigger>
           {dental.enabled ? <TabsTrigger value="dental">{t("Odontogramma")}</TabsTrigger> : null}
@@ -290,59 +295,35 @@ function CustomerProfile() {
           </div>
         </TabsContent>
 
-        <TabsContent value="leads" className="mt-3 space-y-2">
-          {leads.length === 0 ? (
-            <Empty text="Murojaat yo‘q." />
-          ) : (
-            leads.map((lead) => (
-              <Row
-                key={lead.id}
-                title={lead.requested_product ?? "Murojaat"}
-                subtitle={[
-                  lead.stage,
-                  lead.value ? formatMoney(lead.value, currency) : null,
-                  new Date(lead.created_at).toLocaleDateString("uz-UZ"),
-                ]
-                  .filter(Boolean)
-                  .join(" • ")}
-                badge={lead.status}
-                action={
-                  <Link to="/dashboard/leads" search={{ id: lead.id }} className={rowLink}>
-                    {t("Ochish")}
-                  </Link>
-                }
-              />
-            ))
-          )}
-        </TabsContent>
-
-        <TabsContent value="orders" className="mt-3 space-y-2">
-          {orders.length === 0 ? (
-            <Empty text="Buyurtma yo‘q." />
-          ) : (
-            orders.map((order) => (
-              <Row
-                key={order.id}
-                title={`#${order.order_number}`}
-                subtitle={`${formatMoney(order.total, currency)} • ${new Date(
-                  order.created_at,
-                ).toLocaleDateString("uz-UZ")}`}
-                badge={order.status}
-                action={
-                  order.order_number ? (
-                    <Link
-                      to="/dashboard/orders"
-                      search={{ search: order.order_number }}
-                      className={rowLink}
-                    >
-                      {t("Ochish")}
-                    </Link>
-                  ) : null
-                }
-              />
-            ))
-          )}
-        </TabsContent>
+        {showOrders ? (
+          <TabsContent value="orders" className="mt-3 space-y-2">
+            {orders.length === 0 ? (
+              <Empty text="Buyurtma yo‘q." />
+            ) : (
+              orders.map((order) => (
+                <Row
+                  key={order.id}
+                  title={`#${order.order_number}`}
+                  subtitle={`${formatMoney(order.total, currency)} • ${new Date(
+                    order.created_at,
+                  ).toLocaleDateString("uz-UZ")}`}
+                  badge={order.status}
+                  action={
+                    order.order_number ? (
+                      <Link
+                        to="/dashboard/orders"
+                        search={{ search: order.order_number }}
+                        className={rowLink}
+                      >
+                        {t("Ochish")}
+                      </Link>
+                    ) : null
+                  }
+                />
+              ))
+            )}
+          </TabsContent>
+        ) : null}
 
         <TabsContent value="payments" className="mt-3 space-y-2">
           {payments.length === 0 ? (
@@ -359,7 +340,7 @@ function CustomerProfile() {
                   ).toLocaleDateString("uz-UZ")}${payment.note ? ` • ${payment.note}` : ""}`}
                   badge={payment.status}
                   action={
-                    order?.order_number ? (
+                    showOrders && order?.order_number ? (
                       <Link
                         to="/dashboard/orders"
                         search={{ search: order.order_number }}

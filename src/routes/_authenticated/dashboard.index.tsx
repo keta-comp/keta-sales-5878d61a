@@ -7,7 +7,6 @@ import {
   CalendarCheck,
   ClipboardList,
   ShoppingCart,
-  Target,
   TrendingDown,
   TrendingUp,
   UserRoundPlus,
@@ -21,7 +20,7 @@ import { LIVE_REFETCH_MS } from "@/lib/polling";
 import { getBookingSummary } from "@/lib/appointments.functions";
 import { getMyCrmConfig, getWidgetStats } from "@/lib/crm-config.functions";
 import { getDashboardKpis } from "@/lib/workspace.functions";
-import { listLeads } from "@/lib/crm.functions";
+import { hiddenRoutesForPreset, resolvePresetId } from "@/lib/presets";
 import { listOrders } from "@/lib/orders.functions";
 import { formatMoney } from "@/lib/types";
 import { t } from "@/lib/i18n";
@@ -32,7 +31,7 @@ export const Route = createFileRoute("/_authenticated/dashboard/")({
       { title: t("Ish ekrani — KetaOne") },
       {
         name: "description",
-        content: t("Bugungi tushum, yangi mijozlar, murojaatlar va bajarilishi kerak bo‘lgan ishlar bir ekranda."),
+        content: t("Bugungi tushum, yangi mijozlar va bajarilishi kerak bo‘lgan ishlar bir ekranda."),
       },
       { property: "og:title", content: t("Ish ekrani — KetaOne") },
       { property: "og:description", content: t("Biznesingizning bugungi holati real ma’lumotlar asosida.") },
@@ -44,7 +43,6 @@ export const Route = createFileRoute("/_authenticated/dashboard/")({
 function Overview() {
   const navigate = useNavigate();
   const fetchKpis = useServerFn(getDashboardKpis);
-  const fetchLeads = useServerFn(listLeads);
   const fetchOrders = useServerFn(listOrders);
   const fetchConfig = useServerFn(getMyCrmConfig);
   const fetchWidgets = useServerFn(getWidgetStats);
@@ -56,17 +54,17 @@ function Overview() {
     queryFn: () => fetchBookings(),
     refetchInterval: LIVE_REFETCH_MS,
   });
-  const leads = useQuery({
-    queryKey: ["leads", "recent"],
-    queryFn: () => fetchLeads({ data: {} }),
-    refetchInterval: LIVE_REFETCH_MS,
-  });
+  const crmConfig = useQuery({ queryKey: ["crm-config"], queryFn: () => fetchConfig() });
+  const presetId = resolvePresetId(crmConfig.data?.industry, crmConfig.data?.config?.presetId);
+  // Preset bo'limi yashirgan sahifaga havola ham, uning ma'lumot so'rovi ham bo'lmaydi.
+  const hidden = hiddenRoutesForPreset(presetId);
+  const showOrders = !hidden.has("/dashboard/orders");
   const orders = useQuery({
     queryKey: ["orders", "recent"],
     queryFn: () => fetchOrders({ data: {} }),
     refetchInterval: LIVE_REFETCH_MS,
+    enabled: showOrders,
   });
-  const crmConfig = useQuery({ queryKey: ["crm-config"], queryFn: () => fetchConfig() });
   const widgetStats = useQuery({
     queryKey: ["crm-widgets"],
     queryFn: () => fetchWidgets(),
@@ -125,22 +123,16 @@ function Overview() {
             icon={<UserRoundPlus className="size-4" />}
           />
         </Link>
-        <Link to="/dashboard/leads" className="block">
-          <StatCard
-            label={t("Yangi murojaatlar")}
-            value={data.newLeads}
-            hint={t("Faol: {v0}", { v0: data.activeLeads })}
-            icon={<Target className="size-4" />}
-          />
-        </Link>
-        <Link to="/dashboard/orders" className="block">
-          <StatCard
-            label={t("Yangi buyurtmalar")}
-            value={data.newOrders}
-            hint={t("Bugun yaratilgan")}
-            icon={<ShoppingCart className="size-4" />}
-          />
-        </Link>
+        {showOrders ? (
+          <Link to="/dashboard/orders" className="block">
+            <StatCard
+              label={t("Yangi buyurtmalar")}
+              value={data.newOrders}
+              hint={t("Bugun yaratilgan")}
+              icon={<ShoppingCart className="size-4" />}
+            />
+          </Link>
+        ) : null}
         <Link to="/dashboard/payments" search={{ status: "pending" }} className="block">
           <StatCard
             label={t("Kutilayotgan to‘lovlar")}
@@ -251,7 +243,9 @@ function Overview() {
 
       {crmConfig.data?.hasConfig && (crmConfig.data.config?.dashboardWidgets?.length ?? 0) > 0 ? (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {(crmConfig.data.config?.dashboardWidgets ?? []).map((widget) => (
+          {(crmConfig.data.config?.dashboardWidgets ?? [])
+            .filter((widget) => showOrders || widget.kind !== "legacy_today_orders")
+            .map((widget) => (
             <StatCard
               key={widget.key}
               label={t(widget.label)}
@@ -265,61 +259,33 @@ function Overview() {
         </div>
       ) : null}
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <section className="clay-panel p-5">
-          <div className="flex items-center justify-between">
-            <h2 className="font-display text-base font-semibold">{t("Oxirgi murojaatlar")}</h2>
-            <Button asChild variant="ghost" size="sm">
-              <Link to="/dashboard/leads">{t("Barchasi")}</Link>
-            </Button>
-          </div>
-          <div className="mt-3 space-y-2">
-            {(leads.data ?? []).slice(0, 5).map((lead) => {
-              const customer = lead.customers as { full_name: string | null } | null;
-              return (
-                <div key={lead.id} className="clay-inset flex items-center justify-between gap-3 rounded-2xl px-3 py-2">
+      <div className="grid gap-4">
+        {showOrders ? (
+          <section className="clay-panel p-5">
+            <div className="flex items-center justify-between">
+              <h2 className="font-display text-base font-semibold">{t("Oxirgi buyurtmalar")}</h2>
+              <Button asChild variant="ghost" size="sm">
+                <Link to="/dashboard/orders">{t("Barchasi")}</Link>
+              </Button>
+            </div>
+            <div className="mt-3 space-y-2">
+              {(orders.data ?? []).slice(0, 5).map((order) => (
+                <div key={order.id} className="clay-inset flex items-center justify-between gap-3 rounded-2xl px-3 py-2">
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">
-                      {customer?.full_name ?? "Ismsiz mijoz"}
-                    </p>
+                    <p className="truncate text-sm font-medium">#{order.order_number}</p>
                     <p className="truncate text-xs text-muted-foreground">
-                      {lead.requested_product ?? "—"}
+                      {formatMoney(order.total, currency)}
                     </p>
                   </div>
-                  <StatusBadge value={lead.status} />
+                  <StatusBadge value={order.status} />
                 </div>
-              );
-            })}
-            {(leads.data ?? []).length === 0 ? (
-              <p className="text-sm text-muted-foreground">{t("Hozircha murojaat yo‘q.")}</p>
-            ) : null}
-          </div>
-        </section>
-
-        <section className="clay-panel p-5">
-          <div className="flex items-center justify-between">
-            <h2 className="font-display text-base font-semibold">{t("Oxirgi buyurtmalar")}</h2>
-            <Button asChild variant="ghost" size="sm">
-              <Link to="/dashboard/orders">{t("Barchasi")}</Link>
-            </Button>
-          </div>
-          <div className="mt-3 space-y-2">
-            {(orders.data ?? []).slice(0, 5).map((order) => (
-              <div key={order.id} className="clay-inset flex items-center justify-between gap-3 rounded-2xl px-3 py-2">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium">#{order.order_number}</p>
-                  <p className="truncate text-xs text-muted-foreground">
-                    {formatMoney(order.total, currency)}
-                  </p>
-                </div>
-                <StatusBadge value={order.status} />
-              </div>
-            ))}
-            {(orders.data ?? []).length === 0 ? (
-              <p className="text-sm text-muted-foreground">{t("Hozircha buyurtma yo‘q.")}</p>
-            ) : null}
-          </div>
-        </section>
+              ))}
+              {(orders.data ?? []).length === 0 ? (
+                <p className="text-sm text-muted-foreground">{t("Hozircha buyurtma yo‘q.")}</p>
+              ) : null}
+            </div>
+          </section>
+        ) : null}
       </div>
     </>
   );

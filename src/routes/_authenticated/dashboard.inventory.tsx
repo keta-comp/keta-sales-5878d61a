@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 
@@ -8,6 +8,7 @@ import { ErrorState, LoadingState, PageHeader, StatCard, StatusBadge } from "@/c
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { adjustStock, listInventoryMovements, listProducts } from "@/lib/catalog.functions";
+import { useHiddenSection } from "@/lib/section-visibility";
 import { stockState } from "@/lib/types";
 import { t } from "@/lib/i18n";
 
@@ -29,9 +30,14 @@ function InventoryPage() {
   const fetchMovements = useServerFn(listInventoryMovements);
   const adjust = useServerFn(adjustStock);
   const [deltas, setDeltas] = useState<Record<string, string>>({});
+  const hidden = useHiddenSection("/dashboard/inventory");
 
-  const products = useQuery({ queryKey: ["products", "inventory"], queryFn: () => fetchProducts({ data: {} }) });
-  const movements = useQuery({ queryKey: ["movements"], queryFn: () => fetchMovements() });
+  const products = useQuery({
+    queryKey: ["products", "inventory"],
+    queryFn: () => fetchProducts({ data: {} }),
+    enabled: !hidden,
+  });
+  const movements = useQuery({ queryKey: ["movements"], queryFn: () => fetchMovements(), enabled: !hidden });
 
   const mutation = useMutation({
     mutationFn: (input: { id: string; change: number }) =>
@@ -44,6 +50,7 @@ function InventoryPage() {
     onError: (error: unknown) => toast.error(error instanceof Error ? error.message : t("O'zgartirish amalga oshmadi")),
   });
 
+  if (hidden) return <Navigate to="/dashboard" replace />;
   if (products.isPending) return <LoadingState />;
   if (products.error) return <ErrorState error={products.error} onRetry={() => void products.refetch()} />;
 

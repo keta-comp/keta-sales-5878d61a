@@ -16,7 +16,9 @@ import {
   crmConfigForPreset,
   droppedModulesForPreset,
   enabledModuleKeys,
+  hiddenRoutesForPreset,
   isModuleEnabled,
+  isSectionVisible,
   menuForPreset,
   medicalModuleKeys,
   missingPresetParts,
@@ -85,7 +87,7 @@ describe("preset registry", () => {
     }
   });
 
-  test("legacy CRM entry points stay in every preset menu", () => {
+  test("core entry points stay in the menu unless the preset switches them off", () => {
     const required = [
       "/dashboard/customers",
       "/dashboard/leads",
@@ -94,11 +96,25 @@ describe("preset registry", () => {
     ];
     for (const id of PRESET_IDS) {
       const menu = menuForPreset(id);
+      const hidden = hiddenRoutesForPreset(id);
       expect(menu[0].to).toBe("/dashboard");
       for (const to of required) {
-        expect(menu.some((item) => item.to === to)).toBe(true);
+        expect(menu.some((item) => item.to === to)).toBe(!hidden.has(to));
       }
+      // Murojaatlar bo'limi hech qaysi sohada qolmaydi.
+      expect(hidden.has("/dashboard/leads")).toBe(true);
     }
+  });
+
+  test("the industries the owner switched off really lost those sections", () => {
+    for (const id of ["stomatologiya", "klinika", "oquv"]) {
+      expect(isSectionVisible(id, "/dashboard/orders")).toBe(false);
+    }
+    expect(isSectionVisible("oquv", "/dashboard/inventory")).toBe(false);
+    expect(isSectionVisible("oquv", "/dashboard/customers")).toBe(true);
+    expect(isSectionVisible("ecommerce", "/dashboard/orders")).toBe(true);
+    expect(isSectionVisible("ecommerce", "/dashboard/inventory")).toBe(true);
+    expect(isSectionVisible("universal", "/dashboard/inventory")).toBe(true);
   });
 
   test("every enabled module has a menu entry", () => {
