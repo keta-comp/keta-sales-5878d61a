@@ -28,6 +28,7 @@ import { savePayment } from "@/lib/payments.functions";
 import { saveTask } from "@/lib/tasks.functions";
 import { createQuickLead, createQuickOrder, listPickers } from "@/lib/quick.functions";
 import { useSectionVisibility } from "@/lib/section-visibility";
+import { useTerminology } from "@/lib/terminology";
 import {
   CUSTOMER_SOURCES,
   CUSTOMER_STATUSES,
@@ -93,7 +94,7 @@ export function CustomerDialog({
   open,
   onOpenChange,
   customer,
-  title = "Yangi mijoz",
+  title,
 }: {
   open: boolean;
   onOpenChange: (value: boolean) => void;
@@ -103,6 +104,8 @@ export function CustomerDialog({
   const save = useServerFn(saveCrmCustomer);
   const invalidate = useInvalidate();
   const pickers = usePickers(open);
+  const { term } = useTerminology();
+  const person = term("customers").one;
   const [form, setForm] = useState<CustomerSeed>({});
 
   useEffect(() => {
@@ -125,7 +128,7 @@ export function CustomerDialog({
         },
       }),
     onSuccess: () => {
-      toast.success(t("Mijoz saqlandi"));
+      toast.success(t("{term} saqlandi", { term: person }));
       invalidate();
       onOpenChange(false);
     },
@@ -137,7 +140,11 @@ export function CustomerDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>{form.id ? t("Mijozni tahrirlash") : title}</DialogTitle>
+          <DialogTitle>
+            {form.id
+              ? t("{term}ni tahrirlash", { term: person })
+              : (title ?? t("Yangi {term}", { term: person }))}
+          </DialogTitle>
           <DialogDescription>{t("Faqat kerakli maydonlarni to‘ldiring.")}</DialogDescription>
         </DialogHeader>
         <div className="grid gap-3 sm:grid-cols-2">
@@ -1018,7 +1025,7 @@ export function QuickNewButton({
       <OrderDialog
         open={openKey === "order"}
         onOpenChange={(v) => setOpenKey(v ? "order" : null)}
-        label={labels.order.startsWith("Yangi") ? labels.order : t("Yangi {v0}", { v0: labels.order.toLowerCase() })}
+        label={t("Yangi {v0}", { v0: labels.order.toLowerCase() })}
       />
       <PaymentDialog
         open={openKey === "payment"}

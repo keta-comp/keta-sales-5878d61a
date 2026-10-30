@@ -1,5 +1,7 @@
 /** Client-safe constants for the CRM core (customers, leads, orders, payments, tasks). */
 
+import { coreTerm, resolvePresetId } from "./presets";
+
 export const CUSTOMER_STATUSES = ["active", "lead", "vip", "inactive"] as const;
 export const CUSTOMER_SOURCES = [
   "website",
@@ -61,40 +63,13 @@ export const DEFAULT_LEAD_PIPELINE = [
 export type QuickActionKey = "customer" | "lead" | "order" | "payment" | "task";
 
 export function quickActionLabels(industry: string | null | undefined): Record<QuickActionKey, string> {
-  const key = (industry ?? "").toLowerCase();
-  if (key === "dental" || key === "clinic" || key === "medical") {
-    return {
-      customer: "Bemor",
-      lead: "Murojaat",
-      order: "Qabul",
-      payment: "To‘lov",
-      task: "Vazifa",
-    };
-  }
-  if (key === "education" || key === "learning_center") {
-    return {
-      customer: "O‘quvchi",
-      lead: "Lead",
-      order: "Guruhga yozish",
-      payment: "To‘lov",
-      task: "Vazifa",
-    };
-  }
-  if (key === "beauty" || key === "restaurant" || key === "autoservice" || key === "service") {
-    return {
-      customer: "Mijoz",
-      lead: "Murojaat",
-      order: "Buyurtma",
-      payment: "To‘lov",
-      task: "Vazifa",
-    };
-  }
+  const presetId = resolvePresetId(industry);
   return {
-    customer: "Mijoz",
-    lead: "Murojaat",
-    order: "Buyurtma",
-    payment: "To‘lov",
-    task: "Vazifa",
+    customer: coreTerm(presetId, "customers").one,
+    lead: coreTerm(presetId, "leads").one,
+    order: coreTerm(presetId, "orders").one,
+    payment: coreTerm(presetId, "payments").one,
+    task: coreTerm(presetId, "tasks").one,
   };
 }
 

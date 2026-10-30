@@ -34,6 +34,7 @@ import {
   setAppointmentStatus,
 } from "@/lib/appointments.functions";
 import { t } from "@/lib/i18n";
+import { useSectionTitle, useTerminology } from "@/lib/terminology";
 import { formatMoney } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -125,7 +126,7 @@ type AppointmentRow = {
   customers: unknown;
 };
 
-function MiniAppointment({ row, onOpen }: { row: AppointmentRow; onOpen: () => void }) {
+function MiniAppointment({ row, onOpen, noPerson }: { row: AppointmentRow; onOpen: () => void; noPerson: string }) {
   const status = row.status as AppointmentStatus;
   const customer = (row.customers ?? null) as { full_name?: string | null } | null;
   return (
@@ -138,9 +139,7 @@ function MiniAppointment({ row, onOpen }: { row: AppointmentRow; onOpen: () => v
       <span className="tabular-nums font-medium">
         {new Date(row.starts_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
       </span>
-      <span className="truncate text-muted-foreground">
-        {customer?.full_name ?? row.service_name ?? t("Mijozsiz")}
-      </span>
+      <span className="truncate text-muted-foreground">{customer?.full_name ?? row.service_name ?? noPerson}</span>
     </button>
   );
 }
@@ -161,6 +160,9 @@ function ScheduleTab() {
   const save = useServerFn(saveAppointment);
   const setStatus = useServerFn(setAppointmentStatus);
   const remove = useServerFn(deleteAppointment);
+  const { term } = useTerminology();
+  const booking = term("appointments");
+  const person = term("customers");
 
   const [view, setView] = useState<CalendarView>("day");
   const [day, setDay] = useState(today());
@@ -172,6 +174,7 @@ function ScheduleTab() {
     employee_id: "",
     branch_id: "",
     starts_at: defaultStartLocal(today()),
+    duration_minutes: "60",
     note: "",
   });
 
@@ -190,20 +193,26 @@ function ScheduleTab() {
   const invalidate = () => void queryClient.invalidateQueries({ queryKey: ["appointments"] });
 
   const saveMutation = useMutation({
-    mutationFn: () =>
-      save({
+    mutationFn: () => {
+      const startsAt = fromLocalInputValue(form.starts_at);
+      return save({
         data: {
           service_id: form.service_id || null,
           customer_id: form.customer_id || null,
           employee_id: form.employee_id || null,
           branch_id: form.branch_id || null,
-          starts_at: fromLocalInputValue(form.starts_at),
+          starts_at: startsAt,
+          duration_minutes: Number(form.duration_minutes) || 60,
           note: form.note || undefined,
         },
-      }),
+      });
+    },
     onSuccess: () => {
-      toast.success(t("Bron qo'shildi"));
+      toast.success(t("{term} qo'shildi", { term: booking.one }));
       setForm((prev) => ({ ...prev, customer_id: "", note: "" }));
+      // Qo'shilgan qabul darhol ko'rinishi uchun kalendar shu kundagi joyga o'tadi.
+      setDay(form.starts_at.slice(0, 10));
+      setView("day");
       invalidate();
     },
     onError: (error: unknown) => toast.error(error instanceof Error ? error.message : t("Amalga oshmadi")),
@@ -221,7 +230,7 @@ function ScheduleTab() {
   const removeMutation = useMutation({
     mutationFn: (id: string) => remove({ data: { id } }),
     onSuccess: () => {
-      toast.success(t("Bron o'chirildi"));
+      toast.success(t("{term} o'chirildi", { term: booking.one }));
       invalidate();
     },
     onError: (error: unknown) => toast.error(error instanceof Error ? error.message : t("Amalga oshmadi")),
@@ -248,7 +257,12 @@ function ScheduleTab() {
           <Select
             value={form.service_id}
             onValueChange={(value) => {
-              setForm((prev) => ({ ...prev, service_id: value === "none" ? "" : value }));
+              const service = (services.data ?? []).find((item) => item.id === value);
+              setForm((prev) => ({
+                ...prev,
+                service_id: value === "none" ? "" : value,
+                duration_minutes: service ? String(service.duration_minutes) : prev.duration_minutes,
+              }));
             }}
           >
             <SelectTrigger id="apt-service">
@@ -265,16 +279,16 @@ function ScheduleTab() {
           </Select>
         </div>
         <div className="sm:col-span-2">
-          <Label htmlFor="apt-customer">{t("Mijoz")}</Label>
+          <Label htmlFor="apt-customer">{person.one}</Label>
           <Select
             value={form.customer_id}
             onValueChange={(value) => setForm((prev) => ({ ...prev, customer_id: value === "none" ? "" : value }))}
           >
             <SelectTrigger id="apt-customer">
-              <SelectValue placeholder={t("Mijozni tanlang")} />
+              <SelectValue placeholder={t("{term}ni tanlang", { term: person.one })} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="none">{t("Mijozsiz")}</SelectItem>
+              <SelectItem value="none">{t("{term}siz", { term: person.one })}</SelectItem>
               {(customers.data ?? []).map((customer) => (
                 <SelectItem key={customer.id} value={customer.id}>
                   {customer.full_name || customer.phone || customer.id}
@@ -334,6 +348,19 @@ function ScheduleTab() {
           />
         </div>
         <div className="sm:col-span-2">
+          <Label htmlFor="apt-duration">{t("Davomiyligi (daq.)")}</Label>
+          <Input
+            id="apt-duration"
+            type="number"
+            min={5}
+            max={1440}
+            step={5}
+            required
+            value={form.duration_minutes}
+            onChange={(event) => setForm({ ...form, duration_minutes: event.target.value })}
+          />
+        </div>
+        <div className="sm:col-span-2">
           <Label htmlFor="apt-note">{t("Izoh")}</Label>
           <Textarea
             id="apt-note"
@@ -343,8 +370,8 @@ function ScheduleTab() {
           />
         </div>
         <div className="flex items-end sm:col-span-2">
-          <Button type="submit" className="w-full" disabled={saveMutation.isPending || !form.service_id}>
-            {t("Bron qo'shish")}
+          <Button type="submit" className="w-full" disabled={saveMutation.isPending}>
+            {t("Yangi {term}", { term: booking.one })}
           </Button>
         </div>
       </form>
@@ -391,7 +418,7 @@ function ScheduleTab() {
         </Button>
         <span className="ml-auto flex items-center gap-2 text-sm text-muted-foreground">
           <CalendarDays className="size-4" />
-          {rows.length} {t("ta bron")}
+          {rows.length} {t("ta {term}", { term: booking.one })}
         </span>
       </div>
 
@@ -401,7 +428,10 @@ function ScheduleTab() {
         <ErrorState error={appointments.error} onRetry={() => void appointments.refetch()} />
       ) : view === "day" ? (
         rows.length === 0 ? (
-          <EmptyState title={t("Bu kunga bron yo'q")} description={t("Yuqoridagi forma orqali yangi bron qo'shing.")} />
+          <EmptyState
+            title={t("Bu kunga {term} yo'q", { term: booking.one })}
+            description={t("Yuqoridagi forma orqali yangi {term} qo'shing.", { term: booking.one })}
+          />
         ) : (
           <div className="grid gap-3">
             {rows.map((row) => {
@@ -430,7 +460,7 @@ function ScheduleTab() {
                       ) : null}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {customer?.full_name || customer?.phone || t("Mijozsiz")}
+                      {customer?.full_name || customer?.phone || t("{term}siz", { term: person.one })}
                       {employee?.full_name ? ` · ${employee.full_name}` : ""}
                       {branch?.name ? ` · ${branch.name}` : ""}
                     </p>
@@ -458,7 +488,7 @@ function ScheduleTab() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    aria-label={t("Bronni o'chirish")}
+                    aria-label={t("{term}ni o'chirish", { term: booking.one })}
                     disabled={removeMutation.isPending}
                     onClick={() => removeMutation.mutate(row.id)}
                   >
@@ -494,10 +524,15 @@ function ScheduleTab() {
                   </button>
                   <div className="grid gap-1">
                     {dayRows.map((row) => (
-                      <MiniAppointment key={row.id} row={row} onOpen={() => {
-                        setDay(localDay(row.starts_at));
-                        setView("day");
-                      }} />
+                      <MiniAppointment
+                        key={row.id}
+                        row={row}
+                        noPerson={t("{term}siz", { term: person.one })}
+                        onOpen={() => {
+                          setDay(localDay(row.starts_at));
+                          setView("day");
+                        }}
+                      />
                     ))}
                   </div>
                 </div>
@@ -736,11 +771,14 @@ function ServicesTab() {
 }
 
 function AppointmentsPage() {
+  const { term } = useTerminology();
+  const booking = term("appointments");
+  useSectionTitle(booking.many);
   return (
     <>
       <PageHeader
-        title={t("Qabul va bron")}
-        description={t("Xizmatlar jadvali, mijoz qabullari va xodim bandligini boshqaring.")}
+        title={booking.many}
+        description={t("{many}: xizmatlar jadvali va qabullar bandligini boshqaring.", { many: booking.many })}
       />
       <Tabs defaultValue="schedule">
         <TabsList>

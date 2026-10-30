@@ -647,6 +647,38 @@ export const telegramBotState = pgTable("telegram_bot_state", {
 	index("telegram_bot_state_expiry_idx").using("btree", table.expiresAt.asc().nullsLast().op("timestamptz_ops")),
 ]);
 
+export const attendance = pgTable("attendance", {
+	id: uuid().defaultRandom().primaryKey().notNull(),
+	businessId: uuid("business_id").notNull(),
+	studentId: uuid("student_id").notNull(),
+	lessonDate: date("lesson_date").notNull(),
+	groupName: text("group_name").default('').notNull(),
+	status: text().default('present').notNull(),
+	note: text().default('').notNull(),
+	markedBy: uuid("marked_by"),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+}, (table) => [
+	index("attendance_business_date_idx").using("btree", table.businessId.asc().nullsLast().op("uuid_ops"), table.lessonDate.asc().nullsLast().op("date_ops")),
+	unique("attendance_one_mark_per_day").on(table.businessId, table.studentId, table.lessonDate, table.groupName),
+	foreignKey({
+			columns: [table.businessId],
+			foreignColumns: [businesses.id],
+			name: "attendance_business_id_fkey"
+		}).onDelete("cascade"),
+	foreignKey({
+			columns: [table.studentId],
+			foreignColumns: [customers.id],
+			name: "attendance_student_id_fkey"
+		}).onDelete("cascade"),
+	foreignKey({
+			columns: [table.markedBy],
+			foreignColumns: [profiles.id],
+			name: "attendance_marked_by_fkey"
+		}).onDelete("set null"),
+	pgPolicy("attendance tenant", { as: "permissive", for: "all", to: ["app_user"], using: sql`is_business_member(business_id) AND branch_access_ok(business_id, NULL)`, withCheck: sql`is_business_member(business_id) AND branch_access_ok(business_id, NULL)` }),
+]);
+
 export const payrollRules = pgTable("payroll_rules", {
 	id: uuid().defaultRandom().primaryKey().notNull(),
 	businessId: uuid("business_id").notNull(),

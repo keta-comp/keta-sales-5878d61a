@@ -260,10 +260,10 @@ const PRESET_LIST: IndustryPreset[] = [
     labels: { customers: "O‘quvchilar", products: "Kurslar" },
     singles: { customers: "O‘quvchi", products: "Kurs", appointments: "Sinov darsi" },
     industryItems: [
-      dynamicItem("kurslar", "Kurslar ro‘yxati", "book"),
+      dynamicItem("kurslar", "Kurslar", "book"),
       dynamicItem("guruhlar", "Guruhlar", "layers"),
       dynamicItem("oqituvchilar", "O‘qituvchilar", "user"),
-      dynamicItem("davomat", "Davomat", "check"),
+      { to: "/dashboard/attendance", label: "Davomat", icon: "check", section: "industry" },
       paymentsItem(),
     ],
     hiddenModuleKeys: [],

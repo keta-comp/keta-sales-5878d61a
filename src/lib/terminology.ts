@@ -4,10 +4,12 @@
  * in the menu and another on its own page.
  */
 
+import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 
 import { getMyCrmConfig } from "./crm-config.functions";
+import { t } from "./i18n";
 import { type CoreKey, resolvePresetId, termsForPreset } from "./presets";
 
 export type Term = { one: string; many: string };
@@ -23,5 +25,17 @@ export function useTerminology(): Terminology {
   const config = useQuery({ queryKey: ["crm-config"], queryFn: () => fetchConfig() });
   const presetId = resolvePresetId(config.data?.industry, config.data?.config?.presetId);
   const terms = termsForPreset(presetId);
-  return { loading: config.isPending, presetId, term: (key) => terms[key] };
+  // Istalgan tilda soha nomlari ham tarjima bo'lishi uchun tarjimani shu bir joyda qilamiz.
+  return {
+    loading: config.isPending,
+    presetId,
+    term: (key) => ({ one: t(terms[key].one), many: t(terms[key].many) }),
+  };
+}
+
+/** Brauzer qivati menyu va sahifa sarlavhasi bilan bir xil bo'lim nomini ko'rsatishi uchun. */
+export function useSectionTitle(many: string) {
+  useEffect(() => {
+    document.title = `${many} — KetaOne`;
+  }, [many]);
 }

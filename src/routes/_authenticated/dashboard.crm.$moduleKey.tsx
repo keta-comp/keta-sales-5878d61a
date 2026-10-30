@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
 import { Plus, Search, Trash2 } from "lucide-react";
@@ -81,6 +81,12 @@ function CrmModulePage() {
   const module = useMemo(() => {
     const cfg = config.data?.config;
     return cfg?.modules.find((m) => m.key === moduleKey && !m.link) ?? null;
+  }, [config.data, moduleKey]);
+
+  // Modullar yadro sahifasiga ko'chgan (Davomat → /dashboard/attendance) — eski havolani shu yerga yuboramiz.
+  const movedTo = useMemo(() => {
+    const cfg = config.data?.config;
+    return cfg?.modules.find((m) => m.key === moduleKey && m.link)?.link ?? null;
   }, [config.data, moduleKey]);
 
   const [editing, setEditing] = useState<RecordRow | null>(null);
@@ -168,6 +174,7 @@ function CrmModulePage() {
 
   if (config.isPending) return <LoadingState />;
   if (config.error) return <ErrorState error={config.error} onRetry={() => void config.refetch()} />;
+  if (movedTo) return <Navigate to={movedTo} replace />;
   if (!module) {
     return <EmptyState title={t("Modul topilmadi")} description={t("Bu modul CRM konfiguratsiyasida mavjud emas.")} />;
   }

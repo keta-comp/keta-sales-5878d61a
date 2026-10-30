@@ -19,7 +19,7 @@ import {
   saveProduct,
 } from "@/lib/catalog.functions";
 import { formatMoney, stockState } from "@/lib/types";
-import { useTerminology } from "@/lib/terminology";
+import { useSectionTitle, useTerminology } from "@/lib/terminology";
 import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/dashboard/products")({
@@ -81,6 +81,7 @@ function ProductsPage() {
     queryFn: () => fetchProducts({ data: { search, categoryId } }),
   });
   const categories = useQuery({ queryKey: ["categories"], queryFn: () => fetchCategories() });
+  useSectionTitle(catalog.many);
 
   const saveMutation = useMutation({
     mutationFn: (value: Draft) =>
@@ -114,7 +115,7 @@ function ProductsPage() {
   const removeMutation = useMutation({
     mutationFn: (id: string) => remove({ data: { id } }),
     onSuccess: () => {
-      toast.success(t("Mahsulot o'chirildi"));
+      toast.success(t("{term} o'chirildi", { term: catalog.one }));
       void queryClient.invalidateQueries({ queryKey: ["products"] });
     },
     onError: (error: unknown) => toast.error(error instanceof Error ? error.message : t("O'chirish amalga oshmadi")),
@@ -132,9 +133,12 @@ function ProductsPage() {
   return (
     <>
       <PageHeader
-        title={t("Mahsulotlar")}
-        description={t("AI agent faqat shu yerdagi mahsulotlarni, shu narx va zaxira bo'yicha sotadi.")}
-        actions={<Button onClick={() => setDraft(EMPTY)}>{t("Yangi mahsulot")}</Button>}
+        title={catalog.many}
+        description={t(
+          "AI agent faqat shu yerdagi {many}ni, shu narx va zaxira bo'yicha sotadi.",
+          { many: catalog.many },
+        )}
+        actions={<Button onClick={() => setDraft(EMPTY)}>{t("Yangi {term}", { term: catalog.one })}</Button>}
       />
 
       <div className="flex flex-wrap items-end gap-3">
@@ -186,16 +190,16 @@ function ProductsPage() {
         <ErrorState error={products.error} onRetry={() => void products.refetch()} />
       ) : products.data.length === 0 ? (
         <EmptyState
-          title={t("Hozircha mahsulot yo'q")}
+          title={t("Hozircha {many} yo'q", { many: catalog.many })}
           description={t("AI agent haqiqiy narx va zaxira asosida taklif berishi uchun katalogingizni qo'shing.")}
-          action={<Button onClick={() => setDraft(EMPTY)}>{t("Yangi mahsulot")}</Button>}
+          action={<Button onClick={() => setDraft(EMPTY)}>{t("Yangi {term}", { term: catalog.one })}</Button>}
         />
       ) : (
         <div className="clay-panel clay-inset overflow-x-auto rounded-3xl p-2">
           <table className="w-full text-sm">
             <thead className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
-                <th className="px-4 py-3">{t("Mahsulot")}</th>
+                <th className="px-4 py-3">{catalog.one}</th>
                 <th className="px-4 py-3">{t("Kategoriya")}</th>
                 <th className="px-4 py-3">{t("Narx")}</th>
                 <th className="px-4 py-3">{t("Zaxira")}</th>
@@ -265,7 +269,11 @@ function ProductsPage() {
       <Sheet open={Boolean(draft)} onOpenChange={(open) => (open ? null : setDraft(null))}>
         <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
           <SheetHeader>
-            <SheetTitle>{draft?.id ? t("Mahsulotni tahrirlash") : t("Yangi mahsulot")}</SheetTitle>
+            <SheetTitle>
+              {draft?.id
+                ? t("{term}ni tahrirlash", { term: catalog.one })
+                : t("Yangi {term}", { term: catalog.one })}
+            </SheetTitle>
           </SheetHeader>
           {draft ? (
             <form
@@ -362,7 +370,7 @@ function ProductsPage() {
                 </div>
               </div>
               <Button type="submit" className="w-full" disabled={saveMutation.isPending}>
-                {t("Mahsulotni saqlash")}
+                {t("{term}ni saqlash", { term: catalog.one })}
               </Button>
             </form>
           ) : null}

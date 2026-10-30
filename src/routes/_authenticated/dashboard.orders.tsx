@@ -14,6 +14,7 @@ import { LIVE_REFETCH_MS } from "@/lib/polling";
 import { listAssignees } from "@/lib/members.functions";
 import { listOrders, updateOrder } from "@/lib/orders.functions";
 import { useHiddenSection } from "@/lib/section-visibility";
+import { useSectionTitle, useTerminology } from "@/lib/terminology";
 import {
   ORDER_STATUSES,
   PAYMENT_STATUSES,
@@ -73,6 +74,9 @@ function OrdersPage() {
   const fetchAssignees = useServerFn(listAssignees);
   const save = useServerFn(updateOrder);
   const hidden = useHiddenSection("/dashboard/orders");
+  const { term } = useTerminology();
+  const ordersTerm = term("orders");
+  useSectionTitle(ordersTerm.many);
 
   const status = params.status ?? "all";
   const search = params.search ?? "";
@@ -101,7 +105,7 @@ function OrdersPage() {
   const mutation = useMutation({
     mutationFn: (input: OrderPatch) => save({ data: input }),
     onSuccess: () => {
-      toast.success(t("Buyurtma yangilandi"));
+      toast.success(t("{term} yangilandi", { term: ordersTerm.one }));
       void queryClient.invalidateQueries({ queryKey: ["orders"] });
       void queryClient.invalidateQueries({ queryKey: ["products"] });
     },
@@ -113,7 +117,7 @@ function OrdersPage() {
   return (
     <>
       <PageHeader
-        title={t("Buyurtmalar")}
+        title={ordersTerm.many}
         description={t("Buyurtmani tasdiqlash ombordan zaxiralaydi; bekor qilish uni bo'shatadi — bu ma'lumotlar bazasida avtomatik amalga oshadi.")}
       />
 

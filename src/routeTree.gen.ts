@@ -21,6 +21,7 @@ import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authe
 import { Route as AuthenticatedDashboardAnalyticsRouteImport } from './routes/_authenticated/dashboard.analytics'
 import { Route as AuthenticatedDashboardAppointmentsRouteImport } from './routes/_authenticated/dashboard.appointments'
 import { Route as AuthenticatedDashboardAssistantRouteImport } from './routes/_authenticated/dashboard.assistant'
+import { Route as AuthenticatedDashboardAttendanceRouteImport } from './routes/_authenticated/dashboard.attendance'
 import { Route as AuthenticatedDashboardBillingRouteImport } from './routes/_authenticated/dashboard.billing'
 import { Route as AuthenticatedDashboardBranchesRouteImport } from './routes/_authenticated/dashboard.branches'
 import { Route as AuthenticatedDashboardCrmBuilderRouteImport } from './routes/_authenticated/dashboard.crm-builder'
@@ -122,6 +123,12 @@ const AuthenticatedDashboardAssistantRoute =
   AuthenticatedDashboardAssistantRouteImport.update({
     id: '/assistant',
     path: '/assistant',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
+const AuthenticatedDashboardAttendanceRoute =
+  AuthenticatedDashboardAttendanceRouteImport.update({
+    id: '/attendance',
+    path: '/attendance',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
 const AuthenticatedDashboardBillingRoute =
@@ -367,6 +374,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/analytics': typeof AuthenticatedDashboardAnalyticsRoute
   '/dashboard/appointments': typeof AuthenticatedDashboardAppointmentsRoute
   '/dashboard/assistant': typeof AuthenticatedDashboardAssistantRoute
+  '/dashboard/attendance': typeof AuthenticatedDashboardAttendanceRoute
   '/dashboard/billing': typeof AuthenticatedDashboardBillingRoute
   '/dashboard/branches': typeof AuthenticatedDashboardBranchesRoute
   '/dashboard/crm-builder': typeof AuthenticatedDashboardCrmBuilderRoute
@@ -417,6 +425,7 @@ export interface FileRoutesByTo {
   '/dashboard/analytics': typeof AuthenticatedDashboardAnalyticsRoute
   '/dashboard/appointments': typeof AuthenticatedDashboardAppointmentsRoute
   '/dashboard/assistant': typeof AuthenticatedDashboardAssistantRoute
+  '/dashboard/attendance': typeof AuthenticatedDashboardAttendanceRoute
   '/dashboard/billing': typeof AuthenticatedDashboardBillingRoute
   '/dashboard/branches': typeof AuthenticatedDashboardBranchesRoute
   '/dashboard/crm-builder': typeof AuthenticatedDashboardCrmBuilderRoute
@@ -470,6 +479,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard/analytics': typeof AuthenticatedDashboardAnalyticsRoute
   '/_authenticated/dashboard/appointments': typeof AuthenticatedDashboardAppointmentsRoute
   '/_authenticated/dashboard/assistant': typeof AuthenticatedDashboardAssistantRoute
+  '/_authenticated/dashboard/attendance': typeof AuthenticatedDashboardAttendanceRoute
   '/_authenticated/dashboard/billing': typeof AuthenticatedDashboardBillingRoute
   '/_authenticated/dashboard/branches': typeof AuthenticatedDashboardBranchesRoute
   '/_authenticated/dashboard/crm-builder': typeof AuthenticatedDashboardCrmBuilderRoute
@@ -524,6 +534,7 @@ export interface FileRouteTypes {
     | '/dashboard/analytics'
     | '/dashboard/appointments'
     | '/dashboard/assistant'
+    | '/dashboard/attendance'
     | '/dashboard/billing'
     | '/dashboard/branches'
     | '/dashboard/crm-builder'
@@ -574,6 +585,7 @@ export interface FileRouteTypes {
     | '/dashboard/analytics'
     | '/dashboard/appointments'
     | '/dashboard/assistant'
+    | '/dashboard/attendance'
     | '/dashboard/billing'
     | '/dashboard/branches'
     | '/dashboard/crm-builder'
@@ -626,6 +638,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard/analytics'
     | '/_authenticated/dashboard/appointments'
     | '/_authenticated/dashboard/assistant'
+    | '/_authenticated/dashboard/attendance'
     | '/_authenticated/dashboard/billing'
     | '/_authenticated/dashboard/branches'
     | '/_authenticated/dashboard/crm-builder'
@@ -766,6 +779,13 @@ declare module '@tanstack/react-router' {
       path: '/assistant'
       fullPath: '/dashboard/assistant'
       preLoaderRoute: typeof AuthenticatedDashboardAssistantRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
+    '/_authenticated/dashboard/attendance': {
+      id: '/_authenticated/dashboard/attendance'
+      path: '/attendance'
+      fullPath: '/dashboard/attendance'
+      preLoaderRoute: typeof AuthenticatedDashboardAttendanceRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
     '/_authenticated/dashboard/billing': {
@@ -1066,6 +1086,7 @@ interface AuthenticatedDashboardRouteChildren {
   AuthenticatedDashboardAnalyticsRoute: typeof AuthenticatedDashboardAnalyticsRoute
   AuthenticatedDashboardAppointmentsRoute: typeof AuthenticatedDashboardAppointmentsRoute
   AuthenticatedDashboardAssistantRoute: typeof AuthenticatedDashboardAssistantRoute
+  AuthenticatedDashboardAttendanceRoute: typeof AuthenticatedDashboardAttendanceRoute
   AuthenticatedDashboardBillingRoute: typeof AuthenticatedDashboardBillingRoute
   AuthenticatedDashboardBranchesRoute: typeof AuthenticatedDashboardBranchesRoute
   AuthenticatedDashboardCrmBuilderRoute: typeof AuthenticatedDashboardCrmBuilderRoute
@@ -1093,6 +1114,8 @@ const AuthenticatedDashboardRouteChildren: AuthenticatedDashboardRouteChildren =
     AuthenticatedDashboardAppointmentsRoute:
       AuthenticatedDashboardAppointmentsRoute,
     AuthenticatedDashboardAssistantRoute: AuthenticatedDashboardAssistantRoute,
+    AuthenticatedDashboardAttendanceRoute:
+      AuthenticatedDashboardAttendanceRoute,
     AuthenticatedDashboardBillingRoute: AuthenticatedDashboardBillingRoute,
     AuthenticatedDashboardBranchesRoute: AuthenticatedDashboardBranchesRoute,
     AuthenticatedDashboardCrmBuilderRoute:

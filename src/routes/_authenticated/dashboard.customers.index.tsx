@@ -19,7 +19,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useSectionVisibility } from "@/lib/section-visibility";
 import { crmLabel, CUSTOMER_SOURCES, CUSTOMER_STATUSES } from "@/lib/crm-core";
 import { listCrmCustomers } from "@/lib/customers.functions";
-import { getMyCrmConfig } from "@/lib/crm-config.functions";
+import { useSectionTitle, useTerminology } from "@/lib/terminology";
 import { formatMoney } from "@/lib/types";
 import { t } from "@/lib/i18n";
 
@@ -42,7 +42,6 @@ type CustomerRow = Awaited<ReturnType<typeof listCrmCustomers>>[number];
 
 function CustomersPage() {
   const fetchCustomers = useServerFn(listCrmCustomers);
-  const fetchConfig = useServerFn(getMyCrmConfig);
   const pickers = usePickers(true);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
@@ -52,21 +51,23 @@ function CustomersPage() {
   const [editing, setEditing] = useState<CustomerRow | null>(null);
   const [open, setOpen] = useState(false);
 
-  const crm = useQuery({ queryKey: ["crm-config"], queryFn: () => fetchConfig() });
   const { isHidden } = useSectionVisibility();
+  const { term } = useTerminology();
+  const person = term("customers");
   const query = useQuery({
     queryKey: ["crm-customers", search, status, source, memberId, sort],
     queryFn: () => fetchCustomers({ data: { search, status, source, memberId, sort } }),
   });
 
-  const term = crm.data?.config?.terminology?.["customer"] ?? "Mijozlar";
+  useSectionTitle(person.many);
+
   const currency = "UZS";
   const showOrders = !isHidden("/dashboard/orders");
 
   return (
     <>
       <PageHeader
-        title={term}
+        title={person.many}
         description={t("Qidiruv, filtr va saralash bilan bazani boshqaring.")}
         actions={
           <Button
@@ -141,11 +142,14 @@ function CustomersPage() {
       </div>
 
       {query.isPending ? (
-        <LoadingState label={t("Mijozlar yuklanmoqda…")} />
+        <LoadingState label={t("{many} yuklanmoqda…", { many: person.many })} />
       ) : query.error ? (
         <ErrorState error={query.error} onRetry={() => void query.refetch()} />
       ) : (query.data ?? []).length === 0 ? (
-        <EmptyState title={t("Mijoz topilmadi")} description={t("Filtrni o‘zgartiring yoki yangi mijoz qo‘shing.")} />
+        <EmptyState
+          title={t("{many} topilmadi", { many: person.many })}
+          description={t("Filtrni o‘zgartiring yoki yangi {term} qo‘shing.", { term: person.one })}
+        />
       ) : (
         <div className="clay-panel overflow-x-auto p-2">
           <Table>
@@ -244,7 +248,6 @@ function CustomersPage() {
               }
             : undefined
         }
-        title={editing ? t("Mijozni tahrirlash") : t("Yangi mijoz")}
       />
     </>
   );

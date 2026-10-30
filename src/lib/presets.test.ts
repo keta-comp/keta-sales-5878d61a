@@ -4,6 +4,7 @@ import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 import { INDUSTRY_PRESETS } from "@/lib/crm-config";
+import { quickActionLabels } from "@/lib/crm-core";
 import en from "@/lib/i18n/en";
 import kaa from "@/lib/i18n/kaa";
 import ru from "@/lib/i18n/ru";
@@ -13,6 +14,7 @@ import {
   SUB_PRESETS,
   applyMissingParts,
   attachPresetId,
+  coreTerm,
   crmConfigForPreset,
   droppedModulesForPreset,
   enabledModuleKeys,
@@ -24,6 +26,7 @@ import {
   missingPresetParts,
   presetForId,
   resolvePresetId,
+  termsForPreset,
   workflowForPreset,
 } from "@/lib/presets";
 
@@ -263,5 +266,43 @@ describe("preset registry", () => {
         if (from === to) expect(dropped).toEqual([]);
       }
     }
+  });
+
+  test("a section page is named exactly like its menu entry", () => {
+    for (const id of PRESET_IDS) {
+      const menu = new Map(menuForPreset(id).map((item) => [item.to, item.label]));
+      const terms = termsForPreset(id);
+      for (const [key, term] of Object.entries(terms)) {
+        const label = menu.get(`/dashboard/${key}`);
+        // Bo'lim menyu yoki sahifasi bo'lmasa nom solishtirilmaydi (leads, yashirin modullar).
+        if (!label) continue;
+        expect(term.many).toBe(label);
+        expect(term.one.length).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  test("an o‘quvchi is not a client and a kurs is not a product", () => {
+    expect(coreTerm("oquv", "products")).toEqual({ one: "Kurs", many: "Kurslar" });
+    expect(coreTerm("oquv", "customers")).toEqual({ one: "O‘quvchi", many: "O‘quvchilar" });
+    expect(coreTerm("oquv", "appointments").one).toBe("Sinov darsi");
+    expect(coreTerm("stomatologiya", "customers")).toEqual({ one: "Bemor", many: "Bemorlar" });
+    expect(coreTerm("stomatologiya", "products").one).toBe("Stomatologik xizmat");
+    expect(coreTerm("klinika", "customers").one).toBe("Bemor");
+    expect(coreTerm("ecommerce", "products").one).toBe("Mahsulot");
+    // Sohasiz/universal bizneslar umumiy shaklda qoladi, nomlashuvi yo‘q preset ham.
+    expect(coreTerm("universal", "products").one).toBe("Xizmat yoki mahsulot");
+    expect(coreTerm("nomalum", "customers")).toEqual({ one: "Mijoz", many: "Mijozlar" });
+    expect(coreTerm(null, "customers").many).toBe("Mijozlar");
+  });
+
+  test("quick actions use the industry wording of the resolved preset", () => {
+    expect(quickActionLabels("oquv").customer).toBe("O‘quvchi");
+    expect(quickActionLabels("stomatologiya").customer).toBe("Bemor");
+    expect(quickActionLabels("ecommerce").order).toBe("Buyurtma");
+    expect(quickActionLabels("beauty").customer).toBe("Mijoz");
+    expect(quickActionLabels(null).customer).toBe("Mijoz");
+    // Saqlangan soha nomi soha kaliti emas — universal shaklga qaytadi.
+    expect(quickActionLabels("O‘quv markazi").customer).toBe("Mijoz");
   });
 });

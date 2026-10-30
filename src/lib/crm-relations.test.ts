@@ -18,4 +18,16 @@ describe("CRM relations", () => {
     const old = { modules: [{ key: "qabul", label: "Qabul", fields: [{ key: "bemor", label: "Bemor", type: "text" }] }], pipelineStages: [], terminology: {}, dashboardWidgets: [], automations: [] };
     expect(applyRelations("klinika", old).modules[0]?.fields?.[0]?.type).toBe("relation");
   });
+  test("a stored davomat module is re-pointed at the attendance page", () => {
+    const stale = {
+      modules: [{ key: "davomat", label: "Davomat", fields: [{ key: "sana", label: "Sana", type: "date" }] }],
+      pipelineStages: [],
+      terminology: {},
+      dashboardWidgets: [],
+      automations: [],
+    };
+    expect(applyRelations("oquv", stale).modules[0]?.link).toBe("/dashboard/attendance");
+    // The shipped preset already carries the link, so the upgrade changes nothing.
+    expect(applyRelations("oquv", { ...stale, modules: [{ ...stale.modules[0], link: "/dashboard/attendance" }] }).modules[0]?.link).toBe("/dashboard/attendance");
+  });
 });

@@ -43,7 +43,8 @@ export type CrmModuleLink =
   | "/dashboard/customers"
   | "/dashboard/orders"
   | "/dashboard/inventory"
-  | "/dashboard/products";
+  | "/dashboard/products"
+  | "/dashboard/attendance";
 
 export interface CrmModule {
   key: string;
@@ -339,17 +340,7 @@ const BASE_PRESETS: Record<string, CrmConfigData> = {
         fields: [textField("ism", "Ism"), phoneField(), textField("fan", "Fan"), noteField()],
       },
       paymentModule(),
-      {
-        key: "davomat",
-        label: "Davomat",
-        icon: "check",
-        fields: [
-          textField("oquvchi", "O‘quvchi"),
-          textField("guruh", "Guruh"),
-          dateField("sana", "Sana"),
-          selectField("holat", "Holat", ["Keldi", "Kelmadi", "Sababli"], true),
-        ],
-      },
+      { key: "davomat", label: "Davomat", icon: "check", link: "/dashboard/attendance" },
     ],
     pipelineStages: ["Yangi lead", "Aloqa qilindi", "Sinov darsi", "Ro‘yxatdan o‘tdi", "O‘qishni boshladi", "Faol", "Tugatdi"],
     terminology: { customer: "O‘quvchi", lead: "Lead", order: "Ro‘yxatdan o‘tish" },
@@ -815,6 +806,15 @@ export const BACKED_MODULE_TABLES: Record<string, CrmBackedTable> = {
 /** Yuqoridagi bo'limdan olib tashlangan modullar — saqlangan konfiguratsiyalardan ham tushib qoladi. */
 export const RETIRED_MODULE_KEYS = ["suhbatlar", "murojaatlar", "leadlar"];
 
+/**
+ * Modullar yadro sahifasiga ko'chgan (Davomat → /dashboard/attendance).
+ * Saqlangan konfiguratsiyalarda ham havola o'qilish vaqtda qo'yiladi, aks holda
+ * eski bizneslar menuyda yana crm_records sahifasiga qaytadi.
+ */
+export const MODULE_LINK_UPGRADES: Partial<Record<string, CrmModuleLink>> = {
+  davomat: "/dashboard/attendance",
+};
+
 /** Sahifasi bo'lmagan (yoki butunlay o'chirilgan) bo'limga havola qiluvchi modullar. */
 const RETIRED_LINKS: string[] = ["/dashboard/conversations", "/dashboard/leads"];
 
@@ -842,6 +842,10 @@ export function applyRelations(industry: string | null | undefined, config: CrmC
         !RETIRED_MODULE_KEYS.includes(m.key) && !(m.link && RETIRED_LINKS.includes(m.link as string)),
     )
     .map((m) => {
+      if (!m.link && !m.table) {
+        const upgrade = MODULE_LINK_UPGRADES[m.key];
+        if (upgrade) return { ...m, link: upgrade };
+      }
       const table = BACKED_MODULE_TABLES[m.key];
       if (!table || m.link) return m;
       // Bosqich crm_records.stage'ni boshqaradi — yadro jadvalida o'z holat ustuni bor.
