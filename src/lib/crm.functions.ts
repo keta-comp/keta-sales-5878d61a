@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/lib/auth-middleware";
+import { requirePermission } from "./guards.server";
 import { withAssigneeName, withAssigneeNames } from "./assignee.server";
 import { compact } from "./compact";
 
@@ -19,9 +20,7 @@ export const listLeads = createServerFn({ method: "GET" })
   .handler(async ({ data, context }) => {
     let query = context.supabase
       .from("leads")
-      .select(
-        "*, customers(id, full_name, telegram_username, phone, location), products(id, name)",
-      )
+      .select("*, customers(id, full_name, telegram_username, phone, location), products(id, name)")
       .order("created_at", { ascending: false })
       .limit(300);
     if (data.status && data.status !== "all") query = query.eq("status", data.status as never);
@@ -37,11 +36,7 @@ export const getLead = createServerFn({ method: "GET" })
   .inputValidator((input: unknown) => z.object({ id: z.string() }).parse(input))
   .handler(async ({ data, context }) => {
     const [lead, events] = await Promise.all([
-      context.supabase
-        .from("leads")
-        .select("*, customers(*)")
-        .eq("id", data.id)
-        .single(),
+      context.supabase.from("leads").select("*, customers(*)").eq("id", data.id).single(),
       context.supabase
         .from("lead_events")
         .select("*")
@@ -72,8 +67,16 @@ export const updateLead = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
+    await requirePermission(
+      context.supabase,
+      "sales.manage",
+      "Sotuv va to'lovlarni faqat ruxsatli xodimlar yuritadi.",
+    );
     const { id, ...patch } = data;
-    const { error } = await context.supabase.from("leads").update(compact(patch) as never).eq("id", id);
+    const { error } = await context.supabase
+      .from("leads")
+      .update(compact(patch) as never)
+      .eq("id", id);
     if (error) throw new Error(error.message);
     if (patch.assigned_member_id) {
       await context.supabase
@@ -94,7 +97,9 @@ export const updateLead = createServerFn({ method: "POST" })
 
 export const listCustomers = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => z.object({ search: z.string().optional() }).parse(input ?? {}))
+  .inputValidator((input: unknown) =>
+    z.object({ search: z.string().optional() }).parse(input ?? {}),
+  )
   .handler(async ({ data, context }) => {
     let query = context.supabase
       .from("customers")
@@ -155,8 +160,16 @@ export const updateCustomer = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
+    await requirePermission(
+      context.supabase,
+      "sales.manage",
+      "Sotuv va to'lovlarni faqat ruxsatli xodimlar yuritadi.",
+    );
     const { id, ...patch } = data;
-    const { error } = await context.supabase.from("customers").update(compact(patch) as never).eq("id", id);
+    const { error } = await context.supabase
+      .from("customers")
+      .update(compact(patch) as never)
+      .eq("id", id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });

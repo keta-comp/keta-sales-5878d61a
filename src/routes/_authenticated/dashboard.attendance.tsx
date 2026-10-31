@@ -30,6 +30,7 @@ import {
   setAttendanceMark,
 } from "@/lib/attendance.functions";
 import { t } from "@/lib/i18n";
+import { useSectionVisibility } from "@/lib/section-visibility";
 import { useSectionTitle, useTerminology } from "@/lib/terminology";
 import { cn } from "@/lib/utils";
 
@@ -49,6 +50,9 @@ export const Route = createFileRoute("/_authenticated/dashboard/attendance")({
 });
 
 type DayRow = Awaited<ReturnType<typeof getAttendanceDay>>["roster"][number];
+type StudyGroup = Awaited<ReturnType<typeof getAttendanceDay>>["groups"][number];
+/** Tanlangan guruh: haqiqiy guruh (id) yoki eski qo'lda yozilgan nom. */
+type Selection = { id: string } | { name: string } | null;
 
 const WEEKDAY_SHORT = ["Du", "Se", "Ch", "Pa", "Ju", "Sh", "Ya"];
 
@@ -82,20 +86,24 @@ function AttendancePage() {
   const person = term("customers");
 
   const [date, setDate] = useState(todayIso());
-  const [group, setGroup] = useState("");
-  const [newGroup, setNewGroup] = useState("");
+  const [selection, setSelection] = useState<Selection>(null);
   const [search, setSearch] = useState("");
 
   useSectionTitle(t("Davomat"));
 
-  const dayKey = ["attendance", date, group] as const;
+  const groupId = selection && "id" in selection ? selection.id : undefined;
+  const groupName = selection && "name" in selection ? selection.name : undefined;
+  const scope = { ...(groupId ? { groupId } : {}), ...(groupName ? { group: groupName } : {}) };
+  const groupKey = groupId ?? groupName ?? "";
+
+  const dayKey = ["attendance", date, groupKey] as const;
   const day = useQuery({
     queryKey: dayKey,
-    queryFn: () => fetchDay({ data: { date, group } }),
+    queryFn: () => fetchDay({ data: { date, ...scope } }),
   });
   const week = useQuery({
-    queryKey: ["attendance-week", date, group],
-    queryFn: () => fetchWeek({ data: { date, group } }),
+    queryKey: ["attendance-week", date, groupKey],
+    queryFn: () => fetchWeek({ data: { date, ...scope } }),
   });
 
   const rows = useMemo(() => {
@@ -121,7 +129,7 @@ function AttendancePage() {
 
   const markMutation = useMutation({
     mutationFn: (input: { studentId: string; status: AttendanceStatus | null }) =>
-      saveMark({ data: { studentId: input.studentId, date, group, status: input.status } }),
+      saveMark({ data: { studentId: input.studentId, date, ...scope, status: input.status } }),
     onMutate: (input) => applyLocal([input.studentId], input.status),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["attendance-week"], refetchType: "none" });
@@ -134,7 +142,7 @@ function AttendancePage() {
 
   const bulkMutation = useMutation({
     mutationFn: (input: { status: AttendanceStatus | null; ids: string[] }) =>
-      saveMany({ data: { date, group, status: input.status, studentIds: input.ids } }),
+      saveMany({ data: { date, ...scope, status: input.status, studentIds: input.ids } }),
     onMutate: (input) => applyLocal(input.ids, input.status),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["attendance-week"], refetchType: "none" });
@@ -189,14 +197,9 @@ function AttendancePage() {
       <div className="clay-panel flex flex-wrap items-center gap-2 p-3">
         <GroupChips
           groups={day.data?.groups ?? []}
-          value={group}
-          onChange={setGroup}
-          draft={newGroup}
-          onDraftChange={setNewGroup}
-          onCreate={(name) => {
-            setGroup(name);
-            setNewGroup("");
-          }}
+          legacyGroups={day.data?.legacyGroups ?? []}
+          value={groupKey}
+          onPick={setSelection}
         />
         <Input
           className="h-9 w-full sm:ml-auto sm:w-56"
@@ -278,10 +281,20 @@ function AttendancePage() {
       ) : !day.data?.roster.length ? (
         <EmptyState
           title={t("{many} yo‘q", { many: person.many })}
-          description={t("Davomat ro‘yxati {many} bo‘limidan olinadi.", { many: person.many })}
+          description={
+            groupId
+              ? t("Bu guruhda a‘zo yo‘q — Guruhlar bo‘limidan {many} qo‘shing.", {
+                  many: person.many,
+                })
+              : t("Davomat ro‘yxati {many} bo‘limidan olinadi.", { many: person.many })
+          }
           action={
             <Button asChild>
-              <Link to="/dashboard/customers">{t("Yangi {term}", { term: person.one })}</Link>
+              {groupId ? (
+                <Link to="/dashboard/groups">{t("Guruhlar")}</Link>
+              ) : (
+                <Link to="/dashboard/customers">{t("Yangi {term}", { term: person.one })}</Link>
+              )}
             </Button>
           }
         />
@@ -329,62 +342,50 @@ function AttendancePage() {
   );
 }
 
+/**
+ * Guruh tanlagichi. Ro'yxat `study_groups`'dan olinadi; guruh nomi bo'yicha
+ * qolgan eski belgilar ham tanlash mumkin — aks holda tarix yo'qolib qolardi.
+ */
 function GroupChips({
   groups,
+  legacyGroups,
   value,
-  onChange,
-  draft,
-  onDraftChange,
-  onCreate,
+  onPick,
 }: {
-  groups: string[];
+  groups: StudyGroup[];
+  legacyGroups: string[];
   value: string;
-  onChange: (value: string) => void;
-  draft: string;
-  onDraftChange: (value: string) => void;
-  onCreate: (name: string) => void;
+  onPick: (selection: Selection) => void;
 }) {
-  const all = [
-    { key: "", label: t("Barchasi") },
-    ...groups.map((name) => ({ key: name, label: name })),
+  const { offers } = useSectionVisibility();
+  const chips = [
+    { key: "", label: t("Barchasi"), pick: null as Selection },
+    ...groups.map((group) => ({ key: `g:${group.id}`, label: group.name, pick: { id: group.id } })),
+    ...legacyGroups.map((name) => ({ key: `n:${name}`, label: name, pick: { name } })),
   ];
-  const known = new Set(groups);
+  const hasGroupsPage = offers("/dashboard/groups");
   return (
     <div className="flex flex-wrap items-center gap-1.5">
-      {all.map((chip) => (
+      {chips.map((chip) => (
         <button
           key={chip.key || "__all"}
           type="button"
-          onClick={() => onChange(chip.key)}
+          onClick={() => onPick(chip.pick)}
           className={cn(
             "rounded-full border px-3 py-1 text-sm transition-colors",
             value === chip.key
               ? "border-primary/40 bg-primary/10 text-primary"
               : "border-border text-muted-foreground hover:bg-muted",
-            !known.has(chip.key) && chip.key === value && "border-primary/40 text-primary",
           )}
         >
           {chip.label}
         </button>
       ))}
-      <form
-        className="flex items-center gap-1.5"
-        onSubmit={(event) => {
-          event.preventDefault();
-          const name = draft.trim();
-          if (name) onCreate(name);
-        }}
-      >
-        <Input
-          className="h-8 w-36"
-          value={draft}
-          onChange={(event) => onDraftChange(event.target.value)}
-          placeholder={t("Yangi guruh")}
-        />
-        <Button type="submit" variant="outline" size="sm">
-          {t("Qo‘shish")}
+      {groups.length === 0 && hasGroupsPage ? (
+        <Button asChild variant="outline" size="sm">
+          <Link to="/dashboard/groups">{t("Guruh ochish")}</Link>
         </Button>
-      </form>
+      ) : null}
     </div>
   );
 }

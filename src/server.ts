@@ -64,6 +64,31 @@ function isH3SwallowedErrorBody(body: string): boolean {
   }
 }
 
+// CSP`ni to'liq qo'ymaymiz: SSR inline uslublar va Vite asset quvuri sinadi.
+// frame-ancestors/base-uri/form-action esa framing va tashqi forma hujumlarini bosadi.
+const SECURITY_HEADERS: Record<string, string> = {
+  "x-content-type-options": "nosniff",
+  "referrer-policy": "strict-origin-when-cross-origin",
+  "x-frame-options": "SAMEORIGIN",
+  "content-security-policy": "frame-ancestors 'self'; base-uri 'self'; form-action 'self'",
+  "permissions-policy": "geolocation=(self), camera=(), microphone=()",
+};
+
+function withSecurityHeaders(response: Response, request: Request): Response {
+  const headers = new Headers(response.headers);
+  for (const [name, value] of Object.entries(SECURITY_HEADERS)) {
+    if (!headers.has(name)) headers.set(name, value);
+  }
+  if (new URL(request.url).protocol === "https:") {
+    headers.set("strict-transport-security", "max-age=15552000; includeSubDomains");
+  }
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
@@ -74,14 +99,20 @@ export default {
       }
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
-      return await normalizeCatastrophicSsrResponse(response, requestRoute(request));
+      return withSecurityHeaders(
+        await normalizeCatastrophicSsrResponse(response, requestRoute(request)),
+        request,
+      );
     } catch (error) {
       console.error(error);
       await reportError(error, requestRoute(request), 500);
-      return new Response(renderErrorPage(), {
-        status: 500,
-        headers: { "content-type": "text/html; charset=utf-8" },
-      });
+      return withSecurityHeaders(
+        new Response(renderErrorPage(), {
+          status: 500,
+          headers: { "content-type": "text/html; charset=utf-8" },
+        }),
+        request,
+      );
     }
   },
 };

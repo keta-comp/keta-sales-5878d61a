@@ -22,6 +22,7 @@ import {
   listPayrollRules,
   listPayrollStatements,
   listServiceOverrides,
+  listTeacherTuition,
   markPayrollStatementPaid,
   savePayrollRule,
   saveServiceOverride,
@@ -75,7 +76,7 @@ function PayrollPage() {
       <PageHeader
         title={t("Oylik va komissiya")}
         description={t(
-          "Bajarilgan xizmatlar asosida ish haqi hisob-kitoblari. Bu buxgalteriya yoki soliq maslahati emas.",
+          "Maosh plus komissiya: bajarilgan xizmatlar va o'z guruhlarining to'langan oyliklari asosida. Bu buxgalteriya yoki soliq maslahati emas.",
         )}
       />
       {employeesQuery.isPending ? (
@@ -135,6 +136,7 @@ const PAY_METHODS: PayMethod[] = ["cash", "card", "transfer", "other"];
 function StatementsTab({ employees }: { employees: EmployeeOption[] }) {
   const queryClient = useQueryClient();
   const fetchStatements = useServerFn(listPayrollStatements);
+  const fetchRules = useServerFn(listPayrollRules);
   const generate = useServerFn(generatePayrollStatement);
   const update = useServerFn(updatePayrollStatement);
   const approve = useServerFn(approvePayrollStatement);
@@ -157,7 +159,18 @@ function StatementsTab({ employees }: { employees: EmployeeOption[] }) {
     queryFn: () => fetchStatements({ data: { period_start: period.period_start } }),
   });
 
-  const invalidate = () => void queryClient.invalidateQueries({ queryKey: ["payroll-statements"] });
+  const rules = useQuery({ queryKey: ["payroll-rules"], queryFn: () => fetchRules() });
+  const commissionPercent = useMemo(() => {
+    const rule = ((rules.data ?? []) as unknown as RuleRow[]).find(
+      (row) => row.employee_id === employeeId,
+    );
+    return Number(rule?.commission_percent ?? 0);
+  }, [rules.data, employeeId]);
+
+  const invalidate = () => {
+    void queryClient.invalidateQueries({ queryKey: ["payroll-statements"] });
+    void queryClient.invalidateQueries({ queryKey: ["payroll-tuition"] });
+  };
   const onError = (error: unknown) => toast.error(error instanceof Error ? error.message : t("Amalga oshmadi"));
 
   const generateMutation = useMutation({
@@ -305,6 +318,8 @@ function StatementsTab({ employees }: { employees: EmployeeOption[] }) {
         </p>
       </div>
 
+      <TuitionBasis employeeId={employeeId} period={period} commissionPercent={commissionPercent} />
+
       {statements.isPending ? (
         <LoadingState />
       ) : statements.error ? (
@@ -386,7 +401,7 @@ function StatementsTab({ employees }: { employees: EmployeeOption[] }) {
                   )}
                 </div>
                 <div className="clay-inset grid gap-2 rounded-2xl px-4 py-3 text-xs sm:grid-cols-3 lg:grid-cols-6">
-                  <span>{t("Xizmat tushumi")}: <b className="tabular-nums">{formatMoney(Number(row.service_revenue))}</b></span>
+                  <span>{t("Tushum")}: <b className="tabular-nums">{formatMoney(Number(row.service_revenue))}</b></span>
                   <span>{t("Maosh")}: <b className="tabular-nums">{formatMoney(Number(row.base_amount))}</b></span>
                   <span>{t("Komissiya")}: <b className="tabular-nums">{formatMoney(Number(row.commission_amount))}</b></span>
                   <span>{t("Bonus")}: <b className="tabular-nums">{formatMoney(Number(row.bonus_amount))}</b></span>
@@ -433,6 +448,79 @@ function StatementsTab({ employees }: { employees: EmployeeOption[] }) {
         </div>
       )}
     </div>
+  );
+}
+
+/* ------------------------------ tuition basis ------------------------------ */
+
+/**
+ * O'qituvchi haqining bazasi — tanlangan xodim o'qitadigan guruhlarining
+ * to'langan oyliklari. Hisoblash tugmasini bosmasdan turib tekshiriladi.
+ */
+function TuitionBasis({
+  employeeId,
+  period,
+  commissionPercent,
+}: {
+  employeeId: string;
+  period: { period_start: string; period_end: string };
+  commissionPercent: number;
+}) {
+  const fetchTuition = useServerFn(listTeacherTuition);
+  const tuition = useQuery({
+    queryKey: ["payroll-tuition", employeeId, period.period_start],
+    queryFn: () =>
+      fetchTuition({
+        data: {
+          employee_id: employeeId,
+          period_start: period.period_start,
+          period_end: period.period_end,
+        },
+      }),
+    enabled: Boolean(employeeId),
+  });
+
+  const data = tuition.data;
+  if (!data || data.groups.length === 0) return null;
+  const commission = Math.round((data.collected * commissionPercent) / 100);
+
+  return (
+    <section className="clay-panel grid gap-2 p-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <h2 className="font-display text-base font-semibold">{t("Guruh oyliklari")}</h2>
+        <Badge className="border-0 bg-muted text-muted-foreground">{commissionPercent}%</Badge>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        {t(
+          "Komissiya faqat to'langan oyliklardan hisoblanadi; kutilayotgan to'lovlar hisobga kirmaydi.",
+        )}
+      </p>
+      <div className="grid gap-2 sm:grid-cols-2">
+        {data.groups.map((group) => (
+          <div
+            key={group.id}
+            className="clay-inset flex flex-wrap items-center justify-between gap-2 rounded-2xl px-4 py-2 text-sm"
+          >
+            <span className="min-w-0 flex-1 truncate font-medium">{group.name}</span>
+            <span className="tabular-nums text-xs text-muted-foreground">
+              {t("To'langan")}: {formatMoney(group.collected)}
+              {group.planned > 0 ? ` · ${t("Kutilmoqda")}: ${formatMoney(group.planned)}` : ""}
+            </span>
+          </div>
+        ))}
+      </div>
+      <div className="flex flex-wrap gap-4 text-xs">
+        <span>
+          {t("Jami to'langan")}: <b className="tabular-nums">{formatMoney(data.collected)}</b>
+        </span>
+        <span>
+          {t("Kutilmoqda")}: <b className="tabular-nums">{formatMoney(data.planned)}</b>
+        </span>
+        <span>
+          {t("Komissiya")}: <b className="tabular-nums">{formatMoney(commission)}</b>
+        </span>
+      </div>
+    </section>
   );
 }
 
@@ -548,6 +636,11 @@ function RulesTab({ employees }: { employees: EmployeeOption[] }) {
             {ruleForm.id ? t("Yangilash") : t("Qoida qo'shish")}
           </Button>
         </div>
+        <p className="text-xs text-muted-foreground sm:col-span-5">
+          {t(
+            "Bu foiz xodimning bajarilgan xizmatlariga va o'qitadigan guruhlarining to'langan oyliklariga qo'llanadi.",
+          )}
+        </p>
       </form>
 
       {rules.isPending ? (

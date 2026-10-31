@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/lib/auth-middleware";
+import { requirePermission } from "./guards.server";
 import { compact } from "./compact";
 
 export const listPayments = createServerFn({ method: "GET" })
@@ -19,9 +20,7 @@ export const listPayments = createServerFn({ method: "GET" })
   .handler(async ({ data, context }) => {
     let query = context.supabase
       .from("payments")
-      .select(
-        "*, customers(id, full_name, phone), orders(id, order_number, total)",
-      )
+      .select("*, customers(id, full_name, phone), orders(id, order_number, total)")
       .order("created_at", { ascending: false })
       .limit(500);
     if (data.status && data.status !== "all") query = query.eq("status", data.status);
@@ -59,9 +58,15 @@ export const savePayment = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
+    await requirePermission(
+      context.supabase,
+      "sales.manage",
+      "Sotuv va to'lovlarni faqat ruxsatli xodimlar yuritadi.",
+    );
     const { logActivity } = await import("./activity.server");
     const { id, ...payload } = data;
-    const paidAt = payload.status === "paid" || payload.status === "partial" ? new Date().toISOString() : null;
+    const paidAt =
+      payload.status === "paid" || payload.status === "partial" ? new Date().toISOString() : null;
     const row = { ...payload, paid_at: paidAt, created_by: context.userId };
 
     if (id) {
@@ -114,6 +119,11 @@ export const deletePayment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ id: z.string() }).parse(input))
   .handler(async ({ data, context }) => {
+    await requirePermission(
+      context.supabase,
+      "finance.view",
+      "Bu amal faqat moliyaga ruxsati bo'lgan xodimlar uchun.",
+    );
     const { error } = await context.supabase.from("payments").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
@@ -122,7 +132,10 @@ export const deletePayment = createServerFn({ method: "POST" })
 type AnyClient = {
   from: (table: string) => {
     select: (cols: string) => {
-      eq: (col: string, val: string) => Promise<{ data: unknown }> & {
+      eq: (
+        col: string,
+        val: string,
+      ) => Promise<{ data: unknown }> & {
         single: () => Promise<{ data: unknown; error: unknown }>;
       };
     };

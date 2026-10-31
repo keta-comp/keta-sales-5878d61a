@@ -21,12 +21,7 @@ import type { Permission } from "./roles";
 
 /** What "booking" means for this industry (brief §4.3). */
 export type BookingType =
-  | "appointment"
-  | "trial_lesson"
-  | "order"
-  | "viewing"
-  | "home_visit"
-  | "project_meeting";
+  "appointment" | "trial_lesson" | "order" | "viewing" | "home_visit" | "project_meeting";
 
 export const BOOKING_TYPE_LABELS: Record<BookingType, string> = {
   appointment: "Qabul",
@@ -98,14 +93,7 @@ export interface PresetDefaults {
 }
 
 export type ReportKey =
-  | "revenue"
-  | "expenses"
-  | "profit"
-  | "customers"
-  | "appointments"
-  | "pipeline"
-  | "staff"
-  | "stock";
+  "revenue" | "expenses" | "profit" | "customers" | "appointments" | "pipeline" | "staff" | "stock";
 
 export interface IndustryPreset {
   id: string;
@@ -148,16 +136,56 @@ const CORE_ITEMS: Record<CoreKey, PresetMenuItem> = {
   customers: { to: "/dashboard/customers", label: "Mijozlar", icon: "users", section: "core" },
   leads: { to: "/dashboard/leads", label: "Murojaatlar", icon: "target", section: "core" },
   orders: { to: "/dashboard/orders", label: "Buyurtmalar", icon: "cart", section: "core" },
-  products: { to: "/dashboard/products", label: "Xizmatlar va mahsulotlar", icon: "package", section: "core" },
-  inventory: { to: "/dashboard/inventory", label: "Ombor", icon: "boxes", section: "core", permission: "catalog.manage" },
-  appointments: { to: "/dashboard/appointments", label: "Qabul va bron", icon: "calendar", section: "operations" },
+  products: {
+    to: "/dashboard/products",
+    label: "Xizmatlar va mahsulotlar",
+    icon: "package",
+    section: "core",
+  },
+  inventory: {
+    to: "/dashboard/inventory",
+    label: "Ombor",
+    icon: "boxes",
+    section: "core",
+    permission: "catalog.manage",
+  },
+  appointments: {
+    to: "/dashboard/appointments",
+    label: "Qabul va bron",
+    icon: "calendar",
+    section: "operations",
+  },
   tasks: { to: "/dashboard/tasks", label: "Vazifalar", icon: "tasks", section: "operations" },
-  payments: { to: "/dashboard/payments", label: "To‘lovlar", icon: "wallet", section: "money", permission: "finance.view" },
-  finance: { to: "/dashboard/finance", label: "Moliya", icon: "finance", section: "money", permission: "finance.view" },
+  payments: {
+    to: "/dashboard/payments",
+    label: "To‘lovlar",
+    icon: "wallet",
+    section: "money",
+    permission: "finance.view",
+  },
+  finance: {
+    to: "/dashboard/finance",
+    label: "Moliya",
+    icon: "finance",
+    section: "money",
+    permission: "finance.view",
+  },
   employees: { to: "/dashboard/employees", label: "Xodimlar", icon: "users", section: "team" },
   branches: { to: "/dashboard/branches", label: "Filiallar", icon: "building", section: "team" },
-  payroll: { to: "/dashboard/payroll", label: "Oylik", icon: "payroll", section: "money", permission: "finance.view" },
-  team: { to: "/dashboard/team", label: "Jamoa va rollar", icon: "team", section: "team", permission: "members.manage" },
+  payroll: {
+    to: "/dashboard/payroll",
+    label: "Oylik",
+    icon: "payroll",
+    section: "money",
+    permission: "finance.view",
+  },
+  team: {
+    to: "/dashboard/team",
+    label: "Jamoa va rollar",
+    icon: "team",
+    section: "team",
+    permission: "members.manage",
+  },
 };
 
 /**
@@ -167,12 +195,42 @@ const CORE_ITEMS: Record<CoreKey, PresetMenuItem> = {
 const ALWAYS_HIDDEN_ROUTES: string[] = [CORE_ITEMS.leads.to];
 
 const ADMIN_TAIL: PresetMenuItem[] = [
-  { to: "/dashboard/analytics", label: "Hisobotlar", icon: "chart", section: "admin", permission: "reports.export" },
+  {
+    to: "/dashboard/analytics",
+    label: "Hisobotlar",
+    icon: "chart",
+    section: "admin",
+    permission: "reports.export",
+  },
   { to: "/dashboard/assistant", label: "AI yordamchi", icon: "bot", section: "admin" },
-  { to: "/dashboard/crm-builder", label: "AI CRM sozlash", icon: "sparkles", section: "admin", permission: "settings.manage" },
-  { to: "/dashboard/telegram", label: "Telegram", icon: "send", section: "admin", permission: "settings.manage" },
-  { to: "/dashboard/billing", label: "Tarif va to‘lov", icon: "wallet", section: "admin", permission: "settings.manage" },
-  { to: "/dashboard/settings", label: "Sozlamalar", icon: "settings", section: "admin", permission: "settings.manage" },
+  {
+    to: "/dashboard/crm-builder",
+    label: "AI CRM sozlash",
+    icon: "sparkles",
+    section: "admin",
+    permission: "settings.manage",
+  },
+  {
+    to: "/dashboard/telegram",
+    label: "Telegram",
+    icon: "send",
+    section: "admin",
+    permission: "settings.manage",
+  },
+  {
+    to: "/dashboard/billing",
+    label: "Tarif va to‘lov",
+    icon: "wallet",
+    section: "admin",
+    permission: "settings.manage",
+  },
+  {
+    to: "/dashboard/settings",
+    label: "Sozlamalar",
+    icon: "settings",
+    section: "admin",
+    permission: "settings.manage",
+  },
 ];
 
 const DEFAULTS: PresetDefaults = {
@@ -204,7 +262,16 @@ const PRESET_LIST: IndustryPreset[] = [
     name: "Stomatologiya",
     description: "Bemorlar, qabul jadvali, davolash rejalari va shifokorlar ulushi.",
     bookingType: "appointment",
-    extraCoreKeys: ["appointments", "tasks", "payments", "finance", "inventory", "employees", "payroll", "team"],
+    extraCoreKeys: [
+      "appointments",
+      "tasks",
+      "payments",
+      "finance",
+      "inventory",
+      "employees",
+      "payroll",
+      "team",
+    ],
     labels: { customers: "Bemorlar", products: "Stomatologik xizmatlar" },
     singles: { customers: "Bemor", products: "Stomatologik xizmat" },
     industryItems: [
@@ -229,7 +296,16 @@ const PRESET_LIST: IndustryPreset[] = [
     name: "Klinika / Tibbiyot",
     description: "Bemorlar, qabul va navbat, bo‘limlar, tahlillar va to‘lovlar.",
     bookingType: "appointment",
-    extraCoreKeys: ["appointments", "tasks", "payments", "finance", "inventory", "employees", "payroll", "team"],
+    extraCoreKeys: [
+      "appointments",
+      "tasks",
+      "payments",
+      "finance",
+      "inventory",
+      "employees",
+      "payroll",
+      "team",
+    ],
     labels: { customers: "Bemorlar", products: "Tibbiy xizmatlar" },
     singles: { customers: "Bemor", products: "Tibbiy xizmat" },
     industryItems: [
@@ -258,16 +334,17 @@ const PRESET_LIST: IndustryPreset[] = [
     bookingType: "trial_lesson",
     extraCoreKeys: ["appointments", "tasks", "payments", "finance", "employees", "payroll", "team"],
     labels: { customers: "O‘quvchilar", products: "Kurslar" },
-    singles: { customers: "O‘quvchi", products: "Kurs", appointments: "Sinov darsi" },
+    singles: { customers: "O‘quvchi", appointments: "Sinov darsi", products: "Kurs" },
     industryItems: [
-      dynamicItem("kurslar", "Kurslar", "book"),
-      dynamicItem("guruhlar", "Guruhlar", "layers"),
-      dynamicItem("oqituvchilar", "O‘qituvchilar", "user"),
+      { to: "/dashboard/courses", label: "Kurslar", icon: "book", section: "industry" },
+      { to: "/dashboard/groups", label: "Guruhlar", icon: "layers", section: "industry" },
       { to: "/dashboard/attendance", label: "Davomat", icon: "check", section: "industry" },
       paymentsItem(),
     ],
-    hiddenModuleKeys: [],
-    hiddenCoreKeys: ["orders", "inventory"],
+    // Kurs endi `services` katalogidagi haqiqiy obyekt, o‘qituvchi esa xodim,
+    // shuning uchun ularning erkin matn modullari va mahsulot katalogi yashiriladi.
+    hiddenModuleKeys: ["kurslar", "guruhlar", "oqituvchilar"],
+    hiddenCoreKeys: ["orders", "inventory", "products"],
     reports: ["revenue", "expenses", "profit", "customers", "staff"],
     defaults: { ...DEFAULTS, slotMinutes: 90 },
   },
@@ -293,7 +370,17 @@ const PRESET_LIST: IndustryPreset[] = [
     name: "Avtoservis",
     description: "Avtomobillar, servis buyurtmalari, ustalar va ehtiyot qismlar.",
     bookingType: "appointment",
-    extraCoreKeys: ["pipeline", "appointments", "tasks", "inventory", "payments", "finance", "employees", "payroll", "team"],
+    extraCoreKeys: [
+      "pipeline",
+      "appointments",
+      "tasks",
+      "inventory",
+      "payments",
+      "finance",
+      "employees",
+      "payroll",
+      "team",
+    ],
     labels: { orders: "Servis buyurtmalari", products: "Xizmatlar va qismlar" },
     singles: { orders: "Servis buyurtmasi", products: "Xizmat yoki qism" },
     industryItems: [
@@ -313,7 +400,16 @@ const PRESET_LIST: IndustryPreset[] = [
     name: "Ko‘chmas mulk",
     description: "Obyektlar, ko‘rish jadvali, muzokaralar, bitimlar va komissiyalar.",
     bookingType: "viewing",
-    extraCoreKeys: ["pipeline", "appointments", "tasks", "payments", "finance", "employees", "payroll", "team"],
+    extraCoreKeys: [
+      "pipeline",
+      "appointments",
+      "tasks",
+      "payments",
+      "finance",
+      "employees",
+      "payroll",
+      "team",
+    ],
     labels: { products: "Xizmatlar va komissiyalar", appointments: "Ko‘rish jadvali" },
     singles: { products: "Xizmat yoki komissiya", appointments: "Ko‘rish" },
     industryItems: [
@@ -333,7 +429,16 @@ const PRESET_LIST: IndustryPreset[] = [
     shortName: "Beauty salon",
     description: "Ustalar, xizmatlar, onlayn qabul, kassa va abonementlar.",
     bookingType: "appointment",
-    extraCoreKeys: ["appointments", "tasks", "inventory", "payments", "finance", "employees", "payroll", "team"],
+    extraCoreKeys: [
+      "appointments",
+      "tasks",
+      "inventory",
+      "payments",
+      "finance",
+      "employees",
+      "payroll",
+      "team",
+    ],
     labels: { products: "Xizmatlar" },
     singles: { products: "Xizmat" },
     industryItems: [
@@ -374,7 +479,18 @@ const PRESET_LIST: IndustryPreset[] = [
     name: "Qurilish",
     description: "Loyihalar, smetalar, bajarilgan ishlar, materiallar va avanslar.",
     bookingType: "project_meeting",
-    extraCoreKeys: ["pipeline", "appointments", "tasks", "inventory", "payments", "finance", "employees", "branches", "payroll", "team"],
+    extraCoreKeys: [
+      "pipeline",
+      "appointments",
+      "tasks",
+      "inventory",
+      "payments",
+      "finance",
+      "employees",
+      "branches",
+      "payroll",
+      "team",
+    ],
     labels: { orders: "Bajarilgan ishlar", products: "Ishlar va materiallar" },
     singles: { orders: "Bajarilgan ish", products: "Ish yoki material" },
     industryItems: [
@@ -393,7 +509,17 @@ const PRESET_LIST: IndustryPreset[] = [
     name: "Xizmat ko‘rsatish",
     description: "Buyurtmalar, manzillar, brigadalar jadvali va bajarilgan ishlar.",
     bookingType: "home_visit",
-    extraCoreKeys: ["pipeline", "appointments", "tasks", "inventory", "payments", "finance", "employees", "branches", "team"],
+    extraCoreKeys: [
+      "pipeline",
+      "appointments",
+      "tasks",
+      "inventory",
+      "payments",
+      "finance",
+      "employees",
+      "branches",
+      "team",
+    ],
     labels: { orders: "Buyurtmalar", products: "Xizmatlar", appointments: "Jadval va marshrut" },
     singles: { products: "Xizmat", appointments: "Manzilga chiqish" },
     industryItems: [dynamicItem("xizmatlar", "Xizmatlar", "package"), paymentsItem()],
@@ -411,7 +537,10 @@ const PRESET_LIST: IndustryPreset[] = [
     extraCoreKeys: ["pipeline", "tasks", "payments", "finance", "employees", "team"],
     labels: { products: "Xizmat paketlari" },
     singles: { products: "Xizmat paketi" },
-    industryItems: [dynamicItem("loyihalar", "Loyihalar", "building"), paymentsItem("Oylik to‘lovlar")],
+    industryItems: [
+      dynamicItem("loyihalar", "Loyihalar", "building"),
+      paymentsItem("Oylik to‘lovlar"),
+    ],
     hiddenModuleKeys: [],
     reports: ["revenue", "expenses", "profit", "customers", "pipeline", "staff"],
     defaults: DEFAULTS,
@@ -423,7 +552,16 @@ const PRESET_LIST: IndustryPreset[] = [
     name: "Boshqa",
     description: "Har qanday soha uchun universal CRM — modullarni o‘zingiz sozlaysiz.",
     bookingType: "appointment",
-    extraCoreKeys: ["pipeline", "appointments", "tasks", "payments", "finance", "employees", "branches", "team"],
+    extraCoreKeys: [
+      "pipeline",
+      "appointments",
+      "tasks",
+      "payments",
+      "finance",
+      "employees",
+      "branches",
+      "team",
+    ],
     labels: {},
     industryItems: [paymentsItem()],
     hiddenModuleKeys: [],
@@ -467,7 +605,10 @@ export function presetForId(id: string | null | undefined): IndustryPreset | und
 }
 
 /** Explicit presetId wins; otherwise the stored industry label decides. */
-export function resolvePresetId(industry: string | null | undefined, presetId?: string | null): string {
+export function resolvePresetId(
+  industry: string | null | undefined,
+  presetId?: string | null,
+): string {
   if (presetId && PRESETS[presetId]) return presetId;
   return PRESET_ID_BY_INDUSTRY[industry ?? ""] ?? UNIVERSAL_PRESET_ID;
 }
@@ -535,9 +676,14 @@ export function isMedicalModule(id: string, moduleKey: string): boolean {
  * Modules a tenant has but a target preset no longer offers. Switching presets
  * never deletes rows — these keys become orphans and must be reported instead of
  * silently disappearing from the menu.
+ *
+ * Keys hidden on purpose (`hiddenModuleKeys`) are still offered when the target's own
+ * registry ships them: the module was replaced by a dedicated page (Kurslar, Guruhlar),
+ * its records stay meaningful, so nothing is orphaned.
  */
 export function droppedModulesForPreset(config: CrmConfigData, targetId: string): CrmModule[] {
   const offered = new Set(enabledModuleKeys(targetId));
+  for (const module of crmConfigForPreset(targetId).modules) offered.add(module.key);
   return config.modules.filter((module) => !offered.has(module.key));
 }
 
@@ -546,7 +692,10 @@ export function droppedModulesForPreset(config: CrmConfigData, targetId: string)
  * tenant onboarded). Syncing appends these; existing modules, fields and records are never
  * touched, so an admin who removed something keeps it removed until they ask for the sync.
  */
-export function missingPresetParts(config: CrmConfigData, presetId: string): {
+export function missingPresetParts(
+  config: CrmConfigData,
+  presetId: string,
+): {
   modules: CrmModule[];
   widgets: CrmWidget[];
   fields: { moduleKey: string; fields: CrmField[] }[];
@@ -604,7 +753,10 @@ export function applyMissingParts(
  * Yakka/ko‘plik nom ("Kurs"/"Kurslar", "Bemor"/"Bemorlar"). Sahifa sarlavhalari,
  * "Yangi …" tugmalari va toastlar shu yerdan oladi — menyu nomi bilan janjal bo'lmasligi uchun.
  */
-export function coreTerm(id: string | null | undefined, key: CoreKey): { one: string; many: string } {
+export function coreTerm(
+  id: string | null | undefined,
+  key: CoreKey,
+): { one: string; many: string } {
   const preset = id ? PRESETS[id] : undefined;
   return {
     one: preset?.singles?.[key] ?? CORE_SINGLES[key],
@@ -613,7 +765,9 @@ export function coreTerm(id: string | null | undefined, key: CoreKey): { one: st
 }
 
 /** All core terms of a preset at once, so a page calls the resolver once. */
-export function termsForPreset(id: string | null | undefined): Record<CoreKey, { one: string; many: string }> {
+export function termsForPreset(
+  id: string | null | undefined,
+): Record<CoreKey, { one: string; many: string }> {
   const keys = Object.keys(CORE_ITEMS) as CoreKey[];
   return Object.fromEntries(keys.map((key) => [key, coreTerm(id, key)])) as Record<
     CoreKey,

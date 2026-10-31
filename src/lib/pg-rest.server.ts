@@ -296,13 +296,45 @@ function parseOrExpression(
 
 type Mode = "select" | "insert" | "update" | "delete" | "upsert" | "rpc";
 
+// Postgres tizim xatolarining xabari jadval/ustun/kiymat nomini ochib beradi,
+// shuning uchun ular foydalanuvchiga umumlik ko'rinishda chiqadi; app o'zi
+// ko'targan xatolar (masalan 42501/55000 privacy trigger) o'z holicha qoladi.
+const SYSTEM_ERROR_MESSAGES: Record<string, string> = {
+  "23502": "Majburiy maydon to'ldirilmagan.",
+  "23503": "Bog'langan yozuv topilmadi yoki uni o'chirib bo'lmaydi.",
+  "23505": "Bunday yozuv allaqachon mavjud.",
+  "23514": "Kiritilgan qiymat ruxsat etilgan chegaradan chiqadi.",
+  "23501": "Yangilanadigan yozuv topilmadi.",
+  "22P02": "Kiritilgan qiymat formati noto'g'ri.",
+  "22007": "Sana yoki vaqt formati noto'g'ri.",
+  "22001": "Kiritilgan qiymat juda uzun.",
+  "42703": "So'rovda noma'lum ustun bor.",
+  "42P01": "So'rov jadvali mavjud emas.",
+  "42883": "Bu amallar uchun qo'llab-quvvatlanmaydi.",
+  "42601": "So'rov sozlanmagan.",
+  "40001": "Ma'lumotlar ayni paytda boshqalar tomonidan tahrirlanyapti — qaytadan urinib ko'ring.",
+  "40P01": "Ma'lumotlar band — qaytadan urinib ko'ring.",
+  "53200": "Ma'lumotlar bazasi resurslari tugadi.",
+  "57014": "So'rov juda uzoq davom etdi — qisqartirib qaytadan urinib ko'ring.",
+  "58000": "Ma'lumotlar bazasi vaqtinchalik mavjud emas.",
+  "08006": "Ma'lumotlar bazasi bilan aloqa uzildi.",
+  "08001": "Ma'lumotlar bazasiga ulanib bo'lmadi.",
+};
+
 function toError(error: unknown): PgError {
   const anyError = error as any;
+  const code = anyError?.code ? String(anyError.code) : "UNKNOWN";
+  const raw = anyError?.message ? String(anyError.message) : "";
+  const generic = SYSTEM_ERROR_MESSAGES[code];
+  if (generic) {
+    console.error(`[pg] ${code}: ${raw}`, anyError?.detail ? `detail: ${anyError.detail}` : "");
+    return { message: generic, details: "", hint: "", code };
+  }
   return {
-    message: anyError?.message ? String(anyError.message) : "Ma'lumotlar bazasi xatosi",
-    details: anyError?.detail ? String(anyError.detail) : "",
-    hint: anyError?.hint ? String(anyError.hint) : "",
-    code: anyError?.code ? String(anyError.code) : "UNKNOWN",
+    message: raw || "Ma'lumotlar bazasi xatosi",
+    details: "",
+    hint: "",
+    code,
   };
 }
 

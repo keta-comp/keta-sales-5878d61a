@@ -40,3 +40,6 @@ dist-ssr
 
 # Supabase CLI lokal keshi (versiya belgisi) — repo uchun kerak emas
 supabase/.temp
+
+.vercel
+.env*

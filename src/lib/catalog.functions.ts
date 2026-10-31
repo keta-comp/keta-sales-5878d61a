@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/lib/auth-middleware";
+import { requirePermission } from "./guards.server";
 
 export const listProducts = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -20,7 +21,8 @@ export const listProducts = createServerFn({ method: "GET" })
     let query = context.supabase.from("products").select("*, categories(id, name)");
     if (!data.includeArchived) query = query.eq("is_archived", false);
     if (data.search) query = query.or(`name.ilike.%${data.search}%,sku.ilike.%${data.search}%`);
-    if (data.categoryId && data.categoryId !== "all") query = query.eq("category_id", data.categoryId);
+    if (data.categoryId && data.categoryId !== "all")
+      query = query.eq("category_id", data.categoryId);
     if (data.sort === "name") query = query.order("name");
     else if (data.sort === "price_asc") query = query.order("price", { ascending: true });
     else if (data.sort === "price_desc") query = query.order("price", { ascending: false });
@@ -62,6 +64,11 @@ export const saveProduct = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
+    await requirePermission(
+      context.supabase,
+      "catalog.manage",
+      "Katalogni faqat egasi, admin yoki menejer boshqaradi.",
+    );
     const payload = {
       sku: data.sku,
       name: data.name,
@@ -120,6 +127,11 @@ export const setProductArchived = createServerFn({ method: "POST" })
     z.object({ id: z.string(), archived: z.boolean() }).parse(input),
   )
   .handler(async ({ data, context }) => {
+    await requirePermission(
+      context.supabase,
+      "catalog.manage",
+      "Katalogni faqat egasi, admin yoki menejer boshqaradi.",
+    );
     const { error } = await context.supabase
       .from("products")
       .update({ is_archived: data.archived, is_active: !data.archived })
@@ -132,6 +144,11 @@ export const deleteProduct = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ id: z.string() }).parse(input))
   .handler(async ({ data, context }) => {
+    await requirePermission(
+      context.supabase,
+      "catalog.manage",
+      "Katalogni faqat egasi, admin yoki menejer boshqaradi.",
+    );
     const { error } = await context.supabase.from("products").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
@@ -143,6 +160,11 @@ export const adjustStock = createServerFn({ method: "POST" })
     z.object({ id: z.string(), change: z.number().int(), reason: z.string().min(1) }).parse(input),
   )
   .handler(async ({ data, context }) => {
+    await requirePermission(
+      context.supabase,
+      "catalog.manage",
+      "Katalogni faqat egasi, admin yoki menejer boshqaradi.",
+    );
     const { data: product, error: readError } = await context.supabase
       .from("products")
       .select("stock_quantity")
@@ -176,9 +198,20 @@ export const listCategories = createServerFn({ method: "GET" })
 export const saveCategory = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
-    z.object({ id: z.string().optional(), name: z.string().min(1), description: z.string().optional() }).parse(input),
+    z
+      .object({
+        id: z.string().optional(),
+        name: z.string().min(1),
+        description: z.string().optional(),
+      })
+      .parse(input),
   )
   .handler(async ({ data, context }) => {
+    await requirePermission(
+      context.supabase,
+      "catalog.manage",
+      "Katalogni faqat egasi, admin yoki menejer boshqaradi.",
+    );
     const slug = data.name
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
@@ -204,6 +237,11 @@ export const deleteCategory = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ id: z.string() }).parse(input))
   .handler(async ({ data, context }) => {
+    await requirePermission(
+      context.supabase,
+      "catalog.manage",
+      "Katalogni faqat egasi, admin yoki menejer boshqaradi.",
+    );
     const { error } = await context.supabase.from("categories").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };

@@ -60,6 +60,93 @@ export function computeStatement(input: StatementInput): StatementTotals {
   return { serviceRevenue: roundMoney(serviceRevenue), commissionAmount: roundMoney(commissionAmount), totalComputed };
 }
 
+/* --------------------------- teacher tuition base --------------------------- */
+
+export type TaughtGroup = { id: string; name: string; course_id: string | null };
+
+export type TuitionPayment = {
+  group_id: string | null;
+  amount: number | string | null;
+  status: string;
+  paid_at: string | null;
+  created_at: string | null;
+  period_month: string | null;
+};
+
+export type TuitionWindow = { from: string; to: string; firstMonth: string; lastMonth: string };
+
+export type GroupTuition = { id: string; name: string; collected: number; planned: number };
+
+export type TuitionSummary = {
+  /** One commission row per collected payment, keyed to the group's course. */
+  rows: RevenueRow[];
+  groups: GroupTuition[];
+  collected: number;
+  planned: number;
+};
+
+export function tuitionWindow(periodStart: string, periodEnd: string): TuitionWindow {
+  const bounds = dateBoundsIso(periodStart, periodEnd);
+  return {
+    from: bounds.from,
+    to: bounds.to,
+    firstMonth: periodStart.slice(0, 7),
+    lastMonth: periodEnd.slice(0, 7),
+  };
+}
+
+/**
+ * O'qituvchi haqi u o'qitayotgan guruhning TO'LANGAN oylikidan hisoblanadi.
+ * Kutilgan (pending) oylik komissiya bazasiga kirmaydi — pul tushmagunicha
+ * haq to'lanmaydi, aks holda qarzdor o'quvchi uchun xodimga pul chiqadi.
+ * To'langan oylik kurs (services) id'si bilan qator bo'ladi, shuning uchun
+ * xizmat bo'yicha komissiya ustunligi guruhga ham ishlaydi.
+ */
+export function summariseTuition(
+  groups: TaughtGroup[],
+  payments: TuitionPayment[],
+  window: TuitionWindow,
+): TuitionSummary {
+  const courseByGroup = new Map(groups.map((group) => [group.id, group.course_id]));
+  const totals = new Map(groups.map((group) => [group.id, { collected: 0, planned: 0 }]));
+  const rows: RevenueRow[] = [];
+  const fromMs = Date.parse(window.from);
+  const toMs = Date.parse(window.to);
+
+  for (const payment of payments) {
+    const entry = payment.group_id ? totals.get(payment.group_id) : undefined;
+    if (!entry) continue;
+    const amount = Math.round(Number(payment.amount) || 0);
+    if (amount <= 0) continue;
+    if (payment.status === "paid" || payment.status === "partial") {
+      const paidMs = Date.parse(payment.paid_at ?? payment.created_at ?? "");
+      if (!Number.isFinite(paidMs) || paidMs < fromMs || paidMs >= toMs) continue;
+      entry.collected += amount;
+      rows.push({
+        service_id: payment.group_id ? (courseByGroup.get(payment.group_id) ?? null) : null,
+        price: amount,
+      });
+      continue;
+    }
+    if (payment.status !== "pending") continue;
+    const month = payment.period_month ?? "";
+    if (month >= window.firstMonth && month <= window.lastMonth) entry.planned += amount;
+  }
+
+  const summary: GroupTuition[] = groups.map((group) => ({
+    id: group.id,
+    name: group.name,
+    collected: totals.get(group.id)?.collected ?? 0,
+    planned: totals.get(group.id)?.planned ?? 0,
+  }));
+  return {
+    rows,
+    groups: summary,
+    collected: summary.reduce((sum, group) => sum + group.collected, 0),
+    planned: summary.reduce((sum, group) => sum + group.planned, 0),
+  };
+}
+
 /** Inclusive calendar-month bounds as YYYY-MM-DD strings. */
 export function monthPeriod(year: number, month: number): { period_start: string; period_end: string } {
   const pad = (value: number) => String(value).padStart(2, "0");

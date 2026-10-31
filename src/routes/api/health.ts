@@ -9,6 +9,10 @@ export const Route = createFileRoute("/api/health")({
   server: {
     handlers: {
       GET: async () => {
+        // Bu nuqta ochiq: tafsilotlar faqat mahalliy ishlab chiqishda ko'rsatiladi,
+        // productionda (NODE_ENV belgilanmagan platformalarda ham) faqat holat qaytadi.
+        const env = process.env["NODE_ENV"];
+        const exposeDetail = env === "development" || env === "test";
         const checks: Record<string, string> = {
           databaseUrl: process.env["NEON_DATABASE_URL"] ? "ok" : "missing",
           authIssuer: process.env["NEON_AUTH_ISSUER"] ? "ok" : "missing",
@@ -40,8 +44,7 @@ export const Route = createFileRoute("/api/health")({
           {
             status: healthy ? "ok" : "degraded",
             uptime_s: Math.round(process.uptime()),
-            checks,
-            errors_last_24h: errorsLast24h,
+            ...(exposeDetail ? { checks, errors_last_24h: errorsLast24h } : {}),
             time: new Date().toISOString(),
           },
           { status: healthy ? 200 : 503 },

@@ -24,10 +24,12 @@ import { Route as AuthenticatedDashboardAssistantRouteImport } from './routes/_a
 import { Route as AuthenticatedDashboardAttendanceRouteImport } from './routes/_authenticated/dashboard.attendance'
 import { Route as AuthenticatedDashboardBillingRouteImport } from './routes/_authenticated/dashboard.billing'
 import { Route as AuthenticatedDashboardBranchesRouteImport } from './routes/_authenticated/dashboard.branches'
+import { Route as AuthenticatedDashboardCoursesRouteImport } from './routes/_authenticated/dashboard.courses'
 import { Route as AuthenticatedDashboardCrmBuilderRouteImport } from './routes/_authenticated/dashboard.crm-builder'
 import { Route as AuthenticatedDashboardCustomersRouteImport } from './routes/_authenticated/dashboard.customers'
 import { Route as AuthenticatedDashboardEmployeesRouteImport } from './routes/_authenticated/dashboard.employees'
 import { Route as AuthenticatedDashboardFinanceRouteImport } from './routes/_authenticated/dashboard.finance'
+import { Route as AuthenticatedDashboardGroupsRouteImport } from './routes/_authenticated/dashboard.groups'
 import { Route as AuthenticatedDashboardInventoryRouteImport } from './routes/_authenticated/dashboard.inventory'
 import { Route as AuthenticatedDashboardLeadsRouteImport } from './routes/_authenticated/dashboard.leads'
 import { Route as AuthenticatedDashboardOrdersRouteImport } from './routes/_authenticated/dashboard.orders'
@@ -143,6 +145,12 @@ const AuthenticatedDashboardBranchesRoute =
     path: '/branches',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
+const AuthenticatedDashboardCoursesRoute =
+  AuthenticatedDashboardCoursesRouteImport.update({
+    id: '/courses',
+    path: '/courses',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
 const AuthenticatedDashboardCrmBuilderRoute =
   AuthenticatedDashboardCrmBuilderRouteImport.update({
     id: '/crm-builder',
@@ -165,6 +173,12 @@ const AuthenticatedDashboardFinanceRoute =
   AuthenticatedDashboardFinanceRouteImport.update({
     id: '/finance',
     path: '/finance',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
+const AuthenticatedDashboardGroupsRoute =
+  AuthenticatedDashboardGroupsRouteImport.update({
+    id: '/groups',
+    path: '/groups',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
 const AuthenticatedDashboardInventoryRoute =
@@ -377,10 +391,12 @@ export interface FileRoutesByFullPath {
   '/dashboard/attendance': typeof AuthenticatedDashboardAttendanceRoute
   '/dashboard/billing': typeof AuthenticatedDashboardBillingRoute
   '/dashboard/branches': typeof AuthenticatedDashboardBranchesRoute
+  '/dashboard/courses': typeof AuthenticatedDashboardCoursesRoute
   '/dashboard/crm-builder': typeof AuthenticatedDashboardCrmBuilderRoute
   '/dashboard/customers': typeof AuthenticatedDashboardCustomersRouteWithChildren
   '/dashboard/employees': typeof AuthenticatedDashboardEmployeesRoute
   '/dashboard/finance': typeof AuthenticatedDashboardFinanceRoute
+  '/dashboard/groups': typeof AuthenticatedDashboardGroupsRoute
   '/dashboard/inventory': typeof AuthenticatedDashboardInventoryRoute
   '/dashboard/leads': typeof AuthenticatedDashboardLeadsRoute
   '/dashboard/orders': typeof AuthenticatedDashboardOrdersRoute
@@ -428,9 +444,11 @@ export interface FileRoutesByTo {
   '/dashboard/attendance': typeof AuthenticatedDashboardAttendanceRoute
   '/dashboard/billing': typeof AuthenticatedDashboardBillingRoute
   '/dashboard/branches': typeof AuthenticatedDashboardBranchesRoute
+  '/dashboard/courses': typeof AuthenticatedDashboardCoursesRoute
   '/dashboard/crm-builder': typeof AuthenticatedDashboardCrmBuilderRoute
   '/dashboard/employees': typeof AuthenticatedDashboardEmployeesRoute
   '/dashboard/finance': typeof AuthenticatedDashboardFinanceRoute
+  '/dashboard/groups': typeof AuthenticatedDashboardGroupsRoute
   '/dashboard/inventory': typeof AuthenticatedDashboardInventoryRoute
   '/dashboard/leads': typeof AuthenticatedDashboardLeadsRoute
   '/dashboard/orders': typeof AuthenticatedDashboardOrdersRoute
@@ -482,10 +500,12 @@ export interface FileRoutesById {
   '/_authenticated/dashboard/attendance': typeof AuthenticatedDashboardAttendanceRoute
   '/_authenticated/dashboard/billing': typeof AuthenticatedDashboardBillingRoute
   '/_authenticated/dashboard/branches': typeof AuthenticatedDashboardBranchesRoute
+  '/_authenticated/dashboard/courses': typeof AuthenticatedDashboardCoursesRoute
   '/_authenticated/dashboard/crm-builder': typeof AuthenticatedDashboardCrmBuilderRoute
   '/_authenticated/dashboard/customers': typeof AuthenticatedDashboardCustomersRouteWithChildren
   '/_authenticated/dashboard/employees': typeof AuthenticatedDashboardEmployeesRoute
   '/_authenticated/dashboard/finance': typeof AuthenticatedDashboardFinanceRoute
+  '/_authenticated/dashboard/groups': typeof AuthenticatedDashboardGroupsRoute
   '/_authenticated/dashboard/inventory': typeof AuthenticatedDashboardInventoryRoute
   '/_authenticated/dashboard/leads': typeof AuthenticatedDashboardLeadsRoute
   '/_authenticated/dashboard/orders': typeof AuthenticatedDashboardOrdersRoute
@@ -537,10 +557,12 @@ export interface FileRouteTypes {
     | '/dashboard/attendance'
     | '/dashboard/billing'
     | '/dashboard/branches'
+    | '/dashboard/courses'
     | '/dashboard/crm-builder'
     | '/dashboard/customers'
     | '/dashboard/employees'
     | '/dashboard/finance'
+    | '/dashboard/groups'
     | '/dashboard/inventory'
     | '/dashboard/leads'
     | '/dashboard/orders'
@@ -588,9 +610,11 @@ export interface FileRouteTypes {
     | '/dashboard/attendance'
     | '/dashboard/billing'
     | '/dashboard/branches'
+    | '/dashboard/courses'
     | '/dashboard/crm-builder'
     | '/dashboard/employees'
     | '/dashboard/finance'
+    | '/dashboard/groups'
     | '/dashboard/inventory'
     | '/dashboard/leads'
     | '/dashboard/orders'
@@ -641,10 +665,12 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard/attendance'
     | '/_authenticated/dashboard/billing'
     | '/_authenticated/dashboard/branches'
+    | '/_authenticated/dashboard/courses'
     | '/_authenticated/dashboard/crm-builder'
     | '/_authenticated/dashboard/customers'
     | '/_authenticated/dashboard/employees'
     | '/_authenticated/dashboard/finance'
+    | '/_authenticated/dashboard/groups'
     | '/_authenticated/dashboard/inventory'
     | '/_authenticated/dashboard/leads'
     | '/_authenticated/dashboard/orders'
@@ -802,6 +828,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardBranchesRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
+    '/_authenticated/dashboard/courses': {
+      id: '/_authenticated/dashboard/courses'
+      path: '/courses'
+      fullPath: '/dashboard/courses'
+      preLoaderRoute: typeof AuthenticatedDashboardCoursesRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
     '/_authenticated/dashboard/crm-builder': {
       id: '/_authenticated/dashboard/crm-builder'
       path: '/crm-builder'
@@ -828,6 +861,13 @@ declare module '@tanstack/react-router' {
       path: '/finance'
       fullPath: '/dashboard/finance'
       preLoaderRoute: typeof AuthenticatedDashboardFinanceRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
+    '/_authenticated/dashboard/groups': {
+      id: '/_authenticated/dashboard/groups'
+      path: '/groups'
+      fullPath: '/dashboard/groups'
+      preLoaderRoute: typeof AuthenticatedDashboardGroupsRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
     '/_authenticated/dashboard/inventory': {
@@ -1089,10 +1129,12 @@ interface AuthenticatedDashboardRouteChildren {
   AuthenticatedDashboardAttendanceRoute: typeof AuthenticatedDashboardAttendanceRoute
   AuthenticatedDashboardBillingRoute: typeof AuthenticatedDashboardBillingRoute
   AuthenticatedDashboardBranchesRoute: typeof AuthenticatedDashboardBranchesRoute
+  AuthenticatedDashboardCoursesRoute: typeof AuthenticatedDashboardCoursesRoute
   AuthenticatedDashboardCrmBuilderRoute: typeof AuthenticatedDashboardCrmBuilderRoute
   AuthenticatedDashboardCustomersRoute: typeof AuthenticatedDashboardCustomersRouteWithChildren
   AuthenticatedDashboardEmployeesRoute: typeof AuthenticatedDashboardEmployeesRoute
   AuthenticatedDashboardFinanceRoute: typeof AuthenticatedDashboardFinanceRoute
+  AuthenticatedDashboardGroupsRoute: typeof AuthenticatedDashboardGroupsRoute
   AuthenticatedDashboardInventoryRoute: typeof AuthenticatedDashboardInventoryRoute
   AuthenticatedDashboardLeadsRoute: typeof AuthenticatedDashboardLeadsRoute
   AuthenticatedDashboardOrdersRoute: typeof AuthenticatedDashboardOrdersRoute
@@ -1118,12 +1160,14 @@ const AuthenticatedDashboardRouteChildren: AuthenticatedDashboardRouteChildren =
       AuthenticatedDashboardAttendanceRoute,
     AuthenticatedDashboardBillingRoute: AuthenticatedDashboardBillingRoute,
     AuthenticatedDashboardBranchesRoute: AuthenticatedDashboardBranchesRoute,
+    AuthenticatedDashboardCoursesRoute: AuthenticatedDashboardCoursesRoute,
     AuthenticatedDashboardCrmBuilderRoute:
       AuthenticatedDashboardCrmBuilderRoute,
     AuthenticatedDashboardCustomersRoute:
       AuthenticatedDashboardCustomersRouteWithChildren,
     AuthenticatedDashboardEmployeesRoute: AuthenticatedDashboardEmployeesRoute,
     AuthenticatedDashboardFinanceRoute: AuthenticatedDashboardFinanceRoute,
+    AuthenticatedDashboardGroupsRoute: AuthenticatedDashboardGroupsRoute,
     AuthenticatedDashboardInventoryRoute: AuthenticatedDashboardInventoryRoute,
     AuthenticatedDashboardLeadsRoute: AuthenticatedDashboardLeadsRoute,
     AuthenticatedDashboardOrdersRoute: AuthenticatedDashboardOrdersRoute,

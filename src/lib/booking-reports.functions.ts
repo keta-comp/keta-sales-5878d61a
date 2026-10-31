@@ -140,7 +140,12 @@ export const exportBookingCsv = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     const items = (rows ?? []) as unknown as ReportRow[];
 
-    const escape = (value: string) => `"${value.replace(/"/g, '""')}"`;
+    // Mijoz/isma `=HYPERLINK(...)` yozib Excel formulani bajarishi mumkin:
+    // bunday qiymatlarni apostrof bilan neutrallaymiz.
+    const escape = (value: string) => {
+      const safe = /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
+      return `"${safe.replace(/"/g, '""')}"`;
+    };
     const header = ["Sana", "Boshlanish", "Tugash", "Xizmat", "Xodim", "Mijoz", "Telefon", "Holat", "Narx"];
     const lines = [header.join(",")];
     for (const row of items) {

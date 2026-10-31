@@ -1,7 +1,16 @@
 // @ts-nocheck
 import { describe, expect, test } from "bun:test";
 
-import { PAYROLL_STATUSES, buildPayrollExpense, computeStatement, dateBoundsIso, monthPeriod, roundMoney } from "./payroll";
+import {
+  PAYROLL_STATUSES,
+  buildPayrollExpense,
+  computeStatement,
+  dateBoundsIso,
+  monthPeriod,
+  roundMoney,
+  summariseTuition,
+  tuitionWindow,
+} from "./payroll";
 
 describe("roundMoney", () => {
   test("rounds to two decimals", () => {
@@ -139,5 +148,86 @@ describe("buildPayrollExpense", () => {
   test("nothing is booked when the statement pays out zero or less", () => {
     expect(buildPayrollExpense({ ...base, amount: 0 })).toBeNull();
     expect(buildPayrollExpense({ ...base, amount: -5000 })).toBeNull();
+  });
+});
+
+describe("summariseTuition", () => {
+  const window = tuitionWindow("2026-10-01", "2026-10-31");
+  const groups = [
+    { id: "g1", name: "Matematika A", course_id: "c1" },
+    { id: "g2", name: "Ingliz tili B", course_id: null },
+  ];
+  const payment = (overrides = {}) => ({
+    group_id: "g1",
+    amount: 200_000,
+    status: "paid",
+    paid_at: "2026-10-15T10:00:00+05:00",
+    created_at: "2026-10-01T09:00:00+05:00",
+    period_month: "2026-10",
+    ...overrides,
+  });
+
+  test("only paid tuition inside the window becomes the commission base", () => {
+    const summary = summariseTuition(
+      groups,
+      [
+        payment(),
+        payment({ status: "partial", amount: "50000.50" }),
+        payment({ paid_at: "2026-09-30T23:00:00+05:00" }),
+        payment({ paid_at: "2026-11-01T00:00:00+05:00" }),
+        payment({ status: "refunded" }),
+        payment({ group_id: "g-other" }),
+      ],
+      window,
+    );
+    expect(summary.collected).toBe(250_001);
+    expect(summary.rows).toEqual([
+      { service_id: "c1", price: 200_000 },
+      { service_id: "c1", price: 50_001 },
+    ]);
+  });
+
+  test("a payment without paid_at falls back to created_at", () => {
+    const summary = summariseTuition(groups, [payment({ paid_at: null })], window);
+    expect(summary.collected).toBe(200_000);
+  });
+
+  test("pending tuition is reported as planned, never as collected", () => {
+    const summary = summariseTuition(
+      groups,
+      [
+        payment({ status: "pending", paid_at: null, amount: 120_000 }),
+        payment({ status: "pending", paid_at: null, period_month: "2026-09" }),
+      ],
+      window,
+    );
+    expect(summary.planned).toBe(120_000);
+    expect(summary.collected).toBe(0);
+    expect(summary.rows).toEqual([]);
+  });
+
+  test("every taught group is listed even without payments", () => {
+    const summary = summariseTuition(groups, [payment()], window);
+    expect(summary.groups).toEqual([
+      { id: "g1", name: "Matematika A", collected: 200_000, planned: 0 },
+      { id: "g2", name: "Ingliz tili B", collected: 0, planned: 0 },
+    ]);
+  });
+
+  test("tuition rows follow the group's course percent, then the rule percent", () => {
+    const summary = summariseTuition(
+      groups,
+      [payment(), payment({ group_id: "g2", amount: 100_000 })],
+      window,
+    );
+    const totals = computeStatement({
+      baseSalary: 0,
+      ruleCommissionPercent: 10,
+      rows: summary.rows,
+      overrides: [{ service_id: "c1", commission_percent: 25 }],
+    });
+    // g1 → kurs c1: 25% of 200k, g2 → kursi yo'q: qoida 10% of 100k
+    expect(totals.commissionAmount).toBe(60_000);
+    expect(totals.serviceRevenue).toBe(300_000);
   });
 });

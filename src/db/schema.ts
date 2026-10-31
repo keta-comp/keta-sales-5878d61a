@@ -332,6 +332,8 @@ export const payments = pgTable("payments", {
 	customerId: uuid("customer_id"),
 	orderId: uuid("order_id"),
 	appointmentId: uuid("appointment_id"),
+	groupId: uuid("group_id"),
+	periodMonth: text("period_month"),
 	amount: numeric().default('0').notNull(),
 	method: text().default('cash').notNull(),
 	status: text().default('pending').notNull(),
@@ -348,11 +350,17 @@ export const payments = pgTable("payments", {
 	index("payments_customer_idx").using("btree", table.customerId.asc().nullsLast().op("uuid_ops")),
 	index("payments_order_idx").using("btree", table.orderId.asc().nullsLast().op("uuid_ops")),
 	index("payments_appointment_idx").using("btree", table.appointmentId.asc().nullsLast().op("uuid_ops")),
+	index("payments_group_period_idx").using("btree", table.businessId.asc().nullsLast().op("uuid_ops"), table.groupId.asc().nullsLast().op("uuid_ops"), table.periodMonth.asc().nullsLast().op("text_ops")),
 	foreignKey({
 			columns: [table.businessId],
 			foreignColumns: [businesses.id],
 			name: "payments_business_id_fkey"
 		}).onDelete("cascade"),
+	foreignKey({
+			columns: [table.groupId],
+			foreignColumns: [studyGroups.id],
+			name: "payments_group_id_fkey"
+		}).onDelete("set null"),
 	foreignKey({
 			columns: [table.customerId],
 			foreignColumns: [customers.id],
@@ -370,6 +378,7 @@ export const payments = pgTable("payments", {
 		}).onDelete("set null"),
 	pgPolicy("Business members manage payments", { as: "permissive", for: "all", to: ["app_user"], using: sql`is_business_member(business_id)`, withCheck: sql`is_business_member(business_id)`  }),
 	check("payments_amount_positive", sql`amount > (0)::numeric)) NOT VALID`),
+	check("payments_period_month_format", sql`period_month IS NULL OR period_month ~ '^[0-9]{4}-(0[1-9]|1[0-2])$'`),
 ]);
 
 export const workSchedules = pgTable("work_schedules", {
@@ -667,6 +676,7 @@ export const attendance = pgTable("attendance", {
 	studentId: uuid("student_id").notNull(),
 	lessonDate: date("lesson_date").notNull(),
 	groupName: text("group_name").default('').notNull(),
+	groupId: uuid("group_id"),
 	status: text().default('present').notNull(),
 	note: text().default('').notNull(),
 	markedBy: uuid("marked_by"),
@@ -674,12 +684,18 @@ export const attendance = pgTable("attendance", {
 	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
 }, (table) => [
 	index("attendance_business_date_idx").using("btree", table.businessId.asc().nullsLast().op("uuid_ops"), table.lessonDate.asc().nullsLast().op("date_ops")),
+	index("attendance_group_date_idx").on(table.businessId, table.groupId, table.lessonDate),
 	unique("attendance_one_mark_per_day").on(table.businessId, table.studentId, table.lessonDate, table.groupName),
 	foreignKey({
 			columns: [table.businessId],
 			foreignColumns: [businesses.id],
 			name: "attendance_business_id_fkey"
 		}).onDelete("cascade"),
+	foreignKey({
+			columns: [table.groupId],
+			foreignColumns: [studyGroups.id],
+			name: "attendance_group_id_fkey"
+		}).onDelete("set null"),
 	foreignKey({
 			columns: [table.studentId],
 			foreignColumns: [customers.id],
@@ -1502,3 +1518,80 @@ export const user = neonAuth.table("user", {
   banReason: text(),
   banExpires: timestamp("banExpires", { withTimezone: true, mode: "string" }),
 });
+
+// O‘quv markazi uchun haqiqiy obyektlar (migratsiya: 20261031190000_4c1f7d2a).
+// Kurs = `services` yozuvi; guruh shu kursni belgilangan o‘qituvchi va jadval bilan
+// olib boradi, a'zolar esa o‘quvchilarni (customers) bog‘laydi.
+export const studyGroups = pgTable("study_groups", {
+	id: uuid().defaultRandom().primaryKey().notNull(),
+	businessId: uuid("business_id").notNull(),
+	courseId: uuid("course_id").notNull(),
+	teacherId: uuid("teacher_id"),
+	name: text().notNull(),
+	monthlyPrice: numeric("monthly_price", { precision: 14, scale: 2 }).default('0').notNull(),
+	capacity: integer("capacity").default(0).notNull(),
+	lessonDays: text("lesson_days").default('').notNull(),
+	startsOn: date("starts_on"),
+	endsOn: date("ends_on"),
+	status: text().default('active').notNull(),
+	note: text().default('').notNull(),
+	createdBy: uuid("created_by"),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+}, (table) => [
+	index("study_groups_business_idx").using("btree", table.businessId.asc().nullsLast().op("uuid_ops"), table.status.asc().nullsLast().op("text_ops")),
+	index("study_groups_course_idx").using("btree", table.courseId.asc().nullsLast().op("uuid_ops")),
+	unique("study_groups_one_name_per_business").on(table.businessId, table.name),
+	foreignKey({
+			columns: [table.businessId],
+			foreignColumns: [businesses.id],
+			name: "study_groups_business_id_fkey"
+		}).onDelete("cascade"),
+	foreignKey({
+			columns: [table.courseId],
+			foreignColumns: [services.id],
+			name: "study_groups_course_id_fkey"
+		}).onDelete("restrict"),
+	foreignKey({
+			columns: [table.teacherId],
+			foreignColumns: [employees.id],
+			name: "study_groups_teacher_id_fkey"
+		}).onDelete("set null"),
+	pgPolicy("study_groups tenant", { as: "permissive", for: "all", to: ["app_user"], using: sql`is_business_member(business_id) AND branch_access_ok(business_id, NULL)`, withCheck: sql`is_business_member(business_id) AND branch_access_ok(business_id, NULL)` }),
+	check("study_groups_monthly_price_check", sql`monthly_price >= (0)::numeric`),
+	check("study_groups_capacity_check", sql`capacity >= 0`),
+	check("study_groups_status_check", sql`status = ANY (ARRAY['collecting'::text, 'active'::text, 'finished'::text, 'archived'::text])`),
+]);
+
+export const groupMembers = pgTable("group_members", {
+	groupId: uuid("group_id").notNull(),
+	studentId: uuid("student_id").notNull(),
+	businessId: uuid("business_id").notNull(),
+	monthlyPrice: numeric("monthly_price", { precision: 14, scale: 2 }),
+	status: text().default('active').notNull(),
+	joinedAt: timestamp("joined_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+}, (table) => [
+	index("group_members_business_idx").using("btree", table.businessId.asc().nullsLast().op("uuid_ops")),
+	index("group_members_student_idx").using("btree", table.studentId.asc().nullsLast().op("uuid_ops"), table.status.asc().nullsLast().op("text_ops")),
+	primaryKey({ columns: [table.groupId, table.studentId], name: "group_members_pkey" }),
+	foreignKey({
+			columns: [table.groupId],
+			foreignColumns: [studyGroups.id],
+			name: "group_members_group_id_fkey"
+		}).onDelete("cascade"),
+	foreignKey({
+			columns: [table.studentId],
+			foreignColumns: [customers.id],
+			name: "group_members_student_id_fkey"
+		}).onDelete("cascade"),
+	foreignKey({
+			columns: [table.businessId],
+			foreignColumns: [businesses.id],
+			name: "group_members_business_id_fkey"
+		}).onDelete("cascade"),
+	pgPolicy("group_members tenant", { as: "permissive", for: "all", to: ["app_user"], using: sql`is_business_member(business_id) AND branch_access_ok(business_id, NULL)`, withCheck: sql`is_business_member(business_id) AND branch_access_ok(business_id, NULL)` }),
+	check("group_members_monthly_price_check", sql`(monthly_price IS NULL) OR (monthly_price >= (0)::numeric)`),
+	check("group_members_status_check", sql`status = ANY (ARRAY['active'::text, 'archived'::text])`),
+]);

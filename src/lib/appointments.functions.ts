@@ -3,12 +3,8 @@ import type { DbClient } from "./pg-rest.server";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/lib/auth-middleware";
-import {
-  DEPOSIT_METHODS,
-  DEPOSIT_TYPES,
-  depositFor,
-  depositState,
-} from "@/lib/deposit";
+import { requirePermission } from "./guards.server";
+import { DEPOSIT_METHODS, DEPOSIT_TYPES, depositFor, depositState } from "@/lib/deposit";
 import {
   DEFAULT_BUSINESS_TZ,
   APPOINTMENT_STATUSES,
@@ -99,7 +95,11 @@ export const saveService = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const businessId = await requireBookingBusiness(context.supabase);
+    const businessId = await requirePermission(
+      context.supabase,
+      "catalog.manage",
+      "Katalogni faqat egasi, admin yoki menejer boshqaradi.",
+    );
     // Qoida yuborilmagani saqlanadi: ro'yxatdagi faqat "faol" tugmasi bosilganda
     // depozit sozlamasining o'chib ketmasligi shundan.
     let depositPatch: Record<string, unknown> = {};
@@ -121,14 +121,12 @@ export const saveService = createServerFn({ method: "POST" })
       const { error } = await context.supabase.from("services").update(patch).eq("id", data.id);
       if (error) throw new Error(error.message);
     } else {
-      const { error } = await context.supabase
-        .from("services")
-        .insert({
-          ...row,
-          is_active: data.is_active ?? true,
-          business_id: businessId,
-          created_by: context.userId,
-        });
+      const { error } = await context.supabase.from("services").insert({
+        ...row,
+        is_active: data.is_active ?? true,
+        business_id: businessId,
+        created_by: context.userId,
+      });
       if (error) throw new Error(error.message);
     }
     return { ok: true };
@@ -138,7 +136,11 @@ export const deleteService = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ id: z.string() }).parse(input))
   .handler(async ({ data, context }) => {
-    await requireBookingBusiness(context.supabase);
+    await requirePermission(
+      context.supabase,
+      "catalog.manage",
+      "Katalogni faqat egasi, admin yoki menejer boshqaradi.",
+    );
     const { error } = await context.supabase.from("services").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
@@ -197,7 +199,11 @@ export const saveAppointment = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const businessId = await requireBookingBusiness(context.supabase);
+    const businessId = await requirePermission(
+      context.supabase,
+      "appointments.manage",
+      "Qabullarni faqat qabul xodimi, menejer, admin yoki egasi boshqaradi.",
+    );
 
     let duration = data.duration_minutes;
     let snapshot: { name: string; price: number; duration_minutes: number } | null = null;
@@ -209,15 +215,30 @@ export const saveAppointment = createServerFn({ method: "POST" })
         .eq("id", data.service_id)
         .maybeSingle();
       if (error) throw new Error(error.message);
-      if (service) snapshot = { name: service.name, price: Number(service.price), duration_minutes: service.duration_minutes };
-      if (service) depositRule = { deposit_type: service.deposit_type, deposit_value: Number(service.deposit_value) };
+      if (service)
+        snapshot = {
+          name: service.name,
+          price: Number(service.price),
+          duration_minutes: service.duration_minutes,
+        };
+      if (service)
+        depositRule = {
+          deposit_type: service.deposit_type,
+          deposit_value: Number(service.deposit_value),
+        };
       if (duration === undefined) duration = service?.duration_minutes;
     }
     if (duration === undefined) throw new Error("Xizmat yoki davomiylikni tanlang.");
     const endsAt = appointmentEnd(data.starts_at, duration);
 
     if (data.employee_id) {
-      await assertEmployeeAvailable(context.supabase, data.employee_id, data.starts_at, endsAt, duration);
+      await assertEmployeeAvailable(
+        context.supabase,
+        data.employee_id,
+        data.starts_at,
+        endsAt,
+        duration,
+      );
     }
 
     // Depozit snapshoti xizmat qoidasidan hisoblanadi. To'langan depoziti bo'lgan
@@ -269,7 +290,11 @@ export const setAppointmentStatus = createServerFn({ method: "POST" })
     z.object({ id: z.string(), status: z.enum(APPOINTMENT_STATUSES) }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    await requireBookingBusiness(context.supabase);
+    await requirePermission(
+      context.supabase,
+      "appointments.manage",
+      "Qabullarni faqat qabul xodimi, menejer, admin yoki egasi boshqaradi.",
+    );
     const { error } = await context.supabase
       .from("appointments")
       .update({ status: data.status })
@@ -282,7 +307,11 @@ export const deleteAppointment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ id: z.string() }).parse(input))
   .handler(async ({ data, context }) => {
-    await requireBookingBusiness(context.supabase);
+    await requirePermission(
+      context.supabase,
+      "appointments.manage",
+      "Qabullarni faqat qabul xodimi, menejer, admin yoki egasi boshqaradi.",
+    );
     const { error } = await context.supabase.from("appointments").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
@@ -314,7 +343,11 @@ export const recordDeposit = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const businessId = await requireBookingBusiness(context.supabase);
+    const businessId = await requirePermission(
+      context.supabase,
+      "appointments.manage",
+      "Qabullarni faqat qabul xodimi, menejer, admin yoki egasi boshqaradi.",
+    );
     const { data: appointment, error } = await context.supabase
       .from("appointments")
       .select("id, customer_id, service_name, deposit_amount, deposit_paid_at, deposit_refunded_at")
@@ -375,10 +408,16 @@ export const refundDeposit = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ id: z.string() }).parse(input))
   .handler(async ({ data, context }) => {
-    await requireBookingBusiness(context.supabase);
+    await requirePermission(
+      context.supabase,
+      "finance.view",
+      "Bu amal faqat moliyaga ruxsati bo'lgan xodimlar uchun.",
+    );
     const { data: appointment, error } = await context.supabase
       .from("appointments")
-      .select("id, service_name, deposit_amount, deposit_paid_amount, deposit_paid_at, deposit_refunded_at")
+      .select(
+        "id, service_name, deposit_amount, deposit_paid_amount, deposit_paid_at, deposit_refunded_at",
+      )
       .eq("id", data.id)
       .maybeSingle();
     if (error) throw new Error(error.message);
@@ -387,13 +426,21 @@ export const refundDeposit = createServerFn({ method: "POST" })
     const now = new Date().toISOString();
     const { error: updateError } = await context.supabase
       .from("appointments")
-      .update({ deposit_refunded_at: now, deposit_paid_at: null, deposit_paid_amount: null, deposit_method: "" })
+      .update({
+        deposit_refunded_at: now,
+        deposit_paid_at: null,
+        deposit_paid_amount: null,
+        deposit_method: "",
+      })
       .eq("id", data.id);
     if (updateError) throw new Error(updateError.message);
 
     const { error: ledgerError } = await context.supabase
       .from("payments")
-      .update({ status: "refunded", note: `Depozit qaytarildi · ${appointment?.service_name || "Qabul"}` })
+      .update({
+        status: "refunded",
+        note: `Depozit qaytarildi · ${appointment?.service_name || "Qabul"}`,
+      })
       .eq("appointment_id", data.id)
       .eq("status", "paid");
     if (ledgerError) throw new Error(ledgerError.message);
@@ -451,13 +498,19 @@ export const getBookingSummary = createServerFn({ method: "GET" })
 
     const rows = monthRows ?? [];
     const held = (row: { status: string }) => row.status !== "cancelled";
-    const inRange = (row: { starts_at: string }, lo: string, hi: string) => row.starts_at >= lo && row.starts_at < hi;
+    const inRange = (row: { starts_at: string }, lo: string, hi: string) =>
+      row.starts_at >= lo && row.starts_at < hi;
 
-    const upcoming = (upcomingRows ?? []).filter((row) => BOOKED_STATUSES.has(row.status as never)).slice(0, 5);
+    const upcoming = (upcomingRows ?? [])
+      .filter((row) => BOOKED_STATUSES.has(row.status as never))
+      .slice(0, 5);
 
     return {
-      todayCount: rows.filter((row) => held(row) && inRange(row, todayFrom, todayTo.toISOString())).length,
-      weekCount: rows.filter((row) => held(row) && inRange(row, from(isoDay(weekStart)), weekTo.toISOString())).length,
+      todayCount: rows.filter((row) => held(row) && inRange(row, todayFrom, todayTo.toISOString()))
+        .length,
+      weekCount: rows.filter(
+        (row) => held(row) && inRange(row, from(isoDay(weekStart)), weekTo.toISOString()),
+      ).length,
       monthCount: rows.filter(held).length,
       pendingConfirm: rows.filter((row) => row.status === "new").length,
       cancelledMonth: rows.filter((row) => row.status === "cancelled").length,

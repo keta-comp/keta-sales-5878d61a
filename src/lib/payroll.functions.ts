@@ -6,9 +6,43 @@ import { requireSupabaseAuth } from "@/lib/auth-middleware";
 import { logActivity } from "./activity.server";
 import { can, type MemberRole } from "./roles";
 import { requireBusinessId } from "./tenant.server";
-import { buildPayrollExpense, computeStatement, dateBoundsIso, roundMoney } from "./payroll";
+import {
+  buildPayrollExpense,
+  computeStatement,
+  dateBoundsIso,
+  roundMoney,
+  summariseTuition,
+  tuitionWindow,
+  type TaughtGroup,
+  type TuitionPayment,
+  type TuitionSummary,
+} from "./payroll";
 
 type Client = DbClient;
+
+type Pageable = ReturnType<Client["from"]>;
+
+const PAGE_SIZE = 1000;
+const MAX_PAGES = 100;
+
+/**
+ * Komissiya va oylik yig'indilari pul hisobi: bitta sahifa bilan cheklash
+ * qoidani jim buzadi, shuning uchun to'liq sahifalab o'qiymiz.
+ */
+async function fetchAll(build: () => Pageable): Promise<unknown[]> {
+  const rows: unknown[] = [];
+  for (let page = 0; page < MAX_PAGES; page += 1) {
+    const from = page * PAGE_SIZE;
+    const { data, error } = await build().range(from, from + PAGE_SIZE - 1);
+    if (error) throw new Error(error.message);
+    const chunk = data ?? [];
+    rows.push(...chunk);
+    if (chunk.length < PAGE_SIZE) return rows;
+  }
+  throw new Error(
+    "Hisob uchun ma'lumot hajmi juda katta — davrni kichraytirib qaytadan urinib ko'ring.",
+  );
+}
 
 /** Payroll is a finance concern: owner/admin/manager only (finance.view gate). */
 async function requirePayrollAdmin(supabase: Client): Promise<string> {
@@ -19,6 +53,47 @@ async function requirePayrollAdmin(supabase: Client): Promise<string> {
     throw new Error("Ish haqini faqat egasi, admin yoki menejer hisoblaydi.");
   }
   return businessId;
+}
+
+/**
+ * O'qituvchi sinfning o'zi: uning guruhlariga yozilgan oyliklar.
+ * `pending` qatorlari bazaga kirmaydi, faqat reja sifatida qaytariladi.
+ */
+async function teacherTuition(
+  supabase: Client,
+  businessId: string,
+  employeeId: string,
+  periodStart: string,
+  periodEnd: string,
+): Promise<TuitionSummary> {
+  const { data: groupRows, error } = await supabase
+    .from("study_groups")
+    .select("id, name, course_id")
+    .eq("business_id", businessId)
+    .eq("teacher_id", employeeId)
+    .order("name");
+  if (error) throw new Error(error.message);
+  const groups = (groupRows ?? []) as unknown as TaughtGroup[];
+  if (!groups.length) return { rows: [], groups: [], collected: 0, planned: 0 };
+
+  const paymentRows = await fetchAll(() =>
+    supabase
+      .from("payments")
+      .select("group_id, amount, status, paid_at, created_at, period_month")
+      .eq("business_id", businessId)
+      .in(
+        "group_id",
+        groups.map((group) => group.id),
+      )
+      .in("status", ["paid", "partial", "pending"])
+      .order("id"),
+  );
+
+  return summariseTuition(
+    groups,
+    paymentRows as TuitionPayment[],
+    tuitionWindow(periodStart, periodEnd),
+  );
 }
 
 const dateIso = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
@@ -141,7 +216,7 @@ export const generatePayrollStatement = createServerFn({ method: "POST" })
       { data: employee, error: employeeError },
       { data: rule },
       { data: overrideRows, error: overrideError },
-      { data: appointmentRows, error: appointmentError },
+      appointments,
       { data: existing, error: existingError },
     ] = await Promise.all([
       context.supabase.from("employees").select("id, full_name").eq("id", data.employee_id).maybeSingle(),
@@ -151,14 +226,16 @@ export const generatePayrollStatement = createServerFn({ method: "POST" })
         .select("service_id, commission_percent")
         .eq("employee_id", data.employee_id)
         .not("commission_percent", "is", null),
-      context.supabase
-        .from("appointments")
-        .select("service_id, price")
-        .eq("employee_id", data.employee_id)
-        .eq("status", "completed")
-        .gte("starts_at", bounds.from)
-        .lt("starts_at", bounds.to)
-        .limit(2000),
+      fetchAll(() =>
+        context.supabase
+          .from("appointments")
+          .select("service_id, price")
+          .eq("employee_id", data.employee_id)
+          .eq("status", "completed")
+          .gte("starts_at", bounds.from)
+          .lt("starts_at", bounds.to)
+          .order("id"),
+      ),
       context.supabase
         .from("payroll_statements")
         .select("*")
@@ -169,17 +246,29 @@ export const generatePayrollStatement = createServerFn({ method: "POST" })
     if (employeeError) throw new Error(employeeError.message);
     if (!employee) throw new Error("Xodim topilmadi.");
     if (overrideError) throw new Error(overrideError.message);
-    if (appointmentError) throw new Error(appointmentError.message);
     if (existingError) throw new Error(existingError.message);
 
     if (existing && existing.status !== "draft") {
       throw new Error("Bu davr uchun hisob-kitob allaqachon tasdiqlangan yoki to'langan.");
     }
 
+    const tuition = await teacherTuition(
+      context.supabase,
+      businessId,
+      data.employee_id,
+      data.period_start,
+      data.period_end,
+    );
+
     const totals = computeStatement({
       baseSalary: Number(rule?.base_salary ?? 0),
       ruleCommissionPercent: Number(rule?.commission_percent ?? 0),
-      rows: (appointmentRows ?? []).map((row) => ({ service_id: row.service_id, price: Number(row.price ?? 0) })),
+      rows: [
+        ...(appointments as { service_id: string | null; price: number | string | null }[]).map(
+          (row) => ({ service_id: row.service_id, price: Number(row.price ?? 0) }),
+        ),
+        ...tuition.rows,
+      ],
       overrides: (overrideRows ?? []).map((row) => ({
         service_id: row.service_id,
         commission_percent: Number(row.commission_percent ?? 0),
@@ -233,10 +322,41 @@ export const generatePayrollStatement = createServerFn({ method: "POST" })
       entityType: "payroll_statement",
       entityId: created?.id ?? null,
       action: "payroll_generated",
-      detail: `${employee.full_name} ${data.period_start}…${data.period_end}: ${totals.totalComputed}`,
+      detail: `${employee.full_name} ${data.period_start}…${data.period_end}: ${totals.totalComputed}${
+        tuition.collected > 0 ? ` (guruh oyliklari ${tuition.collected})` : ""
+      }`,
       actorUserId: context.userId,
     });
     return { ok: true, id: created?.id ?? null, recomputed: false };
+  });
+
+/**
+ * Hisoblashdan oldin ko'rish uchun: bu xodimning guruhlarida qancha oylik
+ * to'langan va qanchasi kutilmoqda. O'qituvchi haqining bazasi shu.
+ */
+export const listTeacherTuition = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        employee_id: z.string(),
+        period_start: dateIso,
+        period_end: dateIso,
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const businessId = await requirePayrollAdmin(context.supabase);
+    if (data.period_end < data.period_start) {
+      throw new Error("Davr tugash sanasi boshlanishidan oldin bo'lishi mumkin emas.");
+    }
+    return teacherTuition(
+      context.supabase,
+      businessId,
+      data.employee_id,
+      data.period_start,
+      data.period_end,
+    );
   });
 
 export const updatePayrollStatement = createServerFn({ method: "POST" })

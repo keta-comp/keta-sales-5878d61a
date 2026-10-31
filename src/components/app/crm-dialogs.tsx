@@ -21,9 +21,16 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { saveCrmCustomer } from "@/lib/customers.functions";
+import { listStudentGroups, listStudyGroups, syncStudentGroups } from "@/lib/groups.functions";
 import { savePayment } from "@/lib/payments.functions";
 import { saveTask } from "@/lib/tasks.functions";
 import { createQuickLead, createQuickOrder, listPickers } from "@/lib/quick.functions";
@@ -41,12 +48,18 @@ import {
   type QuickActionKey,
 } from "@/lib/crm-core";
 import { t } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
 
 const NONE = "__none__";
 
 export function usePickers(enabled = true) {
   const fetchPickers = useServerFn(listPickers);
-  return useQuery({ queryKey: ["pickers"], queryFn: () => fetchPickers(), enabled, staleTime: 30_000 });
+  return useQuery({
+    queryKey: ["pickers"],
+    queryFn: () => fetchPickers(),
+    enabled,
+    staleTime: 30_000,
+  });
 }
 
 function useInvalidate() {
@@ -63,6 +76,8 @@ function useInvalidate() {
       "report",
       "pickers",
       "activities",
+      "study-groups",
+      "study-group-members",
     ]) {
       void queryClient.invalidateQueries({ queryKey: [key] });
     }
@@ -102,19 +117,42 @@ export function CustomerDialog({
   title?: string;
 }) {
   const save = useServerFn(saveCrmCustomer);
+  const fetchGroups = useServerFn(listStudyGroups);
+  const fetchLinkedGroups = useServerFn(listStudentGroups);
+  const linkGroups = useServerFn(syncStudentGroups);
   const invalidate = useInvalidate();
   const pickers = usePickers(open);
   const { term } = useTerminology();
   const person = term("customers").one;
+  const { isHidden } = useSectionVisibility();
   const [form, setForm] = useState<CustomerSeed>({});
+  /** null — hali tanlanmagan: saqlashda guruhlar ro'yxatiga tegmaymiz. */
+  const [groupIds, setGroupIds] = useState<string[] | null>(null);
+
+  const showGroups = !isHidden("/dashboard/groups");
+  const studentId = form.id;
 
   useEffect(() => {
-    if (open) setForm(customer ?? { status: "active", source: "manual" });
+    if (open) {
+      setForm(customer ?? { status: "active", source: "manual" });
+      setGroupIds(null);
+    }
   }, [open, customer]);
 
+  const groups = useQuery({
+    queryKey: ["study-groups"],
+    queryFn: () => fetchGroups({ data: {} }),
+    enabled: open && showGroups,
+  });
+  const linked = useQuery({
+    queryKey: ["student-groups", studentId],
+    queryFn: () => fetchLinkedGroups({ data: { studentId: studentId ?? "" } }),
+    enabled: open && showGroups && Boolean(studentId),
+  });
+
   const mutation = useMutation({
-    mutationFn: () =>
-      save({
+    mutationFn: async () => {
+      const saved = await save({
         data: {
           ...(form.id ? { id: form.id } : {}),
           full_name: (form.full_name ?? "").trim(),
@@ -126,7 +164,14 @@ export function CustomerDialog({
           assigned_member_id: form.assigned_member_id ?? null,
           notes: form.notes ?? null,
         },
-      }),
+      });
+      const next = groupIds ?? linked.data?.groupIds ?? [];
+      // Yangi o‘quvchi tanlovsiz saqlansa bo‘sh sinxronizatsiya kerak emas.
+      if (groupIds !== null || next.length > 0) {
+        await linkGroups({ data: { studentId: saved.id, groupIds: next } });
+      }
+      return saved;
+    },
     onSuccess: () => {
       toast.success(t("{term} saqlandi", { term: person }));
       invalidate();
@@ -239,6 +284,18 @@ export function CustomerDialog({
               />
             </Field>
           </div>
+          {showGroups ? (
+            <div className="sm:col-span-2">
+              <Field label={t("Guruhlar")}>
+                <GroupChipsField
+                  groups={groups.data ?? []}
+                  value={groupIds ?? linked.data?.groupIds ?? []}
+                  onChange={setGroupIds}
+                  loading={groups.isPending}
+                />
+              </Field>
+            </div>
+          ) : null}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
@@ -253,6 +310,64 @@ export function CustomerDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function GroupChipsField({
+  groups,
+  value,
+  onChange,
+  loading,
+}: {
+  groups: {
+    id: string;
+    name: string;
+    course_name: string;
+    member_count: number;
+    capacity: number;
+  }[];
+  value: string[];
+  onChange: (value: string[]) => void;
+  loading: boolean;
+}) {
+  if (loading) {
+    return <p className="text-sm text-muted-foreground">{t("Guruhlar yuklanmoqda…")}</p>;
+  }
+  if (groups.length === 0) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        {t("Hozircha guruhlar yo‘q — Guruhlar bo‘limida oching.")}
+      </p>
+    );
+  }
+  const selected = new Set(value);
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {groups.map((group) => {
+        const on = selected.has(group.id);
+        const full = group.capacity > 0 && group.member_count >= group.capacity && !on;
+        return (
+          <button
+            key={group.id}
+            type="button"
+            disabled={full}
+            onClick={() =>
+              onChange(on ? value.filter((id) => id !== group.id) : [...value, group.id])
+            }
+            title={full ? t("Guruh to‘lgan") : group.course_name}
+            className={cn(
+              "rounded-full border px-3 py-1 text-sm transition-colors",
+              on
+                ? "border-primary/40 bg-primary/10 text-primary"
+                : "border-border text-muted-foreground hover:bg-muted",
+              full && "cursor-not-allowed opacity-50",
+            )}
+          >
+            {group.name}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -329,7 +444,9 @@ export function LeadDialog({
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>{label}</DialogTitle>
-          <DialogDescription>{t("Mijozni tanlang — ma’lumotlarini qayta kiritish shart emas.")}</DialogDescription>
+          <DialogDescription>
+            {t("Mijozni tanlang — ma’lumotlarini qayta kiritish shart emas.")}
+          </DialogDescription>
         </DialogHeader>
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="sm:col-span-2">
@@ -365,7 +482,10 @@ export function LeadDialog({
             />
           </Field>
           <Field label={t("Manba")}>
-            <Select value={form.source} onValueChange={(value) => setForm((f) => ({ ...f, source: value }))}>
+            <Select
+              value={form.source}
+              onValueChange={(value) => setForm((f) => ({ ...f, source: value }))}
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -379,7 +499,10 @@ export function LeadDialog({
             </Select>
           </Field>
           <Field label={t("Bosqich")}>
-            <Select value={t(form.stage)} onValueChange={(value) => setForm((f) => ({ ...f, stage: value }))}>
+            <Select
+              value={t(form.stage)}
+              onValueChange={(value) => setForm((f) => ({ ...f, stage: value }))}
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -431,7 +554,10 @@ export function LeadDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             {t("Bekor qilish")}
           </Button>
-          <Button disabled={!form.customer_id || mutation.isPending} onClick={() => mutation.mutate()}>
+          <Button
+            disabled={!form.customer_id || mutation.isPending}
+            onClick={() => mutation.mutate()}
+          >
             {t("Saqlash")}
           </Button>
         </DialogFooter>
@@ -440,7 +566,12 @@ export function LeadDialog({
   );
 }
 
-type OrderLine = { product_id: string | null; product_name: string; quantity: string; unit_price: string };
+type OrderLine = {
+  product_id: string | null;
+  product_name: string;
+  quantity: string;
+  unit_price: string;
+};
 
 export function OrderDialog({
   open,
@@ -511,7 +642,9 @@ export function OrderDialog({
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>{label}</DialogTitle>
-          <DialogDescription>{t("Mahsulotni katalogdan tanlang yoki xizmat nomini yozing.")}</DialogDescription>
+          <DialogDescription>
+            {t("Mahsulotni katalogdan tanlang yoki xizmat nomini yozing.")}
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
           <Field label={t("Mijoz *")}>
@@ -535,7 +668,9 @@ export function OrderDialog({
                 <Input
                   value={line.product_name}
                   placeholder={t("Mahsulot yoki xizmat")}
-                  onChange={(e) => setLine(index, { product_name: e.target.value, product_id: null })}
+                  onChange={(e) =>
+                    setLine(index, { product_name: e.target.value, product_id: null })
+                  }
                   list={`products-${index}`}
                 />
                 <datalist id={`products-${index}`}>
@@ -587,7 +722,8 @@ export function OrderDialog({
             </Field>
           </div>
           <p className="text-sm text-muted-foreground">
-            {t("Jami:")}{" "}<span className="font-semibold text-foreground">{gross - Number(discount || 0)}</span>
+            {t("Jami:")}{" "}
+            <span className="font-semibold text-foreground">{gross - Number(discount || 0)}</span>
           </p>
         </div>
         <DialogFooter>
@@ -595,7 +731,9 @@ export function OrderDialog({
             {t("Bekor qilish")}
           </Button>
           <Button
-            disabled={!customerId || !lines.some((l) => l.product_name.trim()) || mutation.isPending}
+            disabled={
+              !customerId || !lines.some((l) => l.product_name.trim()) || mutation.isPending
+            }
             onClick={() => mutation.mutate()}
           >
             {t("Saqlash")}
@@ -679,14 +817,20 @@ export function PaymentDialog({
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>{form.id ? t("To‘lovni tahrirlash") : label}</DialogTitle>
-          <DialogDescription>{t("To‘lov buyurtma holatini avtomatik yangilaydi.")}</DialogDescription>
+          <DialogDescription>
+            {t("To‘lov buyurtma holatini avtomatik yangilaydi.")}
+          </DialogDescription>
         </DialogHeader>
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label={t("Mijoz")}>
             <Select
               value={form.customer_id ?? NONE}
               onValueChange={(value) =>
-                setForm((f) => ({ ...f, customer_id: value === NONE ? null : value, order_id: null }))
+                setForm((f) => ({
+                  ...f,
+                  customer_id: value === NONE ? null : value,
+                  order_id: null,
+                }))
               }
             >
               <SelectTrigger>
@@ -705,7 +849,9 @@ export function PaymentDialog({
           <Field label={t("Buyurtma")}>
             <Select
               value={form.order_id ?? NONE}
-              onValueChange={(value) => setForm((f) => ({ ...f, order_id: value === NONE ? null : value }))}
+              onValueChange={(value) =>
+                setForm((f) => ({ ...f, order_id: value === NONE ? null : value }))
+              }
             >
               <SelectTrigger>
                 <SelectValue placeholder={t("Tanlanmagan")} />
@@ -781,7 +927,10 @@ export function PaymentDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             {t("Bekor qilish")}
           </Button>
-          <Button disabled={!Number(form.amount || 0) || mutation.isPending} onClick={() => mutation.mutate()}>
+          <Button
+            disabled={!Number(form.amount || 0) || mutation.isPending}
+            onClick={() => mutation.mutate()}
+          >
             {t("Saqlash")}
           </Button>
         </DialogFooter>
@@ -861,7 +1010,9 @@ export function TaskDialog({
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>{form.id ? t("Vazifani tahrirlash") : label}</DialogTitle>
-          <DialogDescription>{t("Keyingi qadamni yozib qo‘ying — hech narsa esdan chiqmaydi.")}</DialogDescription>
+          <DialogDescription>
+            {t("Keyingi qadamni yozib qo‘ying — hech narsa esdan chiqmaydi.")}
+          </DialogDescription>
         </DialogHeader>
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="sm:col-span-2">
@@ -876,7 +1027,9 @@ export function TaskDialog({
           <Field label={t("Mijoz")}>
             <Select
               value={form.customer_id ?? NONE}
-              onValueChange={(value) => setForm((f) => ({ ...f, customer_id: value === NONE ? null : value }))}
+              onValueChange={(value) =>
+                setForm((f) => ({ ...f, customer_id: value === NONE ? null : value }))
+              }
             >
               <SelectTrigger>
                 <SelectValue placeholder={t("Tanlanmagan")} />
@@ -966,7 +1119,10 @@ export function TaskDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             {t("Bekor qilish")}
           </Button>
-          <Button disabled={!form.title?.trim() || mutation.isPending} onClick={() => mutation.mutate()}>
+          <Button
+            disabled={!form.title?.trim() || mutation.isPending}
+            onClick={() => mutation.mutate()}
+          >
             {t("Saqlash")}
           </Button>
         </DialogFooter>
