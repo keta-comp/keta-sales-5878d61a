@@ -32,6 +32,7 @@ import {
   removeCrmAttachments,
 } from "@/lib/crm-config.functions";
 import { LIVE_REFETCH_MS } from "@/lib/polling";
+import { isModuleEnabled, resolvePresetId } from "@/lib/presets";
 import { relationIdKey, type CrmField, type CrmModule } from "@/lib/crm-config";
 import { AttachmentCell, AttachmentField } from "@/components/app/CrmAttachment";
 import { RelationCombobox } from "@/components/app/RelationCombobox";
@@ -88,6 +89,14 @@ function CrmModulePage() {
     const cfg = config.data?.config;
     return cfg?.modules.find((m) => m.key === moduleKey && m.link)?.link ?? null;
   }, [config.data, moduleKey]);
+
+  // Preset bu modumni o'chirgan (salonda Xizmatlar artiq haqiqiy sahifa) — saqlangan
+  // konfiguratsiyada modul hali tursa ham uning formasi ochilmaydi.
+  const disabled = useMemo(() => {
+    const cfg = config.data?.config;
+    if (!cfg || !module) return false;
+    return !isModuleEnabled(resolvePresetId(config.data?.industry, cfg.presetId), moduleKey);
+  }, [config.data, module, moduleKey]);
 
   const [editing, setEditing] = useState<RecordRow | null>(null);
   const [creating, setCreating] = useState(false);
@@ -174,7 +183,7 @@ function CrmModulePage() {
 
   if (config.isPending) return <LoadingState />;
   if (config.error) return <ErrorState error={config.error} onRetry={() => void config.refetch()} />;
-  if (movedTo) return <Navigate to={movedTo} replace />;
+  if (movedTo || disabled) return <Navigate to={movedTo ?? "/dashboard"} replace />;
   if (!module) {
     return <EmptyState title={t("Modul topilmadi")} description={t("Bu modul CRM konfiguratsiyasida mavjud emas.")} />;
   }

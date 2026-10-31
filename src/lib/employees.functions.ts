@@ -180,6 +180,35 @@ export const setEmployeeServices = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/**
+ * Xizmat bo'yicha uni bajaradigan ustalar — katalog sahifasi qamrov shu yerdan
+ * ko'rsatadi («bu xizmatni hech kim bilmaydi» holati ochiq qolmasin).
+ */
+export const listServiceTeam = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({}).parse(input ?? {}))
+  .handler(async ({ context }) => {
+    const businessId = await requireBusinessId(context.supabase);
+    const [links, people] = await Promise.all([
+      context.supabase
+        .from("employee_services")
+        .select("service_id, employee_id")
+        .eq("business_id", businessId),
+      context.supabase
+        .from("employees")
+        .select("id, full_name")
+        .eq("business_id", businessId)
+        .eq("is_active", true),
+    ]);
+    if (links.error) throw new Error(links.error.message);
+    if (people.error) throw new Error(people.error.message);
+    const names = new Map((people.data ?? []).map((person) => [person.id, person.full_name]));
+    return (links.data ?? []).flatMap((link) => {
+      const fullName = names.get(link.employee_id);
+      return fullName ? [{ serviceId: link.service_id, employeeId: link.employee_id, fullName }] : [];
+    });
+  });
+
 /* ------------------------------- work schedule ------------------------------ */
 
 export const getWorkSchedule = createServerFn({ method: "GET" })

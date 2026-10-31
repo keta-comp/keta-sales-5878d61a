@@ -28,6 +28,7 @@ import {
 } from "@/lib/employees.functions";
 import { listServices } from "@/lib/appointments.functions";
 import { t } from "@/lib/i18n";
+import { useSectionTitle, useTerminology } from "@/lib/terminology";
 
 export const Route = createFileRoute("/_authenticated/dashboard/employees")({
   head: () => ({
@@ -424,6 +425,8 @@ function TimeOffEditor({ employeeId }: { employeeId: string }) {
 
 function EmployeesPage() {
   const queryClient = useQueryClient();
+  const { term } = useTerminology();
+  const staff = term("employees");
   const fetchEmployees = useServerFn(listEmployees);
   const fetchBranches = useServerFn(listBranches);
   const save = useServerFn(saveEmployee);
@@ -437,6 +440,7 @@ function EmployeesPage() {
     queryFn: () => fetchEmployees({ data: { includeInactive: true } }),
   });
   const branches = useQuery({ queryKey: ["branches"], queryFn: () => fetchBranches({ data: {} }) });
+  useSectionTitle(staff.many);
 
   const invalidate = () => {
     void queryClient.invalidateQueries({ queryKey: ["employees"] });
@@ -454,7 +458,7 @@ function EmployeesPage() {
         },
       }),
     onSuccess: () => {
-      toast.success(t("Xodim qo'shildi"));
+      toast.success(t("{term} qo'shildi", { term: staff.one }));
       setForm({ full_name: "", position: "", phone: "", branch_id: "" });
       invalidate();
     },
@@ -477,7 +481,7 @@ function EmployeesPage() {
   const removeMutation = useMutation({
     mutationFn: (id: string) => remove({ data: { id } }),
     onSuccess: (_result, id) => {
-      toast.success(t("Xodim o'chirildi"));
+      toast.success(t("{term} o'chirildi", { term: staff.one }));
       if (selectedId === id) setSelectedId(null);
       invalidate();
     },
@@ -489,7 +493,7 @@ function EmployeesPage() {
   return (
     <>
       <PageHeader
-        title={t("Xodimlar")}
+        title={staff.many}
         description={t("Ustalar, shifokorlar va qabul xodimlari — malaka, ish jadvali va ta'tillar.")}
       />
 
@@ -549,7 +553,7 @@ function EmployeesPage() {
             </div>
           ) : null}
           <Button type="submit" disabled={saveMutation.isPending}>
-            {t("Xodim qo'shish")}
+            {t("Yangi {term}", { term: staff.one })}
           </Button>
         </div>
       </form>
@@ -559,13 +563,16 @@ function EmployeesPage() {
       ) : employees.error ? (
         <ErrorState error={employees.error} onRetry={() => void employees.refetch()} />
       ) : (employees.data ?? []).length === 0 ? (
-        <EmptyState title={t("Xodimlar yo'q")} description={t("Bronlarni biriktirish uchun xodim qo'shing.")} />
+        <EmptyState
+          title={t("Hozircha {many} yo'q", { many: staff.many })}
+          description={t("Bronlarni biriktirish uchun xodim qo'shing.")}
+        />
       ) : (
         <div className="clay-panel overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
-                <th className="px-4 py-3">{t("Xodim")}</th>
+                <th className="px-4 py-3">{staff.one}</th>
                 <th className="px-4 py-3">{t("Lavozim")}</th>
                 <th className="px-4 py-3">{t("Filial")}</th>
                 <th className="px-4 py-3">{t("Faol")}</th>

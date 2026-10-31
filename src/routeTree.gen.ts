@@ -37,6 +37,7 @@ import { Route as AuthenticatedDashboardPaymentsRouteImport } from './routes/_au
 import { Route as AuthenticatedDashboardPayrollRouteImport } from './routes/_authenticated/dashboard.payroll'
 import { Route as AuthenticatedDashboardPipelineRouteImport } from './routes/_authenticated/dashboard.pipeline'
 import { Route as AuthenticatedDashboardProductsRouteImport } from './routes/_authenticated/dashboard.products'
+import { Route as AuthenticatedDashboardServicesRouteImport } from './routes/_authenticated/dashboard.services'
 import { Route as AuthenticatedDashboardSettingsRouteImport } from './routes/_authenticated/dashboard.settings'
 import { Route as AuthenticatedDashboardTasksRouteImport } from './routes/_authenticated/dashboard.tasks'
 import { Route as AuthenticatedDashboardTeamRouteImport } from './routes/_authenticated/dashboard.team'
@@ -223,6 +224,12 @@ const AuthenticatedDashboardProductsRoute =
     path: '/products',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
+const AuthenticatedDashboardServicesRoute =
+  AuthenticatedDashboardServicesRouteImport.update({
+    id: '/services',
+    path: '/services',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
 const AuthenticatedDashboardSettingsRoute =
   AuthenticatedDashboardSettingsRouteImport.update({
     id: '/settings',
@@ -404,6 +411,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/payroll': typeof AuthenticatedDashboardPayrollRoute
   '/dashboard/pipeline': typeof AuthenticatedDashboardPipelineRoute
   '/dashboard/products': typeof AuthenticatedDashboardProductsRoute
+  '/dashboard/services': typeof AuthenticatedDashboardServicesRoute
   '/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
   '/dashboard/tasks': typeof AuthenticatedDashboardTasksRoute
   '/dashboard/team': typeof AuthenticatedDashboardTeamRoute
@@ -456,6 +464,7 @@ export interface FileRoutesByTo {
   '/dashboard/payroll': typeof AuthenticatedDashboardPayrollRoute
   '/dashboard/pipeline': typeof AuthenticatedDashboardPipelineRoute
   '/dashboard/products': typeof AuthenticatedDashboardProductsRoute
+  '/dashboard/services': typeof AuthenticatedDashboardServicesRoute
   '/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
   '/dashboard/tasks': typeof AuthenticatedDashboardTasksRoute
   '/dashboard/team': typeof AuthenticatedDashboardTeamRoute
@@ -513,6 +522,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard/payroll': typeof AuthenticatedDashboardPayrollRoute
   '/_authenticated/dashboard/pipeline': typeof AuthenticatedDashboardPipelineRoute
   '/_authenticated/dashboard/products': typeof AuthenticatedDashboardProductsRoute
+  '/_authenticated/dashboard/services': typeof AuthenticatedDashboardServicesRoute
   '/_authenticated/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
   '/_authenticated/dashboard/tasks': typeof AuthenticatedDashboardTasksRoute
   '/_authenticated/dashboard/team': typeof AuthenticatedDashboardTeamRoute
@@ -570,6 +580,7 @@ export interface FileRouteTypes {
     | '/dashboard/payroll'
     | '/dashboard/pipeline'
     | '/dashboard/products'
+    | '/dashboard/services'
     | '/dashboard/settings'
     | '/dashboard/tasks'
     | '/dashboard/team'
@@ -622,6 +633,7 @@ export interface FileRouteTypes {
     | '/dashboard/payroll'
     | '/dashboard/pipeline'
     | '/dashboard/products'
+    | '/dashboard/services'
     | '/dashboard/settings'
     | '/dashboard/tasks'
     | '/dashboard/team'
@@ -678,6 +690,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard/payroll'
     | '/_authenticated/dashboard/pipeline'
     | '/_authenticated/dashboard/products'
+    | '/_authenticated/dashboard/services'
     | '/_authenticated/dashboard/settings'
     | '/_authenticated/dashboard/tasks'
     | '/_authenticated/dashboard/team'
@@ -919,6 +932,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardProductsRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
+    '/_authenticated/dashboard/services': {
+      id: '/_authenticated/dashboard/services'
+      path: '/services'
+      fullPath: '/dashboard/services'
+      preLoaderRoute: typeof AuthenticatedDashboardServicesRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
     '/_authenticated/dashboard/settings': {
       id: '/_authenticated/dashboard/settings'
       path: '/settings'
@@ -1142,6 +1162,7 @@ interface AuthenticatedDashboardRouteChildren {
   AuthenticatedDashboardPayrollRoute: typeof AuthenticatedDashboardPayrollRoute
   AuthenticatedDashboardPipelineRoute: typeof AuthenticatedDashboardPipelineRoute
   AuthenticatedDashboardProductsRoute: typeof AuthenticatedDashboardProductsRoute
+  AuthenticatedDashboardServicesRoute: typeof AuthenticatedDashboardServicesRoute
   AuthenticatedDashboardSettingsRoute: typeof AuthenticatedDashboardSettingsRoute
   AuthenticatedDashboardTasksRoute: typeof AuthenticatedDashboardTasksRoute
   AuthenticatedDashboardTeamRoute: typeof AuthenticatedDashboardTeamRoute
@@ -1175,6 +1196,7 @@ const AuthenticatedDashboardRouteChildren: AuthenticatedDashboardRouteChildren =
     AuthenticatedDashboardPayrollRoute: AuthenticatedDashboardPayrollRoute,
     AuthenticatedDashboardPipelineRoute: AuthenticatedDashboardPipelineRoute,
     AuthenticatedDashboardProductsRoute: AuthenticatedDashboardProductsRoute,
+    AuthenticatedDashboardServicesRoute: AuthenticatedDashboardServicesRoute,
     AuthenticatedDashboardSettingsRoute: AuthenticatedDashboardSettingsRoute,
     AuthenticatedDashboardTasksRoute: AuthenticatedDashboardTasksRoute,
     AuthenticatedDashboardTeamRoute: AuthenticatedDashboardTeamRoute,

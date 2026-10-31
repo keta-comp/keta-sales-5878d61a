@@ -110,7 +110,7 @@ describe("preset registry", () => {
   });
 
   test("the industries the owner switched off really lost those sections", () => {
-    for (const id of ["stomatologiya", "klinika", "oquv"]) {
+    for (const id of ["stomatologiya", "klinika", "oquv", "beauty", "barbershop"]) {
       expect(isSectionVisible(id, "/dashboard/orders")).toBe(false);
     }
     expect(isSectionVisible("oquv", "/dashboard/inventory")).toBe(false);
@@ -290,10 +290,42 @@ describe("preset registry", () => {
     expect(coreTerm("stomatologiya", "products").one).toBe("Stomatologik xizmat");
     expect(coreTerm("klinika", "customers").one).toBe("Bemor");
     expect(coreTerm("ecommerce", "products").one).toBe("Mahsulot");
+    // Salon: katalog — xizmatlar (services), jamoa — ustalar; mahsulot sahifasi SKU'liqicha qoladi.
+    expect(coreTerm("beauty", "employees")).toEqual({ one: "Usta", many: "Ustalar" });
+    expect(coreTerm("barbershop", "employees").one).toBe("Sartarosh");
+    expect(coreTerm("beauty", "products").one).toBe("Mahsulot");
     // Sohasiz/universal bizneslar umumiy shaklda qoladi, nomlashuvi yo‘q preset ham.
     expect(coreTerm("universal", "products").one).toBe("Xizmat yoki mahsulot");
     expect(coreTerm("nomalum", "customers")).toEqual({ one: "Mijoz", many: "Mijozlar" });
     expect(coreTerm(null, "customers").many).toBe("Mijozlar");
+  });
+
+  test("salon va sartaroshxona menyusi faqat haqiqiy sahifalardan quriladi", () => {
+    for (const id of ["beauty", "barbershop"]) {
+      const menu = menuForPreset(id);
+      const targets = menu.map((item) => item.to);
+      // Erkin matn modullari (qabul/xizmatlar/ustalar/tolovlar) yadroning o'z sahifasiga almashtirildi.
+      expect(targets.filter((to) => to.startsWith("/dashboard/crm/"))).toEqual([]);
+      for (const to of [
+        "/dashboard/services",
+        "/dashboard/employees",
+        "/dashboard/appointments",
+        "/dashboard/payments",
+        "/dashboard/finance",
+      ]) {
+        expect(targets).toContain(to);
+      }
+      // Bir bo'lim ikki nomda ko'rinmasligi uchun nomlar ham noyob.
+      expect(new Set(menu.map((item) => item.label)).size).toBe(menu.length);
+      expect(isModuleEnabled(id, "xizmatlar")).toBe(false);
+      expect(hiddenRoutesForPreset(id).has("/dashboard/orders")).toBe(true);
+    }
+    // Modul sahifasiga to'g'ridan-to'g'ri kirgan yanga biznes haqiqiy sahifaga tushadi.
+    const modules = crmConfigForPreset("beauty").modules;
+    expect(modules.find((m) => m.key === "xizmatlar")?.link).toBe("/dashboard/services");
+    expect(modules.find((m) => m.key === "ustalar")?.link).toBe("/dashboard/employees");
+    expect(modules.find((m) => m.key === "qabul")?.link).toBe("/dashboard/appointments");
+    expect(modules.find((m) => m.key === "tolovlar")?.link).toBe("/dashboard/payments");
   });
 
   test("quick actions use the industry wording of the resolved preset", () => {

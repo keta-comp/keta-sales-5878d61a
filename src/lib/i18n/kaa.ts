@@ -897,6 +897,7 @@ const table: Record<string, string> = {
   "Hech narsa topilmadi": "Hesh nárse tabılmadı",
   "Tozalash": "Tazalaw",
   "Usta": "Usta",
+  "Sartarosh": "Sartarosh",
   "Sohaviy yozuvlar": "Tarawlıq jazbalar",
   "Bog‘langan yozuvlar yo‘q": "Baylanıslı jazbalar joq",
   "\"{v0}\" maydonini to‘ldiring": "\"{v0}\" maydanın toltırıń",

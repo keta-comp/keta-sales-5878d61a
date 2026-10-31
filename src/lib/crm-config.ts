@@ -44,7 +44,11 @@ export type CrmModuleLink =
   | "/dashboard/orders"
   | "/dashboard/inventory"
   | "/dashboard/products"
-  | "/dashboard/attendance";
+  | "/dashboard/attendance"
+  | "/dashboard/services"
+  | "/dashboard/employees"
+  | "/dashboard/appointments"
+  | "/dashboard/payments";
 
 export interface CrmModule {
   key: string;
@@ -134,10 +138,11 @@ function noteField(): CrmField {
 function fileField(key: string, label: string): CrmField {
   return { key, label, type: "file" };
 }
-function paymentModule(label = "To‘lovlar"): CrmModule {
+function paymentModule(label = "To‘lovlar", link?: CrmModuleLink): CrmModule {
   return {
     key: "tolovlar",
     label,
+    ...(link ? { link } : {}),
     table: "payments",
     fields: [
       textField("kim", "Kim uchun"),
@@ -463,6 +468,10 @@ const BASE_PRESETS: Record<string, CrmConfigData> = {
   }),
 
   beauty: preset({
+    // Salon obyektlarining hammasi yadro jadvallarida: mijoz — customers, qabul —
+    // appointments, xizmat — services, usta — employees, to‘lov — payments. Modul
+    // sahifalari presetda yashirilgan (hiddenModuleKeys), link esa to‘g‘ridan-to‘g‘ri
+    // kirgan foydalanuvchini haqiqiy sahifaga olib chiqadi.
     modules: [
       { key: "mijozlar", label: "Mijozlar", icon: "users", link: "/dashboard/customers" },
       {
@@ -470,6 +479,7 @@ const BASE_PRESETS: Record<string, CrmConfigData> = {
         label: "Qabul",
         icon: "calendar",
         table: "appointments",
+        link: "/dashboard/appointments",
         fields: [
           textField("mijoz", "Mijoz ismi"),
           phoneField(),
@@ -486,6 +496,7 @@ const BASE_PRESETS: Record<string, CrmConfigData> = {
         key: "xizmatlar",
         label: "Xizmatlar",
         icon: "package",
+        link: "/dashboard/services",
         fields: [
           textField("nomi", "Xizmat nomi"),
           moneyField("narxi", "Narxi"),
@@ -496,9 +507,10 @@ const BASE_PRESETS: Record<string, CrmConfigData> = {
         key: "ustalar",
         label: "Ustalar",
         icon: "user",
+        link: "/dashboard/employees",
         fields: [textField("ism", "Ism"), phoneField(), textField("mutaxassislik", "Mutaxassislik"), noteField()],
       },
-      paymentModule(),
+      paymentModule("To‘lovlar", "/dashboard/payments"),
     ],
     pipelineStages: ["Yangi murojaat", "Qabul belgilandi", "Xizmat ko‘rsatildi", "To‘lov", "Yakunlandi"],
     terminology: { customer: "Mijoz", lead: "Murojaat", order: "Qabul" },

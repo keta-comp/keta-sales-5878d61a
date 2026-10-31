@@ -254,6 +254,14 @@ const medicalItem = (key: string, label: string, icon: string): PresetMenuItem =
   permission: "medical.view",
 });
 
+/** Xizmatlar katalogi — `services` jadvali, bron va depozit shu yerdan oladi. */
+const servicesItem = (label = "Xizmatlar"): PresetMenuItem => ({
+  to: "/dashboard/services",
+  label,
+  icon: "package",
+  section: "industry",
+});
+
 const PRESET_LIST: IndustryPreset[] = [
   {
     id: "stomatologiya",
@@ -427,7 +435,7 @@ const PRESET_LIST: IndustryPreset[] = [
     emoji: "💇",
     name: "Beauty salon / Barbershop",
     shortName: "Beauty salon",
-    description: "Ustalar, xizmatlar, onlayn qabul, kassa va abonementlar.",
+    description: "Ustalar, xizmatlar va narxlar, onlayn qabul, kassa va Usta komissiyasi.",
     bookingType: "appointment",
     extraCoreKeys: [
       "appointments",
@@ -439,17 +447,16 @@ const PRESET_LIST: IndustryPreset[] = [
       "payroll",
       "team",
     ],
-    labels: { products: "Xizmatlar" },
-    singles: { products: "Xizmat" },
-    industryItems: [
-      dynamicItem("qabul", "Qabul", "calendar"),
-      dynamicItem("xizmatlar", "Xizmatlar", "package"),
-      dynamicItem("ustalar", "Ustalar", "user"),
-      paymentsItem(),
-    ],
-    hiddenModuleKeys: [],
+    labels: { products: "Mahsulotlar", employees: "Ustalar" },
+    singles: { products: "Mahsulot", employees: "Usta" },
+    industryItems: [servicesItem()],
+    // Har bir salon obyekti yadro sahifasida: xizmat — Xizmatlar, usta — Ustalar,
+    // qabul — Qabul va bron, to‘lov — To‘lovlar. Erkin matn modullari ikkinchi
+    // jo'natma bo'lmasligi uchun yashiriladi (ularning yozuvlari o'chirilmaydi).
+    hiddenModuleKeys: ["qabul", "xizmatlar", "ustalar", "tolovlar"],
+    hiddenCoreKeys: ["orders"],
     reports: ["revenue", "expenses", "profit", "customers", "appointments", "staff", "stock"],
-    defaults: { ...DEFAULTS, slotMinutes: 60 },
+    defaults: { ...DEFAULTS, workStart: "10:00", workEnd: "20:00", slotMinutes: 60 },
   },
   {
     id: "barbershop",
@@ -459,18 +466,23 @@ const PRESET_LIST: IndustryPreset[] = [
     name: "Sartaroshxona",
     description: "Tezkor qabul, sartaroshlar, xizmat narxlari va kunlik kassa.",
     bookingType: "appointment",
-    extraCoreKeys: ["appointments", "payments"],
-    labels: { products: "Xizmatlar va narxlar", appointments: "Onlayn qabul" },
-    singles: { products: "Xizmat", appointments: "Qabul" },
-    industryItems: [
-      dynamicItem("qabul", "Qabul", "calendar"),
-      dynamicItem("xizmatlar", "Xizmatlar va narxlar", "package"),
-      dynamicItem("ustalar", "Sartaroshlar", "user"),
-      paymentsItem("Kassa"),
+    extraCoreKeys: [
+      "appointments",
+      "tasks",
+      "inventory",
+      "payments",
+      "finance",
+      "employees",
+      "payroll",
+      "team",
     ],
-    hiddenModuleKeys: [],
+    labels: { products: "Mahsulotlar", employees: "Sartaroshlar", appointments: "Onlayn qabul" },
+    singles: { products: "Mahsulot", employees: "Sartarosh" },
+    industryItems: [servicesItem("Xizmatlar va narxlar")],
+    hiddenModuleKeys: ["qabul", "xizmatlar", "ustalar", "tolovlar"],
+    hiddenCoreKeys: ["orders"],
     reports: ["revenue", "profit", "appointments", "staff"],
-    defaults: { ...DEFAULTS, slotMinutes: 30 },
+    defaults: { ...DEFAULTS, workStart: "09:00", workEnd: "20:00", slotMinutes: 30 },
   },
   {
     id: "qurilish",

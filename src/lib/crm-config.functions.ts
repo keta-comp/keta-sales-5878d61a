@@ -886,6 +886,7 @@ const LINKED_COUNT_TABLE: Partial<Record<CrmModuleLink, string>> = {
   "/dashboard/leads": "leads",
   "/dashboard/products": "products",
   "/dashboard/attendance": "attendance",
+  "/dashboard/services": "services",
 };
 
 export const getWidgetStats = createServerFn({ method: "GET" })

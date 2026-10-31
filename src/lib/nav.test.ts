@@ -83,6 +83,20 @@ describe("sidebar navigation", () => {
     expect(buildNavItems({ ...barbershop, branchCount: 2 }).some((i) => i.to === "/dashboard/branches")).toBe(true);
   });
 
+  test("salon menyusi yashirilgan modullarni saqlangan konfiguratsiyadan qaytarmaydi", () => {
+    const saved = [
+      { key: "mijozlar", label: "Mijozlar", link: "/dashboard/customers" },
+      { key: "qabul", label: "Qabul" },
+      { key: "xizmatlar", label: "Xizmatlar" },
+      { key: "ustalar", label: "Ustalar" },
+      { key: "tolovlar", label: "To‘lovlar" },
+    ];
+    const items = buildNavItems(crm({ industry: "beauty", config: { presetId: "beauty", modules: saved } }));
+    expect(items.filter((i) => i.to.startsWith("/dashboard/crm/"))).toEqual([]);
+    expect(items.map((i) => i.to)).toContain("/dashboard/services");
+    expect(items.map((i) => i.to)).toContain("/dashboard/employees");
+  });
+
   test("a CRM module sharing a built-in name is suffixed, not hidden", () => {
     const items = buildNavItems(
       crm({
