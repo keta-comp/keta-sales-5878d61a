@@ -67,12 +67,24 @@ export const updateLead = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    await requirePermission(
+    const businessId = await requirePermission(
       context.supabase,
       "sales.manage",
       "Sotuv va to'lovlarni faqat ruxsatli xodimlar yuritadi.",
     );
     const { id, ...patch } = data;
+    // Mas'ul a'zo shu biznesning jamoa a'zosi bo'lishi shart: RLS begona qatorni
+    // ko'rsatmaydi, lekin bizning lidimizga begona ID yozishga to'shmaydi.
+    if (patch.assigned_member_id) {
+      const { data: ownMember, error: memberError } = await context.supabase
+        .from("business_members")
+        .select("id")
+        .eq("business_id", businessId)
+        .eq("id", patch.assigned_member_id)
+        .maybeSingle();
+      if (memberError) throw new Error(memberError.message);
+      if (!ownMember) throw new Error("Mas'ul a'zo topilmadi — ro'yxatdan qayta tanlang.");
+    }
     const { error } = await context.supabase
       .from("leads")
       .update(compact(patch) as never)

@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/lib/auth-middleware";
+import { requirePermission } from "./guards.server";
 import { requireSection } from "./section-guards.server";
 import { requireBusinessId } from "./tenant.server";
 
@@ -72,6 +73,27 @@ export const createQuickLead = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
+    const businessId = await requirePermission(
+      context.supabase,
+      "sales.manage",
+      "Murojaatni faqat savdo bilan shug‘ullanadigan xodim ochadi.",
+    );
+    // Mijoz va mas'ul a'zo shu biznesdan bo'lishi shart: RLS begona ID'ni
+    // bizning lidimizga yozishning oldini olmaydi.
+    for (const [table, id, label] of [
+      ["customers", data.customer_id, "Mijoz"],
+      ["business_members", data.assigned_member_id ?? null, "Mas'ul a'zo"],
+    ] as const) {
+      if (!id) continue;
+      const { data: ownRow, error: linkError } = await context.supabase
+        .from(table)
+        .select("id")
+        .eq("business_id", businessId)
+        .eq("id", id)
+        .maybeSingle();
+      if (linkError) throw new Error(linkError.message);
+      if (!ownRow) throw new Error(`${label} topilmadi — ro'yxatdan qayta tanlang.`);
+    }
     const { logActivity } = await import("./activity.server");
     const { data: created, error } = await context.supabase
       .from("leads")
@@ -96,6 +118,11 @@ export const updateLeadStage = createServerFn({ method: "POST" })
     z.object({ id: z.string(), stage: z.string(), customer_id: z.string().nullable().optional() }).parse(input),
   )
   .handler(async ({ data, context }) => {
+    await requirePermission(
+      context.supabase,
+      "sales.manage",
+      "Murojaat bosqichini faqat savdo bilan shug‘ullanadigan xodim o‘zgartiradi.",
+    );
     const { logActivity } = await import("./activity.server");
     const { error } = await context.supabase
       .from("leads")
@@ -139,7 +166,44 @@ export const createQuickOrder = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
+    const businessId = await requirePermission(
+      context.supabase,
+      "sales.manage",
+      "Buyurtmani faqat savdo bilan shug‘ullanadigan xodim ochadi.",
+    );
     await requireSection(context.supabase, "/dashboard/orders");
+    // RLS begona biznesning qatorini ko'rsatmaydi, lekin bizning buyurtmamizga
+    // begona ID yozishga to'shmaydi — bog'lanadigan har ID'ni tekshiramiz.
+    const links = [
+      ["customers", data.customer_id, "Mijoz"],
+      ["leads", data.lead_id ?? null, "Lid"],
+      ["business_members", data.assigned_member_id ?? null, "Mas'ul a'zo"],
+    ] as const;
+    for (const [table, id, label] of links) {
+      if (!id) continue;
+      const { data: ownRow, error: linkError } = await context.supabase
+        .from(table)
+        .select("id")
+        .eq("business_id", businessId)
+        .eq("id", id)
+        .maybeSingle();
+      if (linkError) throw new Error(linkError.message);
+      if (!ownRow) throw new Error(`${label} topilmadi — ro'yxatdan qayta tanlang.`);
+    }
+    const productIds = [...new Set(data.items.map((item) => item.product_id))].filter(
+      (id): id is string => Boolean(id),
+    );
+    if (productIds.length) {
+      const { data: ownProducts, error: productError } = await context.supabase
+        .from("products")
+        .select("id")
+        .eq("business_id", businessId)
+        .in("id", productIds);
+      if (productError) throw new Error(productError.message);
+      if ((ownProducts ?? []).length !== productIds.length) {
+        throw new Error("Mahsulotlardan biri topilmadi — ro'yxatdan qayta tanlang.");
+      }
+    }
     const { logActivity } = await import("./activity.server");
     const lines = data.items.map((item) => ({
       product_id: item.product_id ?? null,

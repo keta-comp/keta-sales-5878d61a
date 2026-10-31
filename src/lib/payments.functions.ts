@@ -58,13 +58,38 @@ export const savePayment = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    await requirePermission(
+    const businessId = await requirePermission(
       context.supabase,
       "sales.manage",
       "Sotuv va to'lovlarni faqat ruxsatli xodimlar yuritadi.",
     );
     const { logActivity } = await import("./activity.server");
     const { id, ...payload } = data;
+
+    // Mijoz va buyurtma ID'si biznikimi — tekshiriladi. Aks holda begona biznesning
+    // `id`si bizning to'lov qatorimizga yopishib qoladi (RLS begona qatorni
+    // o'zgartira olmaydi, lekin biznikiga begona id yozishga to'sqinlik qilmaydi),
+    // hisob-kitobda esa bunday bog'lanish ko'rinmay qoladi.
+    if (payload.customer_id) {
+      const { data: ownCustomer, error: customerError } = await context.supabase
+        .from("customers")
+        .select("id")
+        .eq("business_id", businessId)
+        .eq("id", payload.customer_id)
+        .maybeSingle();
+      if (customerError) throw new Error(customerError.message);
+      if (!ownCustomer) throw new Error("Mijoz topilmadi.");
+    }
+    if (payload.order_id) {
+      const { data: ownOrder, error: orderError } = await context.supabase
+        .from("orders")
+        .select("id")
+        .eq("business_id", businessId)
+        .eq("id", payload.order_id)
+        .maybeSingle();
+      if (orderError) throw new Error(orderError.message);
+      if (!ownOrder) throw new Error("Buyurtma topilmadi.");
+    }
     const paidAt =
       payload.status === "paid" || payload.status === "partial" ? new Date().toISOString() : null;
     const row = { ...payload, paid_at: paidAt, created_by: context.userId };

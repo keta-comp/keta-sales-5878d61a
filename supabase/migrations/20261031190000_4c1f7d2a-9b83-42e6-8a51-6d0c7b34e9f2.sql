@@ -108,3 +108,12 @@ ALTER TABLE public.payments
 
 CREATE INDEX IF NOT EXISTS payments_group_period_idx
   ON public.payments (business_id, group_id, period_month);
+
+-- “Oylik hisoblash” ikki marta bosilsa (ikki brauzer, bir-ikki soniya oralikda)
+-- tekshirish va yozish orasidagi bo'shliqdan ikkita bir xil qoldiq yozuv chiqadi.
+-- Bu qismiy unikal index bitta o‘quvchiga bitta guruh va oy uchun faqat bitta
+-- kutilayotgan oylik yozuviga ruxsat beradi; to‘langan/partial qatorlar cheklanmaydi,
+-- shuning uchun qisman to‘lovlar avvalgideki yozilaveradi.
+CREATE UNIQUE INDEX IF NOT EXISTS payments_group_tuition_uniq
+  ON public.payments (business_id, group_id, customer_id, period_month)
+  WHERE group_id IS NOT NULL AND period_month IS NOT NULL AND status = 'pending';

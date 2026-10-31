@@ -139,6 +139,13 @@ export const exportBookingCsv = createServerFn({ method: "POST" })
       .limit(5000);
     if (error) throw new Error(error.message);
     const items = (rows ?? []) as unknown as ReportRow[];
+    // Eksport moliyaviy hujjat: ro'yxat kesilib qolsa hisob-kitob noto'g'ri
+    // ko'rinadi va buni fayl ichidan bilib bo'lmaydi — shuning uchun to'xtatamiz.
+    if (items.length >= 5000) {
+      throw new Error(
+        "Davr juda katta: 5000 dan ko'p qabul bor. Davrni qisqartirib qayta eksport qiling.",
+      );
+    }
 
     // Mijoz/isma `=HYPERLINK(...)` yozib Excel formulani bajarishi mumkin:
     // bunday qiymatlarni apostrof bilan neutrallaymiz.

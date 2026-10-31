@@ -4,16 +4,19 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/lib/auth-middleware";
 import { withAssigneeNames } from "./assignee.server";
 import { compact } from "./compact";
+import { requirePermission } from "./guards.server";
 import { requireSection } from "./section-guards.server";
 
 export const listOrders = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
-    z.object({
-      status: z.string().optional(),
-      search: z.string().optional(),
-      customerId: z.string().optional(),
-    }).parse(input ?? {}),
+    z
+      .object({
+        status: z.string().optional(),
+        search: z.string().optional(),
+        customerId: z.string().optional(),
+      })
+      .parse(input ?? {}),
   )
   .handler(async ({ data, context }) => {
     let query = context.supabase
@@ -49,6 +52,11 @@ export const updateOrder = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
+    await requirePermission(
+      context.supabase,
+      "sales.manage",
+      "Buyurtmani faqat savdo bilan shug‘ullanadigan xodim o‘zgartiradi.",
+    );
     const { id, ...patch } = data;
     const { data: current, error: readError } = await context.supabase
       .from("orders")
@@ -74,7 +82,10 @@ export const updateOrder = createServerFn({ method: "POST" })
       if (error) throw new Error(error.message);
     }
 
-    const { error } = await context.supabase.from("orders").update(compact(patch) as never).eq("id", id);
+    const { error } = await context.supabase
+      .from("orders")
+      .update(compact(patch) as never)
+      .eq("id", id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -95,7 +106,20 @@ export const createOrder = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
+    const businessId = await requirePermission(
+      context.supabase,
+      "sales.manage",
+      "Buyurtmani faqat savdo bilan shug‘ullanadigan xodim ochadi.",
+    );
     await requireSection(context.supabase, "/dashboard/orders");
+    const { data: ownCustomer, error: customerError } = await context.supabase
+      .from("customers")
+      .select("id")
+      .eq("business_id", businessId)
+      .eq("id", data.customer_id)
+      .maybeSingle();
+    if (customerError) throw new Error(customerError.message);
+    if (!ownCustomer) throw new Error("Mijoz topilmadi.");
     const { data: products, error: productError } = await context.supabase
       .from("products")
       .select("id, name, sku, price")
@@ -107,7 +131,7 @@ export const createOrder = createServerFn({ method: "POST" })
 
     const lines = data.items.map((item) => {
       const product = products?.find((p) => p.id === item.product_id);
-      if (!product) throw new Error("Product not found");
+      if (!product) throw new Error("Mahsulot topilmadi — ro'yxatdan qayta tanlang.");
       return {
         product_id: product.id,
         product_name: product.name,

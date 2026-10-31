@@ -537,6 +537,21 @@ export const saveServiceOverride = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const businessId = await requirePayrollAdmin(context.supabase);
+    // Foiz bizning xodimimiz va bizning xizmatimiz juftligiga yoziladi: RLS
+    // begona qatorni ko'rsatmaydi, lekin bizning qatorimizga begona ID o'tkazadi.
+    for (const [table, id, label] of [
+      ["employees", data.employee_id, "Xodim"],
+      ["services", data.service_id, "Xizmat"],
+    ] as const) {
+      const { data: ownRow, error: ownError } = await context.supabase
+        .from(table)
+        .select("id")
+        .eq("business_id", businessId)
+        .eq("id", id)
+        .maybeSingle();
+      if (ownError) throw new Error(ownError.message);
+      if (!ownRow) throw new Error(`${label} topilmadi — ro'yxatdan qayta tanlang.`);
+    }
     const { data: existing, error: loadError } = await context.supabase
       .from("employee_services")
       .select("service_id")

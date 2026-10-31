@@ -25,6 +25,28 @@ async function requireBookingBusiness(supabase: Client): Promise<string> {
 }
 
 /**
+ * Tanlangan obyektlar shu biznesniki — tekshiriladi. RLS begona qatorni ko'rsatmaydi,
+ * lekin o'z qatorimizga begona `id` yozishga to'sqinlik qilmaydi: natijada narxi
+ * bo'lmagan qabul yoki chet biznesning mijoziga bog'lanib qolgan yozuv chiqadi.
+ */
+async function assertOwnRecord(
+  supabase: Client,
+  businessId: string,
+  table: "customers" | "employees" | "branches",
+  id: string,
+  label: string,
+): Promise<void> {
+  const { data, error } = await supabase
+    .from(table)
+    .select("id")
+    .eq("business_id", businessId)
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error(`${label} topilmadi — ro'yxatdan qayta tanlang.`);
+}
+
+/**
  * Server-side availability: the appointment must fall inside the employee's weekly
  * working windows (when defined) and must not overlap any recorded time off.
  * The DB exclusion constraint still guards against concurrent double-booking.
@@ -212,24 +234,33 @@ export const saveAppointment = createServerFn({ method: "POST" })
       const { data: service, error } = await context.supabase
         .from("services")
         .select("duration_minutes, name, price, deposit_type, deposit_value")
+        .eq("business_id", businessId)
         .eq("id", data.service_id)
         .maybeSingle();
       if (error) throw new Error(error.message);
-      if (service)
-        snapshot = {
-          name: service.name,
-          price: Number(service.price),
-          duration_minutes: service.duration_minutes,
-        };
-      if (service)
-        depositRule = {
-          deposit_type: service.deposit_type,
-          deposit_value: Number(service.deposit_value),
-        };
-      if (duration === undefined) duration = service?.duration_minutes;
+      // Xizmat topilmasa avval narxi bo'lmagan qabul yozib qo'yilar edi.
+      if (!service) throw new Error("Xizmat topilmadi — ro'yxatdan qayta tanlang.");
+      snapshot = {
+        name: service.name,
+        price: Number(service.price),
+        duration_minutes: service.duration_minutes,
+      };
+      depositRule = {
+        deposit_type: service.deposit_type,
+        deposit_value: Number(service.deposit_value),
+      };
+      if (duration === undefined) duration = service.duration_minutes;
     }
     if (duration === undefined) throw new Error("Xizmat yoki davomiylikni tanlang.");
     const endsAt = appointmentEnd(data.starts_at, duration);
+
+    for (const [table, id, label] of [
+      ["customers", data.customer_id, "Mijoz"],
+      ["employees", data.employee_id, "Xodim"],
+      ["branches", data.branch_id, "Filial"],
+    ] as const) {
+      if (id) await assertOwnRecord(context.supabase, businessId, table, id, label);
+    }
 
     if (data.employee_id) {
       await assertEmployeeAvailable(

@@ -6,6 +6,7 @@ import { requireSupabaseAuth } from "@/lib/auth-middleware";
 import { gatewayErrorMessage, resolveAiRuntime } from "./ai-gateway.server";
 import { logAiUsage } from "./audit.server";
 import { crmLabel } from "./crm-core";
+import { requirePermission } from "./guards.server";
 import { hiddenRoutesForTenant } from "./section-guards.server";
 import { requireBusinessId } from "./tenant.server";
 
@@ -49,6 +50,11 @@ export const exportReportExcel = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ from: z.string(), to: z.string() }).parse(input))
   .handler(async ({ data, context }) => {
+    await requirePermission(
+      context.supabase,
+      "reports.export",
+      "Hisobotni faqat egasi, admin, menejer yoki eksportga ruxsatli xodim yuklab oladi.",
+    );
     const { assertFeature } = await import("./billing.server");
     await assertFeature(context.supabase, "excel_export");
     const { buildReport } = await import("./workspace.server");

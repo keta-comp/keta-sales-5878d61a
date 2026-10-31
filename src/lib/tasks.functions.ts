@@ -4,6 +4,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/lib/auth-middleware";
 import { withAssigneeNames } from "./assignee.server";
 import { compact } from "./compact";
+import { requireBusinessId } from "./tenant.server";
 
 export const listTasks = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -57,6 +58,26 @@ export const saveTask = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
+    const businessId = await requireBusinessId(context.supabase);
+    // RLS begona biznesning qatorini ko'rsatmaydi, lekin bizning vazifamizga
+    // begona ID yozishga to'smaydi — shuning uchun bog'lamni oldin tekshiramiz.
+    const links = [
+      ["customers", data.customer_id, "Mijoz"],
+      ["orders", data.order_id, "Buyurtma"],
+      ["leads", data.lead_id, "Lid"],
+      ["business_members", data.assigned_member_id, "Mas'ul a'zo"],
+    ] as const;
+    for (const [table, id, label] of links) {
+      if (!id) continue;
+      const { data: ownRow, error: linkError } = await context.supabase
+        .from(table)
+        .select("id")
+        .eq("business_id", businessId)
+        .eq("id", id)
+        .maybeSingle();
+      if (linkError) throw new Error(linkError.message);
+      if (!ownRow) throw new Error(`${label} topilmadi — ro'yxatdan qayta tanlang.`);
+    }
     const { logActivity } = await import("./activity.server");
     const { id, ...payload } = data;
     const row = {

@@ -75,6 +75,19 @@ export const saveCrmCustomer = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => customerInput.parse(input))
   .handler(async ({ data, context }) => {
+    const businessId = await requireBusinessId(context.supabase);
+    // Mijozni kimning javobgar ekanini bizning jamemizdan tanlaymiz: RLS begona
+    // a'zoni ko'rsatmaydi, lekin bizning mijozimizga begona ID yozishga to'shmaydi.
+    if (data.assigned_member_id) {
+      const { data: ownMember, error: memberError } = await context.supabase
+        .from("business_members")
+        .select("id")
+        .eq("business_id", businessId)
+        .eq("id", data.assigned_member_id)
+        .maybeSingle();
+      if (memberError) throw new Error(memberError.message);
+      if (!ownMember) throw new Error("Mas'ul a'zo topilmadi — ro'yxatdan qayta tanlang.");
+    }
     const { logActivity } = await import("./activity.server");
     const { id, ...payload } = data;
 

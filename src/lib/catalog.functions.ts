@@ -64,11 +64,23 @@ export const saveProduct = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    await requirePermission(
+    const businessId = await requirePermission(
       context.supabase,
       "catalog.manage",
       "Katalogni faqat egasi, admin yoki menejer boshqaradi.",
     );
+    // RLS begona qatorni bo'yashga to'sadi, lekin bizning mahsulotimizga begona
+    // toifa ID'sini yozishga to'smaydi — shuning uchun ID'ni oldin tekshiramiz.
+    if (data.category_id) {
+      const { data: category, error: categoryError } = await context.supabase
+        .from("categories")
+        .select("id")
+        .eq("business_id", businessId)
+        .eq("id", data.category_id)
+        .maybeSingle();
+      if (categoryError) throw new Error(categoryError.message);
+      if (!category) throw new Error("Toifa topilmadi — ro'yxatdan qayta tanlang.");
+    }
     const payload = {
       sku: data.sku,
       name: data.name,

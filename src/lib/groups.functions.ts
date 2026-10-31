@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/lib/auth-middleware";
+import { requirePermission } from "./guards.server";
 import { GROUP_STATUSES, isFull, lastDayOfMonth, monthLabel, tuitionPrice } from "./groups";
 import { requireBusinessId } from "./tenant.server";
 
@@ -116,14 +117,30 @@ export const saveStudyGroup = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => groupInput.parse(input))
   .handler(async ({ data, context }) => {
-    const businessId = await requireBusinessId(context.supabase);
+    const businessId = await requirePermission(
+      context.supabase,
+      "catalog.manage",
+      "Guruhni faqat egasi, admin yoki menejer yaratadi yoki o‘zgartiradi.",
+    );
 
     const { data: course } = await context.supabase
       .from("services")
       .select("id, name")
+      .eq("business_id", businessId)
       .eq("id", data.course_id)
       .maybeSingle();
     if (!course) throw new Error("Kurs topilmadi — avval Kurslar bo‘limida yarating.");
+
+    if (data.teacher_id) {
+      const { data: teacher, error: teacherError } = await context.supabase
+        .from("employees")
+        .select("id")
+        .eq("business_id", businessId)
+        .eq("id", data.teacher_id)
+        .maybeSingle();
+      if (teacherError) throw new Error(teacherError.message);
+      if (!teacher) throw new Error("O‘qituvchi topilmadi yoki sizga tegishli emas.");
+    }
 
     const row = {
       business_id: businessId,
@@ -141,8 +158,35 @@ export const saveStudyGroup = createServerFn({ method: "POST" })
     };
 
     if (data.id) {
+      const { data: previous, error: previousError } = await context.supabase
+        .from("study_groups")
+        .select("name")
+        .eq("id", data.id)
+        .maybeSingle();
+      if (previousError) throw new Error(previousError.message);
+
       const { error } = await context.supabase.from("study_groups").update(row).eq("id", data.id);
       if (error) throw new Error(error.message);
+
+      // Davomat belgilari guruh NOMI bilan bog'langan (attendance_one_mark_per_day
+      // shu nom ustida), nom o'zgarsa eski yozuvlar guruh ko'rinishida yo'qolib
+      // qoladi — shuning uchun ularni yangi nomga ko'chiramiz.
+      if (previous && previous.name !== data.name) {
+        const { error: moveError } = await context.supabase
+          .from("attendance")
+          .update({ group_name: data.name, updated_at: new Date().toISOString() })
+          .eq("business_id", businessId)
+          .eq("group_id", data.id)
+          .eq("group_name", previous.name);
+        if (moveError) {
+          if (moveError.code === "23505") {
+            throw new Error(
+              "Guruh nomiga mos davomat yozuvlari allaqachon bor — belgilarni o'chiring yoki boshqa nom tanlang.",
+            );
+          }
+          throw new Error(moveError.message);
+        }
+      }
       return { id: data.id };
     }
 
@@ -239,7 +283,11 @@ export const addStudyGroupMembers = createServerFn({ method: "POST" })
     z.object({ groupId: ID, studentIds: z.array(ID).min(1).max(500) }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    const businessId = await requireBusinessId(context.supabase);
+    const businessId = await requirePermission(
+      context.supabase,
+      "sales.manage",
+      "O‘quvchini guruhga faqat mijoz bilan ishlaydigan xodim qo‘shadi.",
+    );
     const { data: group } = await context.supabase
       .from("study_groups")
       .select("id, name, capacity")
@@ -256,6 +304,17 @@ export const addStudyGroupMembers = createServerFn({ method: "POST" })
     );
     const known = new Map((existing ?? []).map((row) => [row.student_id, row]));
     const toAdd = [...new Set(data.studentIds)].filter((id) => !active.has(id));
+
+    if (toAdd.length) {
+      const { data: ownStudents, error: studentError } = await context.supabase
+        .from("customers")
+        .select("id")
+        .eq("business_id", businessId)
+        .in("id", toAdd);
+      if (studentError) throw new Error(studentError.message);
+      const ownIds = new Set((ownStudents ?? []).map((row: { id: string }) => row.id));
+      if (ownIds.size !== toAdd.length) throw new Error("O‘quvchilardan biri topilmadi.");
+    }
 
     if (isFull(group.capacity, active.size + toAdd.length)) {
       throw new Error(`“${group.name}” guruhida joy qolmadi.`);
@@ -288,9 +347,15 @@ export const removeStudyGroupMember = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ groupId: ID, studentId: ID }).parse(input))
   .handler(async ({ data, context }) => {
+    const businessId = await requirePermission(
+      context.supabase,
+      "sales.manage",
+      "O‘quvchini guruhdan faqat mijoz bilan ishlaydigan xodim chiqaradi.",
+    );
     const { error } = await context.supabase
       .from("group_members")
       .update({ status: "archived", updated_at: new Date().toISOString() })
+      .eq("business_id", businessId)
       .eq("group_id", data.groupId)
       .eq("student_id", data.studentId);
     if (error) throw new Error(error.message);
@@ -304,8 +369,37 @@ export const syncStudentGroups = createServerFn({ method: "POST" })
     z.object({ studentId: ID, groupIds: z.array(ID).max(50) }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    const businessId = await requireBusinessId(context.supabase);
+    const businessId = await requirePermission(
+      context.supabase,
+      "sales.manage",
+      "O‘quvchining guruhlarini faqat mijoz bilan ishlaydigan xodim o‘zgartiradi.",
+    );
     const wanted = new Set(data.groupIds);
+
+    // ID'lar orqali yozish: RLS chet biznesning qatorini ko'rsatmaydi, shuning
+    // uchun ro'yxatda yo'q ID — bu begona biznes yoki noto'g'ri ma'lumot.
+    const { data: ownStudent, error: studentError } = await context.supabase
+      .from("customers")
+      .select("id")
+      .eq("business_id", businessId)
+      .eq("id", data.studentId)
+      .maybeSingle();
+    if (studentError) throw new Error(studentError.message);
+    if (!ownStudent) throw new Error("O‘quvchi topilmadi.");
+
+    let ownGroupIds = new Set<string>();
+    if (wanted.size) {
+      const { data: ownGroups, error: groupError } = await context.supabase
+        .from("study_groups")
+        .select("id")
+        .eq("business_id", businessId)
+        .in("id", [...wanted]);
+      if (groupError) throw new Error(groupError.message);
+      ownGroupIds = new Set((ownGroups ?? []).map((row: { id: string }) => row.id));
+    }
+    for (const groupId of wanted) {
+      if (!ownGroupIds.has(groupId)) throw new Error("Guruh topilmadi yoki sizga tegishli emas.");
+    }
 
     const { data: current } = await context.supabase
       .from("group_members")
@@ -374,7 +468,11 @@ export const generateGroupTuition = createServerFn({ method: "POST" })
     z.object({ period: MONTH, groupId: ID.optional() }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    const businessId = await requireBusinessId(context.supabase);
+    const businessId = await requirePermission(
+      context.supabase,
+      "finance.view",
+      "Oylik hisob-kitobni faqat egasi, admin yoki menejer boshlaydi.",
+    );
 
     const groupsResult = data.groupId
       ? await context.supabase.from("study_groups").select("*").eq("id", data.groupId).maybeSingle()
@@ -453,7 +551,17 @@ export const generateGroupTuition = createServerFn({ method: "POST" })
         note: `${group.name} — ${monthLabel(data.period)} oylik`,
         created_by: context.userId,
       });
-      if (error) throw new Error(error.message);
+      if (error) {
+        // Ikkita brauzer bir oylikni bir vaqtda bosasa bazadagi unikal indeks
+        // (payments_group_tuition_uniq) ikkinchisini ushlaydi — bu holat xato
+        // emas, allaqachon hisoblangan degan ma'noni beradi.
+        if (error.code === "23505") {
+          skipped += 1;
+          continue;
+        }
+        throw new Error(error.message);
+      }
+      invoiced.add(`${member.group_id}|${member.student_id}`);
       created += 1;
       total += amount;
     }

@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/lib/auth-middleware";
 import { ATTENDANCE_STATUSES, shiftDayIso } from "./attendance";
+import { requirePermission } from "./guards.server";
 import { requireBusinessId } from "./tenant.server";
 
 const DAY = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Sana YYYY-MM-DD ko‘rinishida bo‘lsin");
@@ -23,6 +24,24 @@ async function findStudyGroup(supabase: Client, groupId: string): Promise<StudyG
     .eq("id", groupId)
     .maybeSingle();
   return (data as StudyGroup | null) ?? null;
+}
+
+/**
+ * Belgi bizning o'quvchimizga yoziladi. RLS begona qatorni ko'rsatmaydi, lekin
+ * bizning davomatimizga begona mijoz ID'sini o'tkazishga to'shmaydi — shuning
+ * uchun ro'yxatdagi har bir ID shu biznesning mijozidir deb tekshiramiz.
+ */
+async function assertOwnStudents(supabase: Client, businessId: string, studentIds: string[]) {
+  const uniqueIds = [...new Set(studentIds)];
+  const { data: ownStudents, error } = await supabase
+    .from("customers")
+    .select("id")
+    .eq("business_id", businessId)
+    .in("id", uniqueIds);
+  if (error) throw new Error(error.message);
+  if ((ownStudents ?? []).length !== uniqueIds.length) {
+    throw new Error("O'quvchilardan biri topilmadi — sahifani yangilab qayta belgilang.");
+  }
 }
 
 async function studyGroupsFor(supabase: Client, businessId: string): Promise<StudyGroup[]> {
@@ -141,7 +160,11 @@ export const setAttendanceMark = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const businessId = await requireBusinessId(context.supabase);
+    const businessId = await requirePermission(
+      context.supabase,
+      "appointments.manage",
+      "Davomatni faqat qabul, menejer, admin yoki egasi belgilaydi.",
+    );
     const group = data.groupId ? await findStudyGroup(context.supabase, data.groupId) : null;
     if (data.groupId && !group) throw new Error("Guruh topilmadi — sahifani yangilang.");
     const groupName = group?.name ?? data.group ?? "";
@@ -161,6 +184,7 @@ export const setAttendanceMark = createServerFn({ method: "POST" })
     }
 
     const now = new Date().toISOString();
+    await assertOwnStudents(context.supabase, businessId, [data.studentId]);
     const { error } = await context.supabase.from("attendance").upsert(
       {
         business_id: businessId,
@@ -194,7 +218,11 @@ export const setAttendanceMany = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const businessId = await requireBusinessId(context.supabase);
+    const businessId = await requirePermission(
+      context.supabase,
+      "appointments.manage",
+      "Davomatni faqat qabul, menejer, admin yoki egasi belgilaydi.",
+    );
     if (!data.studentIds.length) return { ok: true as const, count: 0 };
 
     const group = data.groupId ? await findStudyGroup(context.supabase, data.groupId) : null;
@@ -216,6 +244,7 @@ export const setAttendanceMany = createServerFn({ method: "POST" })
     }
 
     const now = new Date().toISOString();
+    await assertOwnStudents(context.supabase, businessId, data.studentIds);
     const { error } = await context.supabase.from("attendance").upsert(
       data.studentIds.map((studentId: string) => ({
         business_id: businessId,

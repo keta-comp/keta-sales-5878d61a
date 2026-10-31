@@ -3589,6 +3589,11 @@ ALTER TABLE public.payments
 CREATE INDEX IF NOT EXISTS payments_group_period_idx
   ON public.payments (business_id, group_id, period_month);
 
+-- 20261031190000_4c1f7d2a-9b83-42e6-8a51-6d0c7b34e9f2.sql
+CREATE UNIQUE INDEX IF NOT EXISTS payments_group_tuition_uniq
+  ON public.payments (business_id, group_id, customer_id, period_month)
+  WHERE group_id IS NOT NULL AND period_month IS NOT NULL AND status = 'pending';
+
 -- ============ epilogue ============
 -- Migratsiyalar yaratgan barcha ketma-ketliklarga huquq (default privileges
 -- faqat keyingi obyektlarga ta'sir qiladi). Jadval huquqlari har migratsiyada

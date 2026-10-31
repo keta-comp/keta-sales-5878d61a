@@ -21,6 +21,28 @@ async function requireStaffAdmin(supabase: Client): Promise<string> {
 
 const timeInput = z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/);
 
+/**
+ * RLS chet biznesning qatorini o'qishga yoki bo'yashga to'sadi, lekin bizning
+ * qatorimizga begona ID yozishni to'xtatmaydi. Bog'lanadigan jadval ID'sini
+ * shu yerdan tekshiramiz: topilmasa — yozuvni umuman ochmaymiz.
+ */
+async function assertOwnRecord(
+  supabase: Client,
+  businessId: string,
+  table: "branches" | "employees" | "services",
+  id: string,
+  label: string,
+): Promise<void> {
+  const { data, error } = await supabase
+    .from(table)
+    .select("id")
+    .eq("business_id", businessId)
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error(`${label} topilmadi — ro'yxatdan qayta tanlang.`);
+}
+
 /* -------------------------------- employees ------------------------------- */
 
 export const listEmployees = createServerFn({ method: "GET" })
@@ -59,6 +81,9 @@ export const saveEmployee = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const businessId = await requireStaffAdmin(context.supabase);
+    if (data.branch_id) {
+      await assertOwnRecord(context.supabase, businessId, "branches", data.branch_id, "Filial");
+    }
     const row = {
       full_name: data.full_name,
       position: data.position ?? "",
@@ -124,14 +149,27 @@ export const setEmployeeServices = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const businessId = await requireStaffAdmin(context.supabase);
+    await assertOwnRecord(context.supabase, businessId, "employees", data.employeeId, "Xodim");
+    const serviceIds = [...new Set(data.serviceIds)];
+    if (serviceIds.length) {
+      const { data: ownServices, error: serviceError } = await context.supabase
+        .from("services")
+        .select("id")
+        .eq("business_id", businessId)
+        .in("id", serviceIds);
+      if (serviceError) throw new Error(serviceError.message);
+      if ((ownServices ?? []).length !== serviceIds.length) {
+        throw new Error("Xizmatlardan biri topilmadi — ro'yxatdan qayta tanlang.");
+      }
+    }
     const { error: delError } = await context.supabase
       .from("employee_services")
       .delete()
       .eq("employee_id", data.employeeId);
     if (delError) throw new Error(delError.message);
-    if (data.serviceIds.length) {
+    if (serviceIds.length) {
       const { error } = await context.supabase.from("employee_services").insert(
-        data.serviceIds.map((serviceId) => ({
+        serviceIds.map((serviceId) => ({
           employee_id: data.employeeId,
           service_id: serviceId,
           business_id: businessId,
@@ -175,6 +213,7 @@ export const saveWorkSchedule = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const businessId = await requireStaffAdmin(context.supabase);
+    await assertOwnRecord(context.supabase, businessId, "employees", data.employee_id, "Xodim");
     if (data.end_time <= data.start_time) throw new Error("Tugash vaqti boshlanishdan keyin bo'lishi kerak.");
     if ((data.break_start && !data.break_end) || (!data.break_start && data.break_end)) {
       throw new Error("Tanaffus boshlanishi va tugashi birga to'ldiriladi.");
@@ -243,6 +282,7 @@ export const addTimeOff = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const businessId = await requireStaffAdmin(context.supabase);
+    await assertOwnRecord(context.supabase, businessId, "employees", data.employee_id, "Xodim");
     if (data.ends_at <= data.starts_at) throw new Error("Tugash vaqti boshlanishdan keyin bo'lishi kerak.");
     const { error } = await context.supabase.from("time_off").insert({
       employee_id: data.employee_id,

@@ -351,6 +351,7 @@ export const payments = pgTable("payments", {
 	index("payments_order_idx").using("btree", table.orderId.asc().nullsLast().op("uuid_ops")),
 	index("payments_appointment_idx").using("btree", table.appointmentId.asc().nullsLast().op("uuid_ops")),
 	index("payments_group_period_idx").using("btree", table.businessId.asc().nullsLast().op("uuid_ops"), table.groupId.asc().nullsLast().op("uuid_ops"), table.periodMonth.asc().nullsLast().op("text_ops")),
+	uniqueIndex("payments_group_tuition_uniq").using("btree", table.businessId.asc().nullsLast().op("uuid_ops"), table.groupId.asc().nullsLast().op("uuid_ops"), table.customerId.asc().nullsLast().op("uuid_ops"), table.periodMonth.asc().nullsLast().op("text_ops")).where(sql`((group_id IS NOT NULL) AND (period_month IS NOT NULL) AND (status = 'pending'::text))`),
 	foreignKey({
 			columns: [table.businessId],
 			foreignColumns: [businesses.id],
