@@ -519,7 +519,7 @@ function EmployeesPage() {
             id="emp-position"
             value={form.position}
             onChange={(event) => setForm({ ...form, position: event.target.value })}
-            placeholder={t("Sartarosh, usta...")}
+            placeholder={staff.one}
           />
         </div>
         <div>

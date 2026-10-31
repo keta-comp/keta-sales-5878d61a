@@ -100,19 +100,23 @@ export const saveEmployee = createServerFn({ method: "POST" })
         if (error.code === "23505") throw new Error("Bu tizim foydalanuvchiga allaqachon xodim yaratilgan.");
         throw new Error(error.message);
       }
-    } else {
-      const { error } = await context.supabase.from("employees").insert({
+      return { ok: true, id: data.id };
+    }
+    const { data: created, error } = await context.supabase
+      .from("employees")
+      .insert({
         ...row,
         is_active: data.is_active ?? true,
         business_id: businessId,
         created_by: context.userId,
-      });
-      if (error) {
-        if (error.code === "23505") throw new Error("Bu tizim foydalanuvchiga allaqachon xodim yaratilgan.");
-        throw new Error(error.message);
-      }
+      })
+      .select("id")
+      .single();
+    if (error) {
+      if (error.code === "23505") throw new Error("Bu tizim foydalanuvchiga allaqachon xodim yaratilgan.");
+      throw new Error(error.message);
     }
-    return { ok: true };
+    return { ok: true, id: created.id };
   });
 
 export const deleteEmployee = createServerFn({ method: "POST" })

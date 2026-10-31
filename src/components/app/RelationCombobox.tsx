@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { saveCrmRecord, searchRelatedRecords } from "@/lib/crm-config.functions";
 import { saveCrmCustomer } from "@/lib/customers.functions";
+import { saveEmployee } from "@/lib/employees.functions";
 import { t } from "@/lib/i18n";
 
 export interface RelationValue {
@@ -68,14 +69,17 @@ export function RelationCombobox({
       const created =
         targetModule === "customers"
           ? await saveCustomer({ data: { full_name: name } })
-          : await saveRecord({
-              data: {
-                moduleKey: targetModule,
-                title: name,
-                stage: null,
-                data: titleKey ? { [titleKey]: name } : {},
-              },
-            });
+          : targetModule === "employees"
+            ? // Shifokor/usta — CRM yozuvi emas, haqiqiy xodim.
+              await saveEmployee({ data: { full_name: name } })
+            : await saveRecord({
+                data: {
+                  moduleKey: targetModule,
+                  title: name,
+                  stage: null,
+                  data: titleKey ? { [titleKey]: name } : {},
+                },
+              });
       onChange({ id: created.id, label: name });
       void queryClient.invalidateQueries({ queryKey: ["relation-search", targetModule] });
       setTerm("");

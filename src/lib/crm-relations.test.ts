@@ -6,9 +6,27 @@ const field = (ind: string, mod: string, key: string) =>
   INDUSTRY_PRESETS[ind]?.modules.find((m) => m.key === mod)?.fields?.find((f) => f.key === key);
 
 describe("CRM relations", () => {
-  test("dental appointment links patient to customers and doctor to doctors", () => {
+  test("dental appointment links patient to customers and doctor to the employees table", () => {
     expect(field("stomatologiya", "qabul", "bemor")?.targetModule).toBe("customers");
-    expect(field("stomatologiya", "qabul", "shifokor")?.targetModule).toBe("shifokorlar");
+    expect(field("stomatologiya", "qabul", "shifokor")?.targetModule).toBe("employees");
+  });
+  test("a saved dental text field is re-pointed at the employees table", () => {
+    const old = {
+      modules: [
+        {
+          key: "davolash",
+          label: "Davolash",
+          fields: [{ key: "shifokor", label: "Shifokor", type: "text" }],
+        },
+      ],
+      pipelineStages: [],
+      terminology: {},
+      dashboardWidgets: [],
+      automations: [],
+    };
+    const upgraded = applyRelations("stomatologiya", old).modules[0]?.fields?.[0];
+    expect(upgraded?.type).toBe("relation");
+    expect(upgraded?.targetModule).toBe("employees");
   });
   test("education group links course and teacher", () => {
     expect(field("oquv", "guruhlar", "kurs")?.targetModule).toBe("kurslar");

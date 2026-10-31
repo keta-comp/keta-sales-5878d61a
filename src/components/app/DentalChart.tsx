@@ -335,7 +335,7 @@ export function DentalChart({ customerId, patientName }: { customerId: string; p
             <div className="flex flex-col gap-2">
               <Label>{t("Shifokor")}</Label>
               <RelationCombobox
-                targetModule="shifokorlar"
+                targetModule="employees"
                 value={draft.doctor ? { id: draft.doctorId ?? "", label: draft.doctor } : null}
                 onChange={(v) =>
                   setDraft((prev) => ({ ...prev, doctor: v?.label ?? "", doctorId: v?.id ?? null }))

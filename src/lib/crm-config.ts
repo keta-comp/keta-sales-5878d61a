@@ -22,7 +22,7 @@ export type CrmFieldType =
 /** Core tables a dynamic CRM module can be backed by (see CrmModule.table). */
 export type CrmBackedTable = "payments" | "appointments";
 
-/** Relation target: "customers" (core customers table) or a dynamic module key. */
+/** Relation target: a core table (see CORE_RELATION_TARGETS) or a dynamic module key. */
 export interface CrmField {
   key: string;
   label: string;
@@ -35,6 +35,16 @@ export interface CrmField {
 /** Relation values are stored as data[key] = display name, data[key + "_id"] = record id. */
 export function relationIdKey(fieldKey: string): string {
   return `${fieldKey}_id`;
+}
+
+/**
+ * Relation maydonlari yoki shu yadro jadvallariga, yoki biznesning o'z modullariga
+ * bog'lanadi. Shifokor/usta/xodim — `employees` jadvalidagi obyekt, CRM moduli emas.
+ */
+export const CORE_RELATION_TARGETS = ["customers", "employees"] as const;
+
+export function isCoreRelationTarget(target: string): boolean {
+  return (CORE_RELATION_TARGETS as readonly string[]).includes(target);
 }
 
 /** Legacy dashboard routes a module can map onto (existing functionality, kept). */
@@ -213,6 +223,7 @@ const BASE_PRESETS: Record<string, CrmConfigData> = {
         label: "Qabul",
         icon: "calendar",
         table: "appointments",
+        link: "/dashboard/appointments",
         fields: [
           textField("bemor", "Bemor ismi"),
           phoneField(),
@@ -229,6 +240,7 @@ const BASE_PRESETS: Record<string, CrmConfigData> = {
         key: "shifokorlar",
         label: "Shifokorlar",
         icon: "stethoscope",
+        link: "/dashboard/employees",
         fields: [
           textField("ism", "Ism"),
           phoneField(),
@@ -298,7 +310,7 @@ const BASE_PRESETS: Record<string, CrmConfigData> = {
           noteField(),
         ],
       },
-      paymentModule(),
+      paymentModule("To‘lovlar", "/dashboard/payments"),
     ],
     pipelineStages: ["Yangi murojaat", "Konsultatsiya", "Qabul belgilandi", "Davolash", "To‘lov", "Yakunlandi"],
     terminology: { customer: "Bemor", lead: "Murojaat", order: "Qabul" },
@@ -403,9 +415,10 @@ const BASE_PRESETS: Record<string, CrmConfigData> = {
         key: "ustalar",
         label: "Ustalar",
         icon: "user",
+        link: "/dashboard/employees",
         fields: [textField("ism", "Ism"), phoneField(), textField("mutaxassislik", "Mutaxassislik"), noteField()],
       },
-      paymentModule(),
+      paymentModule("To‘lovlar", "/dashboard/payments"),
     ],
     pipelineStages: ["Yangi murojaat", "Diagnostika", "Ta'mirlash", "Tayyor", "To‘lov", "Yakunlandi"],
     terminology: { customer: "Mijoz", lead: "Murojaat", order: "Servis buyurtmasi" },
@@ -559,6 +572,7 @@ const BASE_PRESETS: Record<string, CrmConfigData> = {
         key: "xizmatlar",
         label: "Xizmatlar",
         icon: "package",
+        link: "/dashboard/services",
         fields: [
           textField("nomi", "Xizmat nomi"),
           moneyField("narxi", "Narxi"),
@@ -566,7 +580,7 @@ const BASE_PRESETS: Record<string, CrmConfigData> = {
           noteField(),
         ],
       },
-      paymentModule(),
+      paymentModule("To‘lovlar", "/dashboard/payments"),
     ],
     pipelineStages: GENERIC_PIPELINE,
     terminology: { customer: "Mijoz", lead: "Murojaat", order: "Buyurtma" },
@@ -605,6 +619,7 @@ const BASE_PRESETS: Record<string, CrmConfigData> = {
         label: "Qabul",
         icon: "calendar",
         table: "appointments",
+        link: "/dashboard/appointments",
         fields: [
           textField("bemor", "Bemor ismi"),
           phoneField(),
@@ -634,6 +649,7 @@ const BASE_PRESETS: Record<string, CrmConfigData> = {
         key: "shifokorlar",
         label: "Shifokorlar",
         icon: "stethoscope",
+        link: "/dashboard/employees",
         fields: [
           textField("ism", "Ism"),
           phoneField(),
@@ -728,7 +744,7 @@ const BASE_PRESETS: Record<string, CrmConfigData> = {
           noteField(),
         ],
       },
-      paymentModule(),
+      paymentModule("To‘lovlar", "/dashboard/payments"),
     ],
     pipelineStages: ["Yangi murojaat", "Qabul belgilandi", "Ko‘rik", "Davolash", "To‘lov", "Yakunlandi"],
     terminology: { customer: "Bemor", lead: "Murojaat", order: "Qabul" },
@@ -755,23 +771,24 @@ const BASE_PRESETS: Record<string, CrmConfigData> = {
 
 /** Which preset fields link to other modules, per industry → module → field → target. */
 export const RELATION_MAP: Record<string, Record<string, Record<string, string>>> = {
+  // Shifokor — yadro obyekti (employees jadvali: lavozim, jadval, ta'til, komissiya),
+  // shuning uchun tibbiy modullardagi "shifokor" maydoni xodimlarga bog'lanadi.
   stomatologiya: {
-    qabul: { bemor: "customers", shifokor: "shifokorlar" },
-    davolash: { bemor: "customers", shifokor: "shifokorlar" },
-    odontogramma: { bemor: "customers", shifokor: "shifokorlar" },
+    qabul: { bemor: "customers", shifokor: "employees" },
+    davolash: { bemor: "customers", shifokor: "employees" },
+    odontogramma: { bemor: "customers", shifokor: "employees" },
     bemor_kartasi: { bemor: "customers" },
-    rentgen: { bemor: "customers", shifokor: "shifokorlar" },
+    rentgen: { bemor: "customers", shifokor: "employees" },
     tolovlar: { kim: "customers" },
   },
   klinika: {
-    qabul: { bemor: "customers", shifokor: "shifokorlar", bolim: "bolimlar" },
-    bolimlar: { mudir: "shifokorlar" },
-    shifokorlar: { bolim: "bolimlar" },
+    qabul: { bemor: "customers", shifokor: "employees", bolim: "bolimlar" },
+    bolimlar: { mudir: "employees" },
     tibbiy_karta: { bemor: "customers" },
-    koriklar: { bemor: "customers", shifokor: "shifokorlar" },
-    tahlillar: { bemor: "customers", yo_nalgan: "shifokorlar" },
-    davolash_rejasi: { bemor: "customers", shifokor: "shifokorlar" },
-    hujjatlar: { bemor: "customers", shifokor: "shifokorlar" },
+    koriklar: { bemor: "customers", shifokor: "employees" },
+    tahlillar: { bemor: "customers", yo_nalgan: "employees" },
+    davolash_rejasi: { bemor: "customers", shifokor: "employees" },
+    hujjatlar: { bemor: "customers", shifokor: "employees" },
     tolovlar: { kim: "customers" },
   },
   oquv: {
@@ -782,7 +799,7 @@ export const RELATION_MAP: Record<string, Record<string, Record<string, string>>
   },
   avtoservis: {
     avtomobillar: { mijoz: "customers" },
-    servis: { mijoz: "customers", avtomobil: "avtomobillar", usta: "ustalar" },
+    servis: { mijoz: "customers", avtomobil: "avtomobillar", usta: "employees" },
     tolovlar: { kim: "customers" },
   },
   kochmas_mulk: {
@@ -878,7 +895,7 @@ export function applyRelations(industry: string | null | undefined, config: CrmC
         fields: (m.fields ?? []).map((f) => {
           const target = fm?.[f.key];
           if (!target || f.type === "relation") return f;
-          if (target !== "customers" && !keys.has(target)) return f;
+          if (!isCoreRelationTarget(target) && !keys.has(target)) return f;
           return { ...f, type: "relation" as const, targetModule: target };
         }),
       };

@@ -3,7 +3,7 @@ import { describe, expect, test } from "bun:test";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
-import { INDUSTRY_PRESETS } from "@/lib/crm-config";
+import { INDUSTRY_PRESETS, isCoreRelationTarget } from "@/lib/crm-config";
 import { quickActionLabels } from "@/lib/crm-core";
 import en from "@/lib/i18n/en";
 import kaa from "@/lib/i18n/kaa";
@@ -287,8 +287,11 @@ describe("preset registry", () => {
     expect(coreTerm("oquv", "customers")).toEqual({ one: "O‘quvchi", many: "O‘quvchilar" });
     expect(coreTerm("oquv", "appointments").one).toBe("Sinov darsi");
     expect(coreTerm("stomatologiya", "customers")).toEqual({ one: "Bemor", many: "Bemorlar" });
-    expect(coreTerm("stomatologiya", "products").one).toBe("Stomatologik xizmat");
+    // Tibbiy sohalarda xizmatlar katalogi — /dashboard/services, products esa SKU'liqicha.
+    expect(coreTerm("stomatologiya", "products")).toEqual({ one: "Mahsulot", many: "Mahsulotlar" });
+    expect(coreTerm("stomatologiya", "employees")).toEqual({ one: "Shifokor", many: "Shifokorlar" });
     expect(coreTerm("klinika", "customers").one).toBe("Bemor");
+    expect(coreTerm("klinika", "employees").one).toBe("Shifokor");
     expect(coreTerm("ecommerce", "products").one).toBe("Mahsulot");
     // Salon: katalog — xizmatlar (services), jamoa — ustalar; mahsulot sahifasi SKU'liqicha qoladi.
     expect(coreTerm("beauty", "employees")).toEqual({ one: "Usta", many: "Ustalar" });
@@ -326,6 +329,91 @@ describe("preset registry", () => {
     expect(modules.find((m) => m.key === "ustalar")?.link).toBe("/dashboard/employees");
     expect(modules.find((m) => m.key === "qabul")?.link).toBe("/dashboard/appointments");
     expect(modules.find((m) => m.key === "tolovlar")?.link).toBe("/dashboard/payments");
+  });
+
+  test("stomatologiya va klinika menyusi ham haqiqiy sahifalardan quriladi", () => {
+    for (const id of ["stomatologiya", "klinika"]) {
+      const menu = menuForPreset(id);
+      const targets = menu.map((item) => item.to);
+      for (const to of [
+        "/dashboard/services",
+        "/dashboard/employees",
+        "/dashboard/appointments",
+        "/dashboard/payments",
+        "/dashboard/finance",
+      ]) {
+        expect(targets).toContain(to);
+      }
+      // Qabul, shifokor va to'lov — yadro sahifalari; erkin matn modullari takrorlanmaydi.
+      for (const key of ["qabul", "shifokorlar", "tolovlar"]) {
+        expect(targets).not.toContain(`/dashboard/crm/${key}`);
+        expect(isModuleEnabled(id, key)).toBe(false);
+      }
+      expect(new Set(menu.map((item) => item.label)).size).toBe(menu.length);
+    }
+    // Tibbiy yozuvlar o'z ornida qoladi va vakolat talab qiladi.
+    const dental = menuForPreset("stomatologiya");
+    expect(dental.some((i) => i.to === "/dashboard/crm/odontogramma" && i.permission === "medical.view")).toBe(true);
+    expect(dental.some((i) => i.to === "/dashboard/crm/davolash")).toBe(true);
+    expect(menuForPreset("klinika").some((i) => i.to === "/dashboard/crm/bolimlar")).toBe(true);
+    // To'g'ridan-to'g'ri kirgan URL ham haqiqiy sahifaga chiqadi.
+    const modules = crmConfigForPreset("stomatologiya").modules;
+    expect(modules.find((m) => m.key === "qabul")?.link).toBe("/dashboard/appointments");
+    expect(modules.find((m) => m.key === "shifokorlar")?.link).toBe("/dashboard/employees");
+    expect(modules.find((m) => m.key === "tolovlar")?.link).toBe("/dashboard/payments");
+  });
+
+  test("avtoservis va xizmat ko‘rsatishda bitta obyekt ikki joyda ko'rinmaydi", () => {
+    const garage = menuForPreset("avtoservis").map((item) => item.to);
+    for (const to of [
+      "/dashboard/services",
+      "/dashboard/employees",
+      "/dashboard/payments",
+      "/dashboard/crm/servis",
+      "/dashboard/crm/avtomobillar",
+    ]) {
+      expect(garage).toContain(to);
+    }
+    // Usta — xodimlar jadvalida, "Servis buyurtmalari" esa faqat CRM modulida qoladi.
+    expect(garage).not.toContain("/dashboard/crm/ustalar");
+    expect(garage).not.toContain("/dashboard/orders");
+    expect(coreTerm("avtoservis", "products")).toEqual({ one: "Ehtiyot qism", many: "Ehtiyot qismlar" });
+    expect(coreTerm("avtoservis", "employees").one).toBe("Usta");
+
+    const outbound = menuForPreset("xizmat").map((item) => item.to);
+    expect(outbound).toContain("/dashboard/services");
+    expect(outbound).toContain("/dashboard/orders");
+    expect(outbound).not.toContain("/dashboard/crm/xizmatlar");
+    expect(coreTerm("xizmat", "products")).toEqual({ one: "Mahsulot", many: "Mahsulotlar" });
+
+    for (const [id, key, link] of [
+      ["avtoservis", "ustalar", "/dashboard/employees"],
+      ["avtoservis", "tolovlar", "/dashboard/payments"],
+      ["xizmat", "xizmatlar", "/dashboard/services"],
+      ["xizmat", "tolovlar", "/dashboard/payments"],
+    ]) {
+      expect(crmConfigForPreset(id).modules.find((m) => m.key === key)?.link).toBe(link);
+      expect(isModuleEnabled(id, key)).toBe(false);
+    }
+  });
+
+  test("sahifasi bo'lmagan (yashirin) modulga bog'lanish qolmaydi", () => {
+    // Bog'lanish yashirin modulga qolsa, forma eski yozuvni ko'rsatadi-yu, tezkor
+    // "yangi qo'shish" "Modul o'chirilgan" xatosi bilan qaytadi.
+    const broken = [];
+    for (const id of PRESET_IDS) {
+      for (const module of crmConfigForPreset(id).modules) {
+        // Link bilan ochiladigan modul o'z formasini ko'rsatmaydi — bog'lami yashirin.
+        if (module.link || !isModuleEnabled(id, module.key)) continue;
+        for (const field of module.fields ?? []) {
+          if (field.type !== "relation" || !field.targetModule) continue;
+          const reachable =
+            isCoreRelationTarget(field.targetModule) || isModuleEnabled(id, field.targetModule);
+          if (!reachable) broken.push(`${id}.${module.key}.${field.key} → ${field.targetModule}`);
+        }
+      }
+    }
+    expect(broken).toEqual([]);
   });
 
   test("quick actions use the industry wording of the resolved preset", () => {

@@ -316,6 +316,20 @@ export const searchRelatedRecords = createServerFn({ method: "GET" })
         hint: r.phone ?? null,
       }));
     }
+    if (data.targetModule === "employees") {
+      // Shifokor/usta — yadro obyekti: CRM moduli emas, xodimlar jadvalidan olinadi.
+      let q = context.supabase
+        .from("employees")
+        .select("id, full_name, position")
+        .eq("business_id", businessId)
+        .eq("is_active", true)
+        .order("created_at", { ascending: false })
+        .limit(20);
+      if (term) q = q.or(`full_name.ilike.%${term}%,position.ilike.%${term}%`);
+      const { data: staffRows, error: staffError } = await q;
+      if (staffError) throw new Error(staffError.message);
+      return (staffRows ?? []).map((r) => ({ id: r.id, label: r.full_name, hint: r.position || null }));
+    }
     const crm = await tenantCrm(context.supabase);
     const module = await requireModuleAccess(context.supabase, businessId, crm.config, data.targetModule);
     const table = backedTableOf(module);
@@ -887,6 +901,7 @@ const LINKED_COUNT_TABLE: Partial<Record<CrmModuleLink, string>> = {
   "/dashboard/products": "products",
   "/dashboard/attendance": "attendance",
   "/dashboard/services": "services",
+  "/dashboard/employees": "employees",
 };
 
 export const getWidgetStats = createServerFn({ method: "GET" })

@@ -266,6 +266,8 @@ const table: Record<string, string> = {
   "E’lonni yuborishni tasdiqlaysizmi?": "Confirm sending the announcement?",
   "Egasi": "Owner",
   "Egasining emaili": "Owner's email",
+  "Ehtiyot qism": "Spare part",
+  "Ehtiyot qismlar": "Spare parts",
   "Eksport qilinmadi": "Not exported",
   "Email": "Email",
   "Eng eski": "Oldest",

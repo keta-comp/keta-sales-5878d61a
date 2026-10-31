@@ -32,7 +32,7 @@ import {
   removeCrmAttachments,
 } from "@/lib/crm-config.functions";
 import { LIVE_REFETCH_MS } from "@/lib/polling";
-import { isModuleEnabled, resolvePresetId } from "@/lib/presets";
+import { crmConfigForPreset, isModuleEnabled, resolvePresetId } from "@/lib/presets";
 import { relationIdKey, type CrmField, type CrmModule } from "@/lib/crm-config";
 import { AttachmentCell, AttachmentField } from "@/components/app/CrmAttachment";
 import { RelationCombobox } from "@/components/app/RelationCombobox";
@@ -91,11 +91,14 @@ function CrmModulePage() {
   }, [config.data, moduleKey]);
 
   // Preset bu modumni o'chirgan (salonda Xizmatlar artiq haqiqiy sahifa) — saqlangan
-  // konfiguratsiyada modul hali tursa ham uning formasi ochilmaydi.
-  const disabled = useMemo(() => {
+  // konfiguratsiyada modul hali tursa ham uning formasi ochilmaydi. Bunday modullar
+  // reestrdagi havolasi bo'lsa, o'sha haqiqiy sahifaga yuboriladi.
+  const hiddenMovedTo = useMemo(() => {
     const cfg = config.data?.config;
-    if (!cfg || !module) return false;
-    return !isModuleEnabled(resolvePresetId(config.data?.industry, cfg.presetId), moduleKey);
+    if (!cfg || !module) return null;
+    const presetId = resolvePresetId(config.data?.industry, cfg.presetId);
+    if (isModuleEnabled(presetId, moduleKey)) return null;
+    return crmConfigForPreset(presetId).modules.find((m) => m.key === moduleKey)?.link ?? null;
   }, [config.data, module, moduleKey]);
 
   const [editing, setEditing] = useState<RecordRow | null>(null);
@@ -183,7 +186,7 @@ function CrmModulePage() {
 
   if (config.isPending) return <LoadingState />;
   if (config.error) return <ErrorState error={config.error} onRetry={() => void config.refetch()} />;
-  if (movedTo || disabled) return <Navigate to={movedTo ?? "/dashboard"} replace />;
+  if (movedTo || hiddenMovedTo) return <Navigate to={movedTo ?? hiddenMovedTo ?? "/dashboard"} replace />;
   if (!module) {
     return <EmptyState title={t("Modul topilmadi")} description={t("Bu modul CRM konfiguratsiyasida mavjud emas.")} />;
   }
@@ -353,6 +356,14 @@ function CellValue({
   if (field.targetModule === "customers") {
     return (
       <Link to="/dashboard/customers/$id" params={{ id }} onClick={stop} className="font-medium underline underline-offset-2">
+        {text}
+      </Link>
+    );
+  }
+  // Xodim (shifokor/usta) sahifasi bitta yozuvga havola bermaydi — ro'yxatga olib ketadi.
+  if (field.targetModule === "employees") {
+    return (
+      <Link to="/dashboard/employees" onClick={stop} className="font-medium underline underline-offset-2">
         {text}
       </Link>
     );
