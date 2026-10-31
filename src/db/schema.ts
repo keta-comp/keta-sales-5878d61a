@@ -331,6 +331,7 @@ export const payments = pgTable("payments", {
 	businessId: uuid("business_id").default(sql`current_business_id()`).notNull(),
 	customerId: uuid("customer_id"),
 	orderId: uuid("order_id"),
+	appointmentId: uuid("appointment_id"),
 	amount: numeric().default('0').notNull(),
 	method: text().default('cash').notNull(),
 	status: text().default('pending').notNull(),
@@ -346,6 +347,7 @@ export const payments = pgTable("payments", {
 	index("payments_business_status_idx").using("btree", table.businessId.asc().nullsLast().op("uuid_ops"), table.status.asc().nullsLast().op("uuid_ops")),
 	index("payments_customer_idx").using("btree", table.customerId.asc().nullsLast().op("uuid_ops")),
 	index("payments_order_idx").using("btree", table.orderId.asc().nullsLast().op("uuid_ops")),
+	index("payments_appointment_idx").using("btree", table.appointmentId.asc().nullsLast().op("uuid_ops")),
 	foreignKey({
 			columns: [table.businessId],
 			foreignColumns: [businesses.id],
@@ -514,6 +516,8 @@ export const services = pgTable("services", {
 	name: text().notNull(),
 	durationMinutes: integer("duration_minutes").default(30).notNull(),
 	price: numeric({ precision: 14, scale:  2 }).default('0').notNull(),
+	depositType: text("deposit_type").default('none').notNull(),
+	depositValue: numeric({ precision: 14, scale:  2 }).default('0').notNull(),
 	isActive: boolean("is_active").default(true).notNull(),
 	createdBy: uuid("created_by"),
 	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
@@ -534,6 +538,8 @@ export const services = pgTable("services", {
 	check("services_name_check", sql`char_length(TRIM(BOTH FROM name)) > 0`),
 	check("services_duration_minutes_check", sql`(duration_minutes > 0) AND (duration_minutes <= 1440)`),
 	check("services_price_check", sql`price >= (0)::numeric`),
+	check("services_deposit_type_check", sql`deposit_type = ANY (ARRAY['none'::text, 'fixed'::text, 'percent'::text])`),
+	check("services_deposit_value_check", sql`deposit_value >= (0)::numeric`),
 ]);
 
 export const appointments = pgTable("appointments", {
@@ -553,6 +559,11 @@ export const appointments = pgTable("appointments", {
 	serviceName: text("service_name"),
 	price: numeric({ precision: 14, scale:  2 }),
 	durationMinutes: integer("duration_minutes"),
+	depositAmount: numeric({ precision: 14, scale:  2 }),
+	depositPaidAmount: numeric({ precision: 14, scale:  2 }),
+	depositPaidAt: timestamp("deposit_paid_at", { withTimezone: true, mode: 'string' }),
+	depositMethod: text("deposit_method").default('').notNull(),
+	depositRefundedAt: timestamp("deposit_refunded_at", { withTimezone: true, mode: 'string' }),
 	data: jsonb().default({}).notNull(),
 }, (table) => [
 	index("idx_appointments_business_branch").using("btree", table.businessId.asc().nullsLast().op("timestamptz_ops"), table.branchId.asc().nullsLast().op("uuid_ops"), table.startsAt.asc().nullsLast().op("uuid_ops")),
@@ -594,6 +605,9 @@ export const appointments = pgTable("appointments", {
 	check("appointments_status_check", sql`status = ANY (ARRAY['new'::text, 'confirmed'::text, 'arrived'::text, 'completed'::text, 'cancelled'::text, 'no_show'::text])`),
 	check("appointments_price_check", sql`price >= (0)::numeric`),
 	check("appointments_duration_minutes_check", sql`(duration_minutes > 0) AND (duration_minutes <= 1440)`),
+	check("appointments_deposit_amount_check", sql`deposit_amount >= (0)::numeric`),
+	check("appointments_deposit_paid_amount_check", sql`deposit_paid_amount >= (0)::numeric`),
+	check("appointments_deposit_state", sql`((deposit_refunded_at IS NULL AND deposit_paid_at IS NULL AND deposit_paid_amount IS NULL) OR (deposit_refunded_at IS NULL AND deposit_paid_at IS NOT NULL AND deposit_paid_amount IS NOT NULL) OR (deposit_refunded_at IS NOT NULL))`),
 ]);
 
 export const telegramLinks = pgTable("telegram_links", {

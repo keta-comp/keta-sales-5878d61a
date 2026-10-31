@@ -17,6 +17,7 @@ import {
   zonedParts,
   type AppointmentStatus,
 } from "./booking";
+import { depositFor } from "./deposit";
 import type { DbClient } from "./pg-rest.server";
 import { editMessageText, escapeHtml, removeInlineButtons } from "./telegram.server";
 import { resolveRange, zoneOffsetMinutes } from "./report-service.server";
@@ -133,6 +134,7 @@ export async function sendBookingCard(
     customerName: string;
     customerPhone: string;
     source: string;
+    depositAmount?: number;
   },
   excludeTelegramUserId?: string,
 ) {
@@ -167,6 +169,9 @@ export async function sendBookingCard(
     `🕓 ${time}${appointment.employeeName ? ` — ${escapeHtml(appointment.employeeName)}` : ""}`,
     `🛠 ${escapeHtml(appointment.serviceName)}`,
     `👤 ${escapeHtml(appointment.customerName)} (${escapeHtml(appointment.customerPhone)})`,
+    ...(appointment.depositAmount && appointment.depositAmount > 0
+      ? [`💰 Depozit: ${appointment.depositAmount.toLocaleString("ru-RU")} so’m — <b>to‘lanmagan</b>`]
+      : []),
     `📝 ${escapeHtml(appointment.source)}`,
   ].join("\n");
   const markup = {
@@ -672,17 +677,25 @@ async function createFromDraft(token: string, link: TelegramLinkRow, draft: BotB
 
   const { data: serviceRow } = await client
     .from("services")
-    .select("id, name, duration_minutes, price")
+    .select("id, name, duration_minutes, price, deposit_type, deposit_value")
     .eq("business_id", link.business_id)
     .eq("is_active", true)
     .order("name", { ascending: true })
     .limit(1)
     .maybeSingle();
   const service = serviceRow as
-    | { id: string; name: string; duration_minutes: number; price: string | number }
+    | {
+        id: string;
+        name: string;
+        duration_minutes: number;
+        price: string | number;
+        deposit_type: string;
+        deposit_value: string | number;
+      }
     | null
     | undefined;
   const duration = service?.duration_minutes ?? 30;
+  const depositAmount = depositFor(service, service ? Number(service.price) : null);
   const endsAt = appointmentEnd(startsAt, duration);
 
   const { names, chosen, busy } = await firstFreeEmployee({
@@ -713,6 +726,7 @@ async function createFromDraft(token: string, link: TelegramLinkRow, draft: BotB
       service_name: service?.name ?? null,
       price: service ? Number(service.price) : null,
       duration_minutes: duration,
+      deposit_amount: depositAmount > 0 ? depositAmount : null,
       customer_id: customerId,
       employee_id: chosen?.id ?? null,
       starts_at: startsAt,
@@ -739,7 +753,8 @@ async function createFromDraft(token: string, link: TelegramLinkRow, draft: BotB
     link.telegram_chat_id,
     `✅ <b>Qabul qo‘shildi</b>\n\n${clock(startsAt, link.timezone)}–${clock(endsAt, link.timezone)}\n` +
       `${escapeHtml(who)} · ${escapeHtml(phoneLabel)}\n${escapeHtml(service?.name ?? "Xizmat")}` +
-      `${chosen ? ` · ${escapeHtml(chosen.full_name)}` : ""}`,
+      `${chosen ? ` · ${escapeHtml(chosen.full_name)}` : ""}` +
+      (depositAmount > 0 ? `\n\n💰 Depozit: ${depositAmount.toLocaleString("ru-RU")} so’m — qabulga yozilganda to‘lanadi.` : ""),
   );
 
   const appointmentId = (created as { id: string } | null)?.id;
@@ -754,6 +769,7 @@ async function createFromDraft(token: string, link: TelegramLinkRow, draft: BotB
         customerName: who,
         customerPhone: phoneLabel,
         source: "Telegram botdan qo'shildi",
+        depositAmount,
       },
       link.telegram_user_id,
     ).catch((error: unknown) => console.error("[telegram-booking] card", error));

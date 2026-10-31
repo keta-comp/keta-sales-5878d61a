@@ -4,6 +4,12 @@ import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/lib/auth-middleware";
 import {
+  DEPOSIT_METHODS,
+  DEPOSIT_TYPES,
+  depositFor,
+  depositState,
+} from "@/lib/deposit";
+import {
   DEFAULT_BUSINESS_TZ,
   APPOINTMENT_STATUSES,
   BOOKED_STATUSES,
@@ -87,12 +93,29 @@ export const saveService = createServerFn({ method: "POST" })
         duration_minutes: z.number().int().positive().max(1440),
         price: z.number().nonnegative(),
         is_active: z.boolean().optional(),
+        deposit_type: z.enum(DEPOSIT_TYPES).optional(),
+        deposit_value: z.number().nonnegative().max(1_000_000_000).optional(),
       })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
     const businessId = await requireBookingBusiness(context.supabase);
-    const row = { name: data.name, duration_minutes: data.duration_minutes, price: data.price };
+    // Qoida yuborilmagani saqlanadi: ro'yxatdagi faqat "faol" tugmasi bosilganda
+    // depozit sozlamasining o'chib ketmasligi shundan.
+    let depositPatch: Record<string, unknown> = {};
+    if (data.deposit_type) {
+      const value = data.deposit_type === "none" ? 0 : (data.deposit_value ?? 0);
+      if (data.deposit_type === "percent" && value > 100) {
+        throw new Error("Depozit foizi 100 dan oshmasligi kerak.");
+      }
+      depositPatch = { deposit_type: data.deposit_type, deposit_value: value };
+    }
+    const row = {
+      name: data.name,
+      duration_minutes: data.duration_minutes,
+      price: data.price,
+      ...depositPatch,
+    };
     if (data.id) {
       const patch = data.is_active === undefined ? row : { ...row, is_active: data.is_active };
       const { error } = await context.supabase.from("services").update(patch).eq("id", data.id);
@@ -178,14 +201,16 @@ export const saveAppointment = createServerFn({ method: "POST" })
 
     let duration = data.duration_minutes;
     let snapshot: { name: string; price: number; duration_minutes: number } | null = null;
+    let depositRule: { deposit_type: string; deposit_value: number } | null = null;
     if (data.service_id) {
       const { data: service, error } = await context.supabase
         .from("services")
-        .select("duration_minutes, name, price")
+        .select("duration_minutes, name, price, deposit_type, deposit_value")
         .eq("id", data.service_id)
         .maybeSingle();
       if (error) throw new Error(error.message);
       if (service) snapshot = { name: service.name, price: Number(service.price), duration_minutes: service.duration_minutes };
+      if (service) depositRule = { deposit_type: service.deposit_type, deposit_value: Number(service.deposit_value) };
       if (duration === undefined) duration = service?.duration_minutes;
     }
     if (duration === undefined) throw new Error("Xizmat yoki davomiylikni tanlang.");
@@ -195,11 +220,25 @@ export const saveAppointment = createServerFn({ method: "POST" })
       await assertEmployeeAvailable(context.supabase, data.employee_id, data.starts_at, endsAt, duration);
     }
 
+    // Depozit snapshoti xizmat qoidasidan hisoblanadi. To'langan depoziti bo'lgan
+    // qabul tahrirlansa summa o'zgarmaydi — mijozga aytilgan pul orqaga qaytarilmaydi.
+    let depositAmount = depositFor(depositRule, snapshot?.price ?? null);
+    if (data.id) {
+      const { data: existing, error: existingError } = await context.supabase
+        .from("appointments")
+        .select("deposit_amount, deposit_paid_at")
+        .eq("id", data.id)
+        .maybeSingle();
+      if (existingError) throw new Error(existingError.message);
+      if (existing?.deposit_paid_at) depositAmount = Number(existing.deposit_amount ?? 0) || 0;
+    }
+
     const row = {
       service_id: data.service_id ?? null,
       service_name: snapshot?.name ?? null,
       price: snapshot?.price ?? null,
       duration_minutes: duration,
+      deposit_amount: depositAmount > 0 ? depositAmount : null,
       customer_id: data.customer_id ?? null,
       employee_id: data.employee_id ?? null,
       branch_id: data.branch_id ?? null,
@@ -256,6 +295,111 @@ function conflictError(error: { code?: string; message: string }): Error {
   }
   return new Error(error.message);
 }
+
+/* -------------------------------- deposits -------------------------------- */
+
+/**
+ * Depozitni qabul qilish: qabulda holat yoziladi, pul esa To'lovlar daftariga
+ * tushadi. Takror yozib bo'lmaydi — avval qaytarish kerak.
+ */
+export const recordDeposit = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        id: z.string(),
+        method: z.enum(DEPOSIT_METHODS),
+        amount: z.number().positive().optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const businessId = await requireBookingBusiness(context.supabase);
+    const { data: appointment, error } = await context.supabase
+      .from("appointments")
+      .select("id, customer_id, service_name, deposit_amount, deposit_paid_at, deposit_refunded_at")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!appointment) throw new Error("Qabul topilmadi.");
+
+    const state = depositState(appointment);
+    if (state === "none") throw new Error("Bu qabul uchun depozit belgilanmagan.");
+    if (state === "paid") throw new Error("Depozit allaqachon qabul qilingan.");
+
+    const required = Number(appointment.deposit_amount ?? 0) || 0;
+    // Mijoz kamroq berdi — o'sha qabul qilingan pul yoziladi, talab qilingan summa emas.
+    const amount = Math.round(data.amount && data.amount > 0 ? data.amount : required);
+    const now = new Date().toISOString();
+    const depositNote = `Depozit · ${appointment.service_name || "Qabul"}`;
+
+    const { error: ledgerError } = await context.supabase.from("payments").insert({
+      business_id: businessId,
+      customer_id: appointment.customer_id ?? null,
+      appointment_id: appointment.id,
+      amount,
+      method: data.method,
+      status: "paid",
+      paid_at: now,
+      note: depositNote,
+      created_by: context.userId,
+    });
+    if (ledgerError) throw new Error(ledgerError.message);
+
+    const { error: updateError } = await context.supabase
+      .from("appointments")
+      .update({
+        deposit_paid_at: now,
+        deposit_paid_amount: amount,
+        deposit_method: data.method,
+        deposit_refunded_at: null,
+      })
+      .eq("id", appointment.id);
+    if (updateError) throw new Error(updateError.message);
+
+    const { notifyCurrentBusiness } = await import("./telegram-notify.server");
+    await notifyCurrentBusiness(
+      context.supabase as never,
+      "payment",
+      `💰 <b>Depozit qabul qilindi</b> — ${amount.toLocaleString("ru-RU")} so’m\n${depositNote}`,
+    );
+
+    return { ok: true as const, amount };
+  });
+
+/**
+ * Depozitni qaytarish (mijoz bekor qildi yoki xizmat bo'lmadi). Holat tozalanadi,
+ * to'lov yozuvi esa "refunded" bo'ladi — pul daftaridan yo'qolmaydi, sababi ko'rinadi.
+ */
+export const refundDeposit = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ id: z.string() }).parse(input))
+  .handler(async ({ data, context }) => {
+    await requireBookingBusiness(context.supabase);
+    const { data: appointment, error } = await context.supabase
+      .from("appointments")
+      .select("id, service_name, deposit_amount, deposit_paid_amount, deposit_paid_at, deposit_refunded_at")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (depositState(appointment) !== "paid") throw new Error("Qaytariladigan depozit yo'q.");
+
+    const now = new Date().toISOString();
+    const { error: updateError } = await context.supabase
+      .from("appointments")
+      .update({ deposit_refunded_at: now, deposit_paid_at: null, deposit_paid_amount: null, deposit_method: "" })
+      .eq("id", data.id);
+    if (updateError) throw new Error(updateError.message);
+
+    const { error: ledgerError } = await context.supabase
+      .from("payments")
+      .update({ status: "refunded", note: `Depozit qaytarildi · ${appointment?.service_name || "Qabul"}` })
+      .eq("appointment_id", data.id)
+      .eq("status", "paid");
+    if (ledgerError) throw new Error(ledgerError.message);
+
+    return { ok: true as const };
+  });
 
 /* ------------------------------ kpi summary ------------------------------ */
 

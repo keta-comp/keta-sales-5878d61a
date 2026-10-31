@@ -3438,6 +3438,45 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.attendance TO app_user;
 -- 20261030180000_bfca69cd-a519-4a90-a272-2a61fcec4060.sql
 GRANT ALL ON public.attendance TO app_service;
 
+-- 20261031170000_8632fcf7-7bbf-44fc-939a-6c9c5d025363.sql
+ALTER TABLE public.services
+  ADD COLUMN IF NOT EXISTS deposit_type TEXT NOT NULL DEFAULT 'none'
+    CHECK (deposit_type IN ('none', 'fixed', 'percent')),
+  ADD COLUMN IF NOT EXISTS deposit_value NUMERIC(14,2) NOT NULL DEFAULT 0
+    CHECK (deposit_value >= 0);
+
+-- 20261031170000_8632fcf7-7bbf-44fc-939a-6c9c5d025363.sql
+ALTER TABLE public.appointments
+  ADD COLUMN IF NOT EXISTS deposit_amount NUMERIC(14,2)
+    CHECK (deposit_amount IS NULL OR deposit_amount >= 0),
+  ADD COLUMN IF NOT EXISTS deposit_paid_amount NUMERIC(14,2)
+    CHECK (deposit_paid_amount IS NULL OR deposit_paid_amount >= 0),
+  ADD COLUMN IF NOT EXISTS deposit_paid_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS deposit_method TEXT NOT NULL DEFAULT '',
+  ADD COLUMN IF NOT EXISTS deposit_refunded_at TIMESTAMPTZ;
+
+-- 20261031170000_8632fcf7-7bbf-44fc-939a-6c9c5d025363.sql
+ALTER TABLE public.appointments DROP CONSTRAINT IF EXISTS appointments_deposit_state;
+
+-- 20261031170000_8632fcf7-7bbf-44fc-939a-6c9c5d025363.sql
+ALTER TABLE public.appointments ADD CONSTRAINT appointments_deposit_state CHECK (
+  (deposit_refunded_at IS NULL AND deposit_paid_at IS NULL AND deposit_paid_amount IS NULL)
+  OR (deposit_refunded_at IS NULL AND deposit_paid_at IS NOT NULL AND deposit_paid_amount IS NOT NULL)
+  OR (deposit_refunded_at IS NOT NULL)
+);
+
+-- 20261031170000_8632fcf7-7bbf-44fc-939a-6c9c5d025363.sql
+CREATE INDEX IF NOT EXISTS idx_appointments_deposit_pending
+  ON public.appointments (business_id, starts_at)
+  WHERE deposit_amount > 0 AND deposit_paid_at IS NULL;
+
+-- 20261031170000_8632fcf7-7bbf-44fc-939a-6c9c5d025363.sql
+ALTER TABLE public.payments
+  ADD COLUMN IF NOT EXISTS appointment_id UUID REFERENCES public.appointments(id) ON DELETE SET NULL;
+
+-- 20261031170000_8632fcf7-7bbf-44fc-939a-6c9c5d025363.sql
+CREATE INDEX IF NOT EXISTS payments_appointment_idx ON public.payments (appointment_id);
+
 -- ============ epilogue ============
 -- Migratsiyalar yaratgan barcha ketma-ketliklarga huquq (default privileges
 -- faqat keyingi obyektlarga ta'sir qiladi). Jadval huquqlari har migratsiyada

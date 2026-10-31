@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { CalendarDays, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, Trash2, Wallet } from "lucide-react";
 import { toast } from "sonner";
 
 import { EmptyState, ErrorState, LoadingState, PageHeader } from "@/components/app/primitives";
@@ -23,12 +23,30 @@ import {
 } from "@/lib/booking";
 import { listBranches } from "@/lib/branches.functions";
 import { listCrmCustomers } from "@/lib/customers.functions";
+import {
+  DEPOSIT_METHODS,
+  DEPOSIT_METHOD_LABELS,
+  DEPOSIT_STATE_LABELS,
+  DEPOSIT_TYPES,
+  DEPOSIT_TYPE_LABELS,
+  canRecordDeposit,
+  canRefundDeposit,
+  depositFor,
+  depositOutstanding,
+  depositState,
+  pendingDepositTotal,
+  type DepositMethod,
+  type DepositState,
+  type DepositType,
+} from "@/lib/deposit";
 import { listEmployees } from "@/lib/employees.functions";
 import {
   deleteAppointment,
   deleteService,
   listAppointments,
   listServices,
+  recordDeposit as recordAppointmentDeposit,
+  refundDeposit as refundAppointmentDeposit,
   saveAppointment,
   saveService,
   setAppointmentStatus,
@@ -81,6 +99,13 @@ const STATUS_DOT: Record<AppointmentStatus, string> = {
   no_show: "bg-destructive",
 };
 
+const DEPOSIT_BADGE: Record<DepositState, string> = {
+  none: "",
+  pending: "bg-amber-500/10 text-amber-700",
+  paid: "bg-emerald-500/10 text-emerald-700",
+  refunded: "bg-muted text-muted-foreground",
+};
+
 type CalendarView = "day" | "week" | "month";
 
 const WEEKDAY_SHORT = ["Du", "Se", "Ch", "Pa", "Ju", "Sh", "Ya"];
@@ -124,11 +149,16 @@ type AppointmentRow = {
   status: string;
   service_name: string | null;
   customers: unknown;
+  deposit_amount?: unknown;
+  deposit_paid_amount?: unknown;
+  deposit_paid_at?: unknown;
+  deposit_refunded_at?: unknown;
 };
 
 function MiniAppointment({ row, onOpen, noPerson }: { row: AppointmentRow; onOpen: () => void; noPerson: string }) {
   const status = row.status as AppointmentStatus;
   const customer = (row.customers ?? null) as { full_name?: string | null } | null;
+  const pendingDeposit = canRecordDeposit(row);
   return (
     <button
       type="button"
@@ -140,6 +170,7 @@ function MiniAppointment({ row, onOpen, noPerson }: { row: AppointmentRow; onOpe
         {new Date(row.starts_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
       </span>
       <span className="truncate text-muted-foreground">{customer?.full_name ?? row.service_name ?? noPerson}</span>
+      {pendingDeposit ? <Wallet className="size-3 shrink-0 text-amber-600" aria-hidden /> : null}
     </button>
   );
 }
@@ -236,12 +267,37 @@ function ScheduleTab() {
     onError: (error: unknown) => toast.error(error instanceof Error ? error.message : t("Amalga oshmadi")),
   });
 
+  const [depositMethod, setDepositMethod] = useState<DepositMethod>("cash");
+  const [onlyPendingDeposit, setOnlyPendingDeposit] = useState(false);
+
+  const depositMutation = useMutation({
+    mutationFn: (id: string) => recordAppointmentDeposit({ data: { id, method: depositMethod } }),
+    onSuccess: () => {
+      toast.success(t("Depozit qabul qilindi"));
+      invalidate();
+    },
+    onError: (error: unknown) => toast.error(error instanceof Error ? error.message : t("Amalga oshmadi")),
+  });
+
+  const refundMutation = useMutation({
+    mutationFn: (id: string) => refundAppointmentDeposit({ data: { id } }),
+    onSuccess: () => {
+      toast.success(t("Depozit qaytarildi"));
+      invalidate();
+    },
+    onError: (error: unknown) => toast.error(error instanceof Error ? error.message : t("Amalga oshmadi")),
+  });
+
   const employees = (employeesQuery.data ?? []).map((employee) => ({
     id: employee.id,
     label: employee.full_name,
   }));
 
-  const rows = appointments.data ?? [];
+  const allRows = appointments.data ?? [];
+  const rows = onlyPendingDeposit ? allRows.filter((row) => depositOutstanding(row) > 0) : allRows;
+  const pendingDeposits = pendingDepositTotal(allRows);
+  const selectedService = (services.data ?? []).find((service) => service.id === form.service_id) ?? null;
+  const selectedDeposit = selectedService ? depositFor(selectedService, Number(selectedService.price)) : 0;
 
   return (
     <div className="grid gap-4">
@@ -273,10 +329,18 @@ function ScheduleTab() {
               {(services.data ?? []).map((service) => (
                 <SelectItem key={service.id} value={service.id}>
                   {service.name} · {service.duration_minutes} {t("min")}
+                  {depositFor(service, Number(service.price)) > 0
+                    ? ` · ${t("depozit {sum}", { sum: formatMoney(depositFor(service, Number(service.price))) })}`
+                    : ""}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
+          {selectedDeposit > 0 ? (
+            <p className="mt-1 text-xs text-amber-700">
+              {t("Bu xizmat uchun depozit: {sum}", { sum: formatMoney(selectedDeposit) })}
+            </p>
+          ) : null}
         </div>
         <div className="sm:col-span-2">
           <Label htmlFor="apt-customer">{person.one}</Label>
@@ -416,6 +480,20 @@ function ScheduleTab() {
         <Button variant="ghost" onClick={() => setDay(today())}>
           {t("Bugun")}
         </Button>
+        {pendingDeposits.count > 0 ? (
+          <Button
+            variant={onlyPendingDeposit ? "default" : "outline"}
+            size="sm"
+            className="gap-1.5"
+            onClick={() => setOnlyPendingDeposit((prev) => !prev)}
+          >
+            <Wallet className="size-4" />
+            {t("Depozit kutilapti: {count} ta · {sum}", {
+              count: pendingDeposits.count,
+              sum: formatMoney(pendingDeposits.sum),
+            })}
+          </Button>
+        ) : null}
         <span className="ml-auto flex items-center gap-2 text-sm text-muted-foreground">
           <CalendarDays className="size-4" />
           {rows.length} {t("ta {term}", { term: booking.one })}
@@ -429,7 +507,11 @@ function ScheduleTab() {
       ) : view === "day" ? (
         rows.length === 0 ? (
           <EmptyState
-            title={t("Bu kunga {term} yo'q", { term: booking.one })}
+            title={
+              onlyPendingDeposit
+                ? t("Bu davrda depoziti to‘lanmagan {term} yo'q", { term: booking.one })
+                : t("Bu kunga {term} yo'q", { term: booking.one })
+            }
             description={t("Yuqoridagi forma orqali yangi {term} qo'shing.", { term: booking.one })}
           />
         ) : (
@@ -440,6 +522,12 @@ function ScheduleTab() {
               const employee = row.employees as { full_name?: string | null } | null;
               const branch = row.branches as { name?: string } | null;
               const serviceName = row.service_name ?? t("Xizmatsiz");
+              const deposit = depositState(row);
+              const depositSum =
+                deposit === "paid"
+                  ? Number(row.deposit_paid_amount ?? row.deposit_amount ?? 0)
+                  : Number(row.deposit_amount ?? 0);
+              const depositMethodLabel = DEPOSIT_METHOD_LABELS[row.deposit_method as DepositMethod];
               return (
                 <div key={row.id} className="clay-panel flex flex-wrap items-center gap-3 p-4">
                   <div className="min-w-28 text-center">
@@ -485,6 +573,52 @@ function ScheduleTab() {
                       ))}
                     </SelectContent>
                   </Select>
+                  {deposit !== "none" ? (
+                    <div className="flex w-full flex-wrap items-center gap-2 border-t border-border/60 pt-2 sm:w-auto sm:border-t-0 sm:pt-0">
+                      <Badge className={cn("gap-1 border-0", DEPOSIT_BADGE[deposit])}>
+                        <Wallet className="size-3" />
+                        {t(DEPOSIT_STATE_LABELS[deposit])} · {formatMoney(depositSum)}
+                        {deposit === "paid" && depositMethodLabel ? ` · ${t(depositMethodLabel)}` : ""}
+                      </Badge>
+                      {canRecordDeposit(row) ? (
+                        <>
+                          <Select
+                            value={depositMethod}
+                            onValueChange={(value) => setDepositMethod(value as DepositMethod)}
+                          >
+                            <SelectTrigger className="h-8 w-28" aria-label={t("To‘lov usuli")}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {DEPOSIT_METHODS.map((method) => (
+                                <SelectItem key={method} value={method}>
+                                  {t(DEPOSIT_METHOD_LABELS[method])}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={depositMutation.isPending}
+                            onClick={() => depositMutation.mutate(row.id)}
+                          >
+                            {t("Depozitni qabul qilish")}
+                          </Button>
+                        </>
+                      ) : null}
+                      {canRefundDeposit(row) ? (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          disabled={refundMutation.isPending}
+                          onClick={() => refundMutation.mutate(row.id)}
+                        >
+                          {t("Qaytarish")}
+                        </Button>
+                      ) : null}
+                    </div>
+                  ) : null}
                   <Button
                     variant="ghost"
                     size="icon"
@@ -612,13 +746,116 @@ function ScheduleTab() {
   );
 }
 
+type ServiceSaveInput = {
+  id?: string;
+  name: string;
+  duration_minutes: number;
+  price: number;
+  is_active?: boolean;
+  deposit_type?: DepositType;
+  deposit_value?: number;
+};
+
+/** Xizmat qatoridagi depozit qoidasi: sayt egasi jadvaldan chiqmasdan sozlaydi. */
+function DepositRuleCell({
+  service,
+  disabled,
+  onSave,
+}: {
+  service: {
+    id: string;
+    name: string;
+    duration_minutes: number;
+    price: string | number;
+    is_active: boolean;
+    deposit_type: string | null;
+    deposit_value: string | number | null;
+  };
+  disabled: boolean;
+  onSave: (input: ServiceSaveInput) => void;
+}) {
+  const [type, setType] = useState<DepositType>(
+    DEPOSIT_TYPES.includes(service.deposit_type as DepositType) ? (service.deposit_type as DepositType) : "none",
+  );
+  const [value, setValue] = useState(() => String(Number(service.deposit_value) || 0));
+
+  const commit = (nextType: DepositType, nextValue: number) => {
+    onSave({
+      id: service.id,
+      name: service.name,
+      duration_minutes: service.duration_minutes,
+      price: Number(service.price),
+      is_active: service.is_active,
+      deposit_type: nextType,
+      deposit_value: nextType === "none" ? 0 : nextValue,
+    });
+  };
+
+  const deposit = depositFor({ deposit_type: type, deposit_value: Number(value) || 0 }, Number(service.price));
+
+  return (
+    <div className="grid gap-1.5">
+      <div className="flex items-center gap-1.5">
+        <Select
+          disabled={disabled}
+          value={type}
+          onValueChange={(next) => {
+            const nextType = next as DepositType;
+            setType(nextType);
+            commit(nextType, Number(value) || 0);
+          }}
+        >
+          <SelectTrigger className="h-8 w-[7.5rem]" aria-label={t("Depozit turi")}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {DEPOSIT_TYPES.map((option) => (
+              <SelectItem key={option} value={option}>
+                {t(DEPOSIT_TYPE_LABELS[option])}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {type !== "none" ? (
+          <Input
+            className="h-8 w-24"
+            type="number"
+            min="0"
+            max={type === "percent" ? "100" : "1000000000"}
+            step="100"
+            value={value}
+            aria-label={type === "percent" ? t("% miqdori") : t("Summa (so‘m)")}
+            onChange={(event) => setValue(event.target.value)}
+            onBlur={() => commit(type, Number(value) || 0)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                commit(type, Number(value) || 0);
+              }
+            }}
+          />
+        ) : null}
+      </div>
+      {deposit > 0 ? (
+        <p className="text-xs tabular-nums text-muted-foreground">{t("Depozit: {sum}", { sum: formatMoney(deposit) })}</p>
+      ) : null}
+    </div>
+  );
+}
+
 function ServicesTab() {
   const queryClient = useQueryClient();
   const fetchServices = useServerFn(listServices);
   const save = useServerFn(saveService);
   const remove = useServerFn(deleteService);
 
-  const [form, setForm] = useState({ name: "", duration_minutes: "30", price: "" });
+  const [form, setForm] = useState({
+    name: "",
+    duration_minutes: "30",
+    price: "",
+    deposit_type: "none" as DepositType,
+    deposit_value: "",
+  });
 
   const services = useQuery({
     queryKey: ["services", "all"],
@@ -636,19 +873,20 @@ function ServicesTab() {
           name: form.name,
           duration_minutes: Number(form.duration_minutes || 30),
           price: Number(form.price || 0),
+          deposit_type: form.deposit_type,
+          deposit_value: Number(form.deposit_value || 0),
         },
       }),
     onSuccess: () => {
       toast.success(t("Xizmat saqlandi"));
-      setForm({ name: "", duration_minutes: "30", price: "" });
+      setForm({ name: "", duration_minutes: "30", price: "", deposit_type: "none", deposit_value: "" });
       invalidate();
     },
     onError: (error: unknown) => toast.error(error instanceof Error ? error.message : t("Amalga oshmadi")),
   });
 
   const toggleMutation = useMutation({
-    mutationFn: (input: { id: string; name: string; duration_minutes: number; price: number; is_active: boolean }) =>
-      save({ data: input }),
+    mutationFn: (input: ServiceSaveInput) => save({ data: input }),
     onSuccess: () => invalidate(),
     onError: (error: unknown) => toast.error(error instanceof Error ? error.message : t("Amalga oshmadi")),
   });
@@ -706,6 +944,42 @@ function ServicesTab() {
             placeholder="0"
           />
         </div>
+        <div>
+          <Label htmlFor="svc-deposit-type">{t("Depozit")}</Label>
+          <Select
+            value={form.deposit_type}
+            onValueChange={(value) => setForm({ ...form, deposit_type: value as DepositType })}
+          >
+            <SelectTrigger id="svc-deposit-type" className="w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {DEPOSIT_TYPES.map((option) => (
+                <SelectItem key={option} value={option}>
+                  {t(DEPOSIT_TYPE_LABELS[option])}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        {form.deposit_type !== "none" ? (
+          <div>
+            <Label htmlFor="svc-deposit-value">
+              {form.deposit_type === "percent" ? t("% miqdori") : t("Summa (so‘m)")}
+            </Label>
+            <Input
+              id="svc-deposit-value"
+              type="number"
+              min="0"
+              max={form.deposit_type === "percent" ? "100" : "1000000000"}
+              step="100"
+              className="w-32"
+              value={form.deposit_value}
+              onChange={(event) => setForm({ ...form, deposit_value: event.target.value })}
+              placeholder="0"
+            />
+          </div>
+        ) : null}
         <Button type="submit" disabled={saveMutation.isPending}>
           {t("Xizmat qo'shish")}
         </Button>
@@ -725,6 +999,7 @@ function ServicesTab() {
                 <th className="px-4 py-3">{t("Xizmat nomi")}</th>
                 <th className="px-4 py-3">{t("Davomiylik (min)")}</th>
                 <th className="px-4 py-3">{t("Narx")}</th>
+                <th className="px-4 py-3">{t("Depozit qoidasi")}</th>
                 <th className="px-4 py-3">{t("Faol")}</th>
                 <th className="px-4 py-3" />
               </tr>
@@ -735,6 +1010,21 @@ function ServicesTab() {
                   <td className="px-4 py-3 font-medium">{service.name}</td>
                   <td className="px-4 py-3 tabular-nums">{service.duration_minutes}</td>
                   <td className="px-4 py-3 tabular-nums">{formatMoney(Number(service.price))}</td>
+                  <td className="px-4 py-3">
+                    <DepositRuleCell
+                      service={{
+                        id: service.id,
+                        name: service.name,
+                        duration_minutes: service.duration_minutes,
+                        price: service.price,
+                        is_active: service.is_active,
+                        deposit_type: service.deposit_type ?? null,
+                        deposit_value: service.deposit_value ?? null,
+                      }}
+                      disabled={toggleMutation.isPending}
+                      onSave={(input) => toggleMutation.mutate(input)}
+                    />
+                  </td>
                   <td className="px-4 py-3">
                     <Switch
                       checked={service.is_active}

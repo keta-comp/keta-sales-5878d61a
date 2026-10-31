@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/lib/auth-middleware";
 import { supabaseAdmin } from "@/lib/platform.server";
+import { depositFor } from "./deposit";
 import { can, type MemberRole } from "./roles";
 import { requireBusinessId } from "./tenant.server";
 import {
@@ -56,7 +57,7 @@ type PublicEmployee = { id: string; full_name: string; position: string };
 async function loadBookingContext(businessId: string, serviceId: string) {
   const serviceQuery = supabaseAdmin
     .from("services")
-    .select("id, name, duration_minutes, price")
+    .select("id, name, duration_minutes, price, deposit_type, deposit_value")
     .eq("id", serviceId)
     .eq("business_id", businessId)
     .eq("is_active", true)
@@ -93,7 +94,7 @@ export const getPublicBookingPage = createServerFn({ method: "GET" })
       const [{ data: services }, { data: employees }, { data: settings }] = await Promise.all([
         supabaseAdmin
           .from("services")
-          .select("id, name, duration_minutes, price")
+          .select("id, name, duration_minutes, price, deposit_type, deposit_value")
           .eq("business_id", business.id)
           .eq("is_active", true)
           .order("name", { ascending: true }),
@@ -256,6 +257,9 @@ export const createPublicBooking = createServerFn({ method: "POST" })
 
     const { service, employees } = await loadBookingContext(business.id, data.serviceId);
     const endsAt = appointmentEnd(data.starts_at, service.duration_minutes);
+    // Mijoz saytda ko'rgan summa qabulga snapshot bo'lib yoziladi — keyinchalik
+    // xizmat qoidasi o'zgarsa ham undan so'raladigan depozit barqaror qoladi.
+    const depositAmount = depositFor(service, Number(service.price));
 
     // Server-side re-check: pick the requested (or first free) employee whose
     // schedule, time off and existing bookings allow this slot.
@@ -361,6 +365,7 @@ export const createPublicBooking = createServerFn({ method: "POST" })
         service_name: service.name,
         price: Number(service.price),
         duration_minutes: service.duration_minutes,
+        deposit_amount: depositAmount > 0 ? depositAmount : null,
         customer_id: customerId,
         employee_id: chosen?.id ?? null,
         branch_id: null,
@@ -394,7 +399,13 @@ export const createPublicBooking = createServerFn({ method: "POST" })
       }
     }
 
-    return { ok: true, starts_at: data.starts_at, ends_at: endsAt, employee_name: chosen?.full_name ?? "" };
+    return {
+      ok: true,
+      starts_at: data.starts_at,
+      ends_at: endsAt,
+      employee_name: chosen?.full_name ?? "",
+      deposit_amount: depositAmount,
+    };
   });
 
 /* ------------------------- owner-side booking link ------------------------- */

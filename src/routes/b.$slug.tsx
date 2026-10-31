@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { depositFor } from "@/lib/deposit";
 import { createPublicBooking, getPublicBookingPage, getPublicSlots } from "@/lib/public-booking.functions";
 import { t } from "@/lib/i18n";
 import { formatMoney } from "@/lib/types";
@@ -50,7 +51,7 @@ function PublicBookingPage() {
   const [date, setDate] = useState(todayIso());
   const [slot, setSlot] = useState<{ starts_at: string; employee_id: string } | null>(null);
   const [form, setForm] = useState({ full_name: "", phone: "", note: "" });
-  const [done, setDone] = useState<{ starts_at: string; ends_at: string; employee_name: string } | null>(null);
+  const [done, setDone] = useState<{ starts_at: string; ends_at: string; employee_name: string; deposit_amount: number } | null>(null);
 
   const page = useQuery({
     queryKey: ["public-booking", slug],
@@ -59,6 +60,7 @@ function PublicBookingPage() {
 
   const activeServiceId = serviceId || (page.data?.services[0]?.id ?? "");
   const activeService = page.data?.services.find((service) => service.id === activeServiceId) ?? null;
+  const activeDeposit = activeService ? depositFor(activeService, Number(activeService.price)) : 0;
 
   const slots = useQuery({
     queryKey: ["public-slots", slug, activeServiceId, employeeId, date],
@@ -144,6 +146,11 @@ function PublicBookingPage() {
           <p className="mt-4 text-sm text-muted-foreground">
             {t("Administrator siz bilan bog'lanib bronni tasdiqlaydi.")}
           </p>
+          {done.deposit_amount > 0 ? (
+            <p className="mt-2 rounded-xl bg-amber-500/10 px-3 py-2 text-sm text-amber-700">
+              {t("Depozit: {sum}", { sum: formatMoney(done.deposit_amount) })}
+            </p>
+          ) : null}
           {phone ? (
             <a
               href={`tel:${phone.replace(/[^\d+]/g, "")}`}
@@ -350,6 +357,11 @@ function PublicBookingPage() {
             ? `${activeService.name} · ${activeService.duration_minutes} ${t("min")} · ${formatMoney(Number(activeService.price))}`
             : ""}
         </p>
+        {activeDeposit > 0 ? (
+          <p className="rounded-xl bg-amber-500/10 px-3 py-2 text-center text-sm text-amber-700">
+            {t("Bron uchun depozit: {sum}", { sum: formatMoney(activeDeposit) })}
+          </p>
+        ) : null}
       </form>
 
       <footer className="pb-6 text-center text-xs text-muted-foreground">
